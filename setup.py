@@ -3,3 +3,5 @@
 
     Can just grep the imports to keep track of the dependencies
 '''
+
+depends redis-py # maybe redisworks ?
