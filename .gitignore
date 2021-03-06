@@ -1,3 +1,4 @@
 *.rdb
 __pycache__
 .vscode
+scxkw.egg-info

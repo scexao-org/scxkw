@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+
+import sys
+
+from scxkw.config import *
+from scxkw.redisutil.typed_db import Redis
+
+# TODO: remove the extension of this file (no *.py)
+'''
+F16: dec base 10 strings up to 16 chars (signed, dot, exponents)
+I16: dec base 10 strings up to 16 chars (signed)
+A16: string up to 16
+etc...
+'''
+
+if __name__ == '__main__':
+    # TODO Parse the redis_dbconf file and find the host and port.
+
+    rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
+
+    # Is the server alive ?
+    try:
+        alive = rdb.ping()
+        if not alive:
+            raise ConnectionError
+    except:
+        print('Error: can\'t ping redis DB.')
+        sys.exit(1)
+
+    # Load the table
+    if not os.path.exists(KEYWORD_CSV_PATH):
+        print('Error: can\'t find keyword description spreadsheet.')
+        sys.exit(1)
+
+    # PARSING TSV file: do not try to strip the final \n, because it strips trailing \t
+    # Let it in, split over \t, then .strip() all the split members.
+    with open(KEYWORD_CSV_PATH, 'r') as file:
+        file.readline()  # Drop the first line
+        headers = file.readline().split('\t')  # Header line
+        headers = [h.strip() for h in headers]
+        all_lines = file.readlines()
+
+    flagging_headers = [h for h in headers if h.startswith('flag:')]
+
+    sanitized_lines = [[ll.strip() for ll in l.split('\t')] for l in all_lines]
+    # Find key_col_index
+    for k, s in enumerate(headers):
+        if 'FITS' in s:
+            key_col_index = k
+            break
+
+    dict_db = {
+        line[key_col_index]: {subkey.strip(): value
+                              for (subkey, value) in zip(headers, line)}
+        for line in sanitized_lines
+    }
+
+    # Build the set database - initialize it a little bit to reduce the number
+    # of key checks in the loop below
+    sets_db = {}
+    for fh in flagging_headers:
+        sets_db['set:' + fh] = set()
+    sets_db['set:dotted'] = set()
+    sets_db['set:has_shm'] = set()
+    sets_db['set:is_shm_id'] = set()
+    shm_lookup_dict = {}
+    g2_lookup_dict = {}
+
+    # Reword the dictionary a little bit and build the sets of interest
+    for key in dict_db:
+        info = dict_db[key]
+
+        # Group the FITS keys by ?_XXXXXX
+        if key[1] == '_':
+            set_name = 'set:kw:' + key[0]
+            if set_name not in sets_db:
+                sets_db[set_name] = set()
+            sets_db[set_name].add(key)
+
+        # Group the GEN2 keys by first member
+        if len(info['Gen2 Variable']) > 1: # Warning, we have '.' as some Gen2 variables
+            set_name = 'set:g2:' + info['Gen2 Variable'].split('.')[0]
+            if set_name not in sets_db:
+                sets_db[set_name] = set()
+            sets_db[set_name].add(key)
+            g2_lookup_dict[info['Gen2 Variable']] = key
+
+        # Manage SHM lookups
+        # Note: could do the same for gen2 lookups
+        if len(info['Name in SHM']) > 0:
+            sets_db['set:has_shm'].add(key)
+            sets_db['set:is_shm_id'].add(info['Name in SHM'])
+            shm_lookup_dict[info['Name in SHM']] = key
+
+
+        # Get the dotted variables
+        if info['Gen2 Variable'] == '.': # Warning, we have '.' Gen2 variables
+            sets_db['set:dotted'].add(key)
+
+        # Sanitize the flags and make flag sets
+        for fh in flagging_headers:
+            info[fh] = {'': 0, '0': 0, '1': 1}[info[fh]]
+            if info[fh]:
+                sets_db['set:' + fh].add(key)
+            
+
+
+
+    # Now populate the database !
+    # Use a pipeline to make only one bundled TCP transaction
+    with rdb.pipeline() as pipe:
+        for key in dict_db:
+            pipe.hset(key, mapping=dict_db[key])
+        for set_name in sets_db:
+            pipe.sadd(set_name, *sets_db[set_name])
+        pipe.hset('map:shm_lookup', mapping=shm_lookup_dict)
+        pipe.hset('map:g2_lookup', mapping=g2_lookup_dict)
+        pipe.execute() # Execute the cached transactions
+
+
+    # Force a write to disk
+    rdb.save()
+
+    # Bye bye
+    sys.exit(0)

@@ -1,0 +1,57 @@
+#!/usr/bin/env python
+
+'''
+    Setter script for external calls to the keyword database
+    Maintains retrocompatibility with scexaostatus by forwarding all relevant calls
+    This will be done by symlinking this to ~/bin/scexaostatus
+
+    New calls should use the 8 char FITS key
+    Or newly defined SHM keys, but then a spurious call would be dispatched to old scexaostatus
+    which wouldn't know the key and just do nothing.
+
+    Usage:
+        scxkw-setter (create|disp)
+        scxkw-setter set <name> <value> [<color>]
+
+'''
+
+import docopt
+import os, sys
+
+LEGACY_EXEC = '/home/scexao/Instrument-Control-Main/src/SCExAO_status/scexaostatus'
+
+if __name__ == '__main__':
+    args = docopt.docopt(__doc__)
+
+    if args['create']:
+        ret = os.system(LEGACY_EXEC + ' create')
+        sys.exit(ret)
+
+    if args['disp']:
+        ret = os.system(LEGACY_EXEC + ' create')
+        sys.exit(ret)
+
+    # Now, this is a set !
+
+    name = args['<name>']
+    value = args['<value>']
+    color = args['<color>'] # Color can be a None
+
+    from scxkw.redisutil.typed_db import Redis
+    from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT
+    rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
+
+    # Is this an old style, SHM-id call ?
+    test = rdb.hget('map:shm_lookup', name)
+    if test: # It is
+        name_kw = test
+        if color is None:
+            os.system(LEGACY_EXEC + ' set ' + name + ' ' + value)
+        else:
+            os.system(LEGACY_EXEC + ' set ' + name + ' ' + value + ' ' + color)
+    else: # Call by kw identifier - we couuuuld test it actually exists.
+        name_kw = name
+
+    # Set the database
+    rdb.hset(name_kw, 'value', value)
+
