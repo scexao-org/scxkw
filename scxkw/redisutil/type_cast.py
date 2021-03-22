@@ -1,4 +1,3 @@
-import ast
 from typing import Union, List, Set, Tuple, Dict
 
 
@@ -7,10 +6,13 @@ def b2s(byt: bytes):
 
 
 def scalar_cast(value: str):
-    try:  # Can we cast it to a scalar ?
-        return ast.literal_eval(value)
-    except ValueError:  # It was probably a string in the first place
-        return value
+    cast_types = [int, float, complex]
+    for type in cast_types: # Try casting successively, return the first success
+        try:
+            return type(value)
+        except:
+            continue
+    return value # It was probably a non-numeric string in the first place
 
 
 def nested_cast(stuff: Union[List, Set, Tuple, Dict]):
