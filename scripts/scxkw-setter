@@ -10,8 +10,8 @@
     which wouldn't know the key and just do nothing.
 
     Usage:
-        scxkw-setter (create|disp)
-        scxkw-setter set <name> <value> [<color>]
+        scxkw-setter [--] (create|disp)
+        scxkw-setter [--] set <name> <value> [<color>]
 
 '''
 
@@ -21,6 +21,9 @@ import os, sys
 LEGACY_EXEC = '/home/scexao/Instrument-Control-Main/src/SCExAO_status/scexaostatus'
 
 if __name__ == '__main__':
+    #print(sys.argv)
+    # Be dirty and sneaky and make negative arguments legal by throwing in a "--"
+    sys.argv = [sys.argv[0]] + ['--'] + sys.argv[1:]
     args = docopt.docopt(__doc__)
 
     if args['create']:
@@ -28,7 +31,7 @@ if __name__ == '__main__':
         sys.exit(ret)
 
     if args['disp']:
-        ret = os.system(LEGACY_EXEC + ' create')
+        ret = os.system(LEGACY_EXEC + ' disp')
         sys.exit(ret)
 
     # Now, this is a set !
@@ -46,9 +49,11 @@ if __name__ == '__main__':
     if test: # It is
         name_kw = test
         if color is None:
-            os.system(LEGACY_EXEC + ' set ' + name + ' ' + value)
+            command = LEGACY_EXEC + ' set ' + name + ' "' + value + '"'
+            os.system(command)
         else:
-            os.system(LEGACY_EXEC + ' set ' + name + ' ' + value + ' ' + color)
+            command = LEGACY_EXEC + ' set ' + name + ' "' + value + '" ' + color
+            os.system(command)
     else: # Call by kw identifier - we couuuuld test it actually exists.
         name_kw = name
 
