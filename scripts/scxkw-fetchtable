@@ -1,3 +1,4 @@
 #!/bin/bash
 
-# TODO
+curl -L "https://docs.google.com/spreadsheets/d/e/2PACX-1vTjqaDLQms3wkLXldtr-MeVoJvbE6N6YFM4Wj1NR2v-m_v9A3rgKCGic1JnwqsTB407aDs_OTcjsm1l/pub?gid=853446827&single=true&output=tsv" > /home/scexao/src/scxkw/conf/scxkw.tsv
+
