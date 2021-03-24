@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     # Is this an old style, SHM-id call ?
     test = rdb.hget('map:shm_lookup', name)
-    if test: # It is
+    if test is not None: # It is
         name_kw = test
         if color is None:
             command = LEGACY_EXEC + ' set ' + name + ' "' + value + '"'
@@ -54,9 +54,14 @@ if __name__ == '__main__':
         else:
             command = LEGACY_EXEC + ' set ' + name + ' "' + value + '" ' + color
             os.system(command)
-    else: # Call by kw identifier - we couuuuld test it actually exists.
+    else:
         name_kw = name
+        # Avoid the propagation of mis-types of SHM names from the db
+        if not rdb.exists(name_kw):
+            print(f'scxkw warning: sollicited key "{name_kw}" does not exist')
+            name_kw = None
 
     # Set the database
-    rdb.hset(name_kw, 'value', value)
+    if name_kw is not None:
+        rdb.hset(name_kw, 'value', value)
 

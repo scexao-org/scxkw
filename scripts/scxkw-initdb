@@ -1,20 +1,26 @@
 #!/usr/bin/env python
+'''
+    Create the DB from the TSV file
+    
+    Usage:
+        scxkw-initdb [--sanitize]
+
+    Options:
+        -h --help        Show this
+        --sanitize       Sanitize the db from all existing keys that are not in the TSV file
+'''
+
 
 import sys
 
 from scxkw.config import *
 from scxkw.redisutil.typed_db import Redis
 
-# TODO: remove the extension of this file (no *.py)
-'''
-F16: dec base 10 strings up to 16 chars (signed, dot, exponents)
-I16: dec base 10 strings up to 16 chars (signed)
-A16: string up to 16
-etc...
-'''
+from docopt import docopt
 
 if __name__ == '__main__':
 
+    args = docopt(__doc__)
     rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
 
     # Is the server alive ?
@@ -39,20 +45,38 @@ if __name__ == '__main__':
         headers = [h.strip() for h in headers]
         all_lines = file.readlines()
 
+
     flagging_headers = [h for h in headers if h.startswith('flag:')]
 
     sanitized_lines = [[ll.strip() for ll in l.split('\t')] for l in all_lines]
-    # Find key_col_index
+    # Find key_col_index and com_col_index
     for k, s in enumerate(headers):
         if 'FITS' in s:
             key_col_index = k
-            break
+        if 'Comments' in s:
+            com_col_index = k
+    
+    # Extract the keys
+    keys = [line[key_col_index] for line in sanitized_lines]
+    # Remove the comment column
+    headers.pop(com_col_index)
+    for line in sanitized_lines:
+        line.pop(com_col_index)
 
     dict_db = {
-        line[key_col_index]: {subkey.strip(): value
+        key: {subkey.strip(): value
                               for (subkey, value) in zip(headers, line)}
-        for line in sanitized_lines
+        for (key, line) in zip(keys, sanitized_lines)
     }
+
+    if args['--sanitize']:
+        # Sanitize the database from keys that are not in our dict_db
+        wtf_keys = set(rdb.keys()) - set(keys) # Set difference
+        with rdb.pipeline() as pipe:
+            for wtf_key in wtf_keys:
+                pipe.delete(wtf_key)
+                print(wtf_key + '\t\tentry deleted.')
+            pipe.execute()
 
     # Build the set database - initialize it a little bit to reduce the number
     # of key checks in the loop below

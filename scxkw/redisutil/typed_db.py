@@ -28,7 +28,7 @@ class Redis(redis.Redis):
 
 METHODS_TO_CAST = [
     'get', 'hget', 'hmget', 'hgetall', 'scan', 'hscan', 'sadd', 'smembers',
-    'sinter', 'sunion', 'exists', 'hexists', 'keys', 'execute'
+    'sinter', 'sunion', 'exists', 'hexists', 'keys', 'execute', 'type',
 ]
 
 for method_name in METHODS_TO_CAST:
