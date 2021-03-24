@@ -147,15 +147,15 @@ WAV.STG2_PS	P_STGPS2			mm	Position of stage2 (mm)				1
 WAV.STG3_PS	P_STGPS3			mm	Position of stage3 (mm)				1									
 WAV.RT_ANG1	P_RTAGL1			deg	Angle of retarder1 (deg)				1									
 WAV.RT_ANG2	P_RTAGL2			deg	Angle of retarder2 (deg)				1									
-.	POL-ANG1			deg	Position angle of first polarizer (deg)	0	249		1									
-.	POLARIZ1			NA	Identifier of first polarizer	if WAV.STG1_PS = 0, "NONE" else if WAV.STG1_PS = 56, "WireGrid(TIR)" else if WAV.STG1_PS = 90, "WireGrid(NIR)" else, "UNKNOWN"	248		1									
+	POL-ANG1			deg	Position angle of first polarizer (deg)	0	249		1									
+	POLARIZ1			NA	Identifier of first polarizer	if WAV.STG1_PS = 0, "NONE" else if WAV.STG1_PS = 56, "WireGrid(TIR)" else if WAV.STG1_PS = 90, "WireGrid(NIR)" else, "UNKNOWN"	248		1									
 FITS.AON.PROP-ID	PROP-ID		A8	NA	Proposal ID		217	1										
 FITS.SBR.RA	RA     		A12	NA	RA of telescope pointing (HH:MM:SS.SSS)		223	1										
 .	RADECSYS		A8	NA	The equatorial coordinate system		221											
 WAV.RT_ANG1	RET-ANG1			deg	Position angle of first retarder plate (deg)		245		1									
 WAV.RT_ANG2	RET-ANG2			deg	Position angle of second retarder plate (deg)		247		1									
-.	RETPLAT1			NA	Identifier of first retarder plate	if WAV.STG2_PS = 0, "NONE" else if WAV.STG2_PS = 56, "HWP(NIR)" else, "UNKNOWN"	244		1									
-.	RETPLAT2			NA	Identifier of second retarder plate	if WAV.STG3_PS = 0, "NONE" else if WAV.STG3_PS = 56, "HWP(TIR)" else if WAV.STG3_PS = 90, "QWP(NIR)" else, "UNKNOWN"	246		1									
+	RETPLAT1			NA	Identifier of first retarder plate	if WAV.STG2_PS = 0, "NONE" else if WAV.STG2_PS = 56, "HWP(NIR)" else, "UNKNOWN"	244		1									
+	RETPLAT2			NA	Identifier of second retarder plate	if WAV.STG3_PS = 0, "NONE" else if WAV.STG3_PS = 56, "HWP(TIR)" else if WAV.STG3_PS = 90, "QWP(NIR)" else, "UNKNOWN"	246		1									
 FITS.SBR.TELESCOP	TELESCOP		A30	NA	Telescope/System which Inst. is attached		214	1										
 FITS.SBR.TELFOCUS	TELFOCUS		A30	NA	Focus where a beam is reachable		226	1										
 .	TIMESYS		A8	NA	Time System used in the header		216										1	
@@ -360,22 +360,22 @@ SCX.ZAP.GAIN	X_ZAPGN	zap_gain	F16	unitless	ZAP loop gain (0-1)		166					1
 SCX.ZAP.LOOP	X_ZAPLP	zap_loop	A16	NA	ZAP loop status (OPEN, CLOSED, RM, ...)		164					1						
 SCX.ZAP.MOT	X_ZAPMOT	zap_mtype	A16	NA	ZAP mode types (ZERNIKE, LWE, COMBO, ...)		168					1						
 SCX.ZAP.NMO	X_ZAPNMO	zap_nmodes	I16	unitless	ZAP number of modes 		167					1						
-.	Y_FLTNAM		A16	NA	current filter name		546				1							
-.	Y_FLTSLT		A16	NA	current filter slot		547				1							
+	Y_FLTNAM		A16	NA	current filter name		546				1							
+	Y_FLTSLT		A16	NA	current filter slot		547				1							
 	Y_GRISM		A16	NA	deprecated: grism position		544				1							
-.	Y_LSRALM		A16	NA	laser alarms		551				1							
-..	Y_LSRENB		A16	NA	is laserState enabled		549				1							
-.	Y_LSRPWR		I16	percent	laser power		550				1							
-.	Y_PRISM		A16	NA	prism position		545				1							
-.	Y_SHUTTR		A16	NA	shutter position		548				1							
-.	Y_TEMP00		I16	K	temperature sensor 0		552				1							
-.	Y_TEMP01		I16	K	temperature sensor 1		553				1							
-.	Y_TEMP02		I16	K	temperature sensor 2		554				1							
-.	Y_TEMP03		I16	K	temperature sensor 3		555				1							
-.	Y_TEMP04		I16	K	temperature sensor 4		556				1							
-.	Y_TEMP05		I16	K	temperature sensor 5		557				1							
+	Y_LSRALM		A16	NA	laser alarms		551				1							
+	Y_LSRENB		A16	NA	is laserState enabled		549				1							
+	Y_LSRPWR		I16	percent	laser power		550				1							
+	Y_PRISM		A16	NA	prism position		545				1							
+	Y_SHUTTR		A16	NA	shutter position		548				1							
+	Y_TEMP00		I16	K	temperature sensor 0		552				1							
+	Y_TEMP01		I16	K	temperature sensor 1		553				1							
+	Y_TEMP02		I16	K	temperature sensor 2		554				1							
+	Y_TEMP03		I16	K	temperature sensor 3		555				1							
+	Y_TEMP04		I16	K	temperature sensor 4		556				1							
+	Y_TEMP05		I16	K	temperature sensor 5		557				1							
 	Y_TEMP06		I16	K	temperature sensor 6		558				1							
-.	Y_TEMP07		I16	K	temperature sensor 7		559				1							
-.	Y_TEMP08		I16	K	temperature sensor 8		560				1							
-.	Y_TEMP09		I16	K	temperature sensor 9		561				1							
+	Y_TEMP07		I16	K	temperature sensor 7		559				1							
+	Y_TEMP08		I16	K	temperature sensor 8		560				1							
+	Y_TEMP09		I16	K	temperature sensor 9		561				1							
 FITS.SBR.ZD	ZD     		F20	deg	Zenith distance at typical time (deg)		229	1										
