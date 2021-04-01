@@ -1,0 +1,109 @@
+#!/usr/bin/env python
+
+'''
+    Daemon starting point
+
+    Starts a 10-sec loop which by default does:
+        - Fetch gen2, publish to scexao-redis
+        - Fetch scexao-redis, publish to gen2
+        
+        - Generate no-data-fits-headers in /milk/shm/fits/<headerflag>.fits
+
+
+    Selection flags allow to choose which of these calls do or do not run.
+    No argument: run everything
+
+    Usage:
+        scxkw-setter [-h | --help]
+        scxkw-setter select [options]
+
+    Options:
+        -h --help     Show this message
+        --pull          Fetch AO status (et al) from Gen2
+        --push          Push scexao status to Gen2
+        --fits          Write fits headers
+        --csvwr         Write a db dump in csv file
+
+'''
+
+import os, sys
+import time, datetime
+from docopt import docopt
+
+# Redis utils
+from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, FITS_HEADER_PATH, CSV_DUMP_PATH
+from scxkw.redisutil.typed_db import Redis
+
+# Gen2 util
+from g2base.remoteObjects import remoteObjects as ro
+GEN2HOST = 'g2ins1.sum.subaru.nao.ac.jp'
+
+# g2push
+from scxkw.daemons.gen2_push import gen2_push
+# g2pull
+from scxkw.daemons.gen2_pull import gen2_pull
+# fits_write
+from scxkw.daemons.fits_write import write_headers
+# Dump telescope status to csv file
+from scxkw.daemons.csv_write import csv_write
+
+
+if __name__ == "__main__":
+
+    # Argument parsing
+
+    args = docopt(__doc__)
+
+    G2PULL = args["--pull"] or not args["select"]
+    G2PUSH = args["--push"] or not args["select"]
+    FITSWRITE = args["--fits"] or not args["select"]
+    CSVWRITE = args["--csvwr"] or not args["select"]
+
+    print(f'Starting daemon loop at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}')
+    print(f'Gen2 pull: {G2PULL}')
+    print(f'Gen2 push: {G2PUSH}')
+    print(f'Fits writing:  {FITSWRITE}')
+    print(f'Telescope csv write:  {CSVWRITE}')
+
+    try: # Catch a Ctrl+C
+        
+        # Init redis db
+        rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
+
+        ro.init([GEN2HOST])
+        status_obj = ro.remoteObjectProxy('status')
+
+        # This loop runs every second
+        # There's a counter for want you want to do every n seconds
+        n = 0
+        while True:
+            try:
+                # Is the server alive ?
+                alive = rdb.ping()
+                if not alive:
+                    raise ConnectionError
+
+                if G2PULL and n % 10 == 0:
+                    gen2_pull(rdb, status_obj)
+                if G2PUSH and n % 10 == 1:
+                    gen2_push(rdb, status_obj)
+                if FITSWRITE and n % 2 == 0:
+                    write_headers(rdb, FITS_HEADER_PATH)
+                # Dump telescope status to csv file
+                if CSVWRITE and n % 10 == 2:
+                    csv_write(rdb, CSV_DUMP_PATH)
+
+            except ConnectionError as e:
+                print(f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}')
+                print('Likely cause: connection Error - can\'t ping SCExAO redis DB')
+                print(f'=== {e} ===')
+            except ro.remoteObjectError as e:
+                print(f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}')
+                print('Likely cause: timeout / gen2 offline')
+                print(f'=== {e} ===')
+
+            time.sleep(1.)
+            n += 1
+
+    except KeyboardInterrupt:
+        sys.exit(0)

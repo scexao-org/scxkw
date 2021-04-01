@@ -11,9 +11,9 @@
 '''
 
 
-import sys
+import sys, os
 
-from scxkw.config import *
+from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, KEYWORD_CSV_PATH
 from scxkw.redisutil.typed_db import Redis
 
 from docopt import docopt
@@ -47,6 +47,7 @@ if __name__ == '__main__':
 
 
     flagging_headers = [h for h in headers if h.startswith('flag:')]
+    fits_headers = [h for h in headers if h.startswith('fits:')]
 
     sanitized_lines = [[ll.strip() for ll in l.split('\t')] for l in all_lines]
     # Find key_col_index and com_col_index
@@ -82,6 +83,8 @@ if __name__ == '__main__':
     # of key checks in the loop below
     sets_db = {}
     for fh in flagging_headers:
+        sets_db['set:' + fh] = set()
+    for fh in fits_headers:
         sets_db['set:' + fh] = set()
     sets_db['set:dotted'] = set()
     sets_db['set:has_shm'] = set()
@@ -120,8 +123,14 @@ if __name__ == '__main__':
         if info['Gen2 Variable'] == '.': # Warning, we have '.' Gen2 variables
             sets_db['set:dotted'].add(key)
 
-        # Sanitize the flags and make flag sets
+        # Sanitize the flags: and make flag sets
         for fh in flagging_headers:
+            info[fh] = {'': 0, '0': 0, '1': 1}[info[fh]]
+            if info[fh]:
+                sets_db['set:' + fh].add(key)
+
+        # Sanitize the fits: and make fits: sets
+        for fh in fits_headers:
             info[fh] = {'': 0, '0': 0, '1': 1}[info[fh]]
             if info[fh]:
                 sets_db['set:' + fh].add(key)
