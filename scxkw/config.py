@@ -12,7 +12,11 @@ import os
 # Where to write the data-less fits headers
 FITS_HEADER_PATH = os.environ['MILK_SHM_DIR'] + '/fits/' # Straight to the tmpfs
 # Where to write the data dump every now and then
+
 CSV_DUMP_PATH = '/mnt/md0/' # + date + csv file name
+if not os.path.ismount(CSV_DUMP_PATH):
+    # scexao2 fallback !
+    CSV_DUMP_PATH = '/media/data'
 
 #REDIS_CONF_PATH='/home/scexao/src/scxkw/conf/redis_dbconf.conf'
 REDIS_CONF_PATH='/home/vdeo/src/scxkw/conf/redis_dbconf.conf'
