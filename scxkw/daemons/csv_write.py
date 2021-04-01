@@ -30,18 +30,19 @@ def csv_write(rdb, root_path):
     data_dict = {k:v for k, v in zip(sorted_keys, sorted_values)}
 
     # OOOOOOK what happens if the header changed !
-    with open(logfile_path,'r') as csvlog:
-        reader = csv.DictReader(csvlog, delimiter='\t')
-        previous_fields = reader.fieldnames
-    
-    diff = set.symmetric_difference(set(sorted_keys), set(previous_fields))
-    if len(diff) > 0:
-        print('Warning: TSV keys have changed !')
-        print('Ambiguous keys (disappeared/appeared):')
-        print(diff)
-        logfile_bak_path = today_folder + '/keywords_log_' + datetime.datetime.utcnow().strftime('%H:%M:%S') + '.tsv'
-        print('Moving current file to ' + logfile_bak_path + ' and starting a new one.')
-        os.rename(logfile_path, logfile_bak_path)
+    if os.path.isfile(logfile_path):
+        with open(logfile_path,'r') as csvlog:
+            reader = csv.DictReader(csvlog, delimiter='\t')
+            previous_fields = reader.fieldnames
+        
+        diff = set.symmetric_difference(set(sorted_keys), set(previous_fields))
+        if len(diff) > 0:
+            print('Warning: TSV keys have changed !')
+            print('Ambiguous keys (disappeared/appeared):')
+            print(diff)
+            logfile_bak_path = today_folder + '/keywords_log_' + datetime.datetime.utcnow().strftime('%H:%M:%S') + '.tsv'
+            print('Moving current file to ' + logfile_bak_path + ' and starting a new one.')
+            os.rename(logfile_path, logfile_bak_path)
 
 
     with open(logfile_path,'a') as csvlog:
