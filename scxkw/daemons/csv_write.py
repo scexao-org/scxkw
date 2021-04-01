@@ -11,7 +11,7 @@ from scxkw.redisutil.typed_db import Redis
 def csv_write(rdb, root_path):
     
     today_folder = root_path + '/' + datetime.datetime.utcnow().strftime("%Y%m%d") + '/logging'
-    logfile_path = today_folder + '/keywords_log.csv'
+    logfile_path = today_folder + '/keywords_log.tsv'
     if not os.path.isdir(today_folder):
         os.makedirs(today_folder)
 
@@ -24,13 +24,32 @@ def csv_write(rdb, root_path):
             pipe.hget(key, 'value')
         sorted_values = pipe.execute()
 
-    # csv writer object
+    # Add saving timestamp
+    sorted_keys = ['WRITTIME'] + sorted_keys
+    sorted_values = [datetime.datetime.utcnow().strftime('%Y%m%d-%H:%M:%S')] + sorted_values
+    data_dict = {k:v for k, v in zip(sorted_keys, sorted_values)}
+
+    # OOOOOOK what happens if the header changed !
+    with open(logfile_path,'r') as csvlog:
+        reader = csv.DictReader(csvlog, delimiter='\t')
+        previous_fields = reader.fieldnames
+    
+    diff = set.symmetric_difference(set(sorted_keys), set(previous_fields))
+    if len(diff) > 0:
+        print('Warning: TSV keys have changed !')
+        print('Ambiguous keys (disappeared/appeared):')
+        print(diff)
+        logfile_bak_path = today_folder + '/keywords_log_' + datetime.datetime.utcnow().strftime('%H:%M:%S') + '.tsv'
+        print('Moving current file to ' + logfile_bak_path + ' and starting a new one.')
+        os.rename(logfile_path, logfile_bak_path)
+
 
     with open(logfile_path,'a') as csvlog:
-        writer = csv.DictWriter(csvlog, fieldnames=sorted_keys)
+        # csv writer object
+        writer = csv.DictWriter(csvlog, fieldnames=sorted_keys, delimiter='\t')
         if os.stat(logfile_path).st_size == 0:
             writer.writeheader()
-        writer.writerow(sorted_values)
+        writer.writerow(data_dict)
 
 
 if __name__ == "__main__":
