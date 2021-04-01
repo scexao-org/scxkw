@@ -10,7 +10,6 @@
         --sanitize       Sanitize the db from all existing keys that are not in the TSV file
 '''
 
-
 import sys, os
 
 from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, KEYWORD_CSV_PATH
@@ -45,7 +44,6 @@ if __name__ == '__main__':
         headers = [h.strip() for h in headers]
         all_lines = file.readlines()
 
-
     flagging_headers = [h for h in headers if h.startswith('flag:')]
     fits_headers = [h for h in headers if h.startswith('fits:')]
 
@@ -56,7 +54,7 @@ if __name__ == '__main__':
             key_col_index = k
         if 'Comments' in s:
             com_col_index = k
-    
+
     # Extract the keys
     keys = [line[key_col_index] for line in sanitized_lines]
     # Remove the comment column
@@ -66,13 +64,13 @@ if __name__ == '__main__':
 
     dict_db = {
         key: {subkey.strip(): value
-                              for (subkey, value) in zip(headers, line)}
+              for (subkey, value) in zip(headers, line)}
         for (key, line) in zip(keys, sanitized_lines)
     }
 
     if args['--sanitize']:
         # Sanitize the database from keys that are not in our dict_db
-        wtf_keys = set(rdb.keys()) - set(keys) # Set difference
+        wtf_keys = set(rdb.keys()) - set(keys)  # Set difference
         with rdb.pipeline() as pipe:
             for wtf_key in wtf_keys:
                 pipe.delete(wtf_key)
@@ -104,7 +102,8 @@ if __name__ == '__main__':
             sets_db[set_name].add(key)
 
         # Group the GEN2 keys by first member
-        if len(info['Gen2 Variable']) > 1: # Warning, we have '.' as some Gen2 variables
+        if len(info['Gen2 Variable']
+               ) > 1:  # Warning, we have '.' as some Gen2 variables
             set_name = 'set:g2:' + info['Gen2 Variable'].split('.')[0]
             if set_name not in sets_db:
                 sets_db[set_name] = set()
@@ -118,9 +117,8 @@ if __name__ == '__main__':
             sets_db['set:is_shm_id'].add(info['Name in SHM'])
             shm_lookup_dict[info['Name in SHM']] = key
 
-
         # Get the dotted variables
-        if info['Gen2 Variable'] == '.': # Warning, we have '.' Gen2 variables
+        if info['Gen2 Variable'] == '.':  # Warning, we have '.' Gen2 variables
             sets_db['set:dotted'].add(key)
 
         # Sanitize the flags: and make flag sets
@@ -134,9 +132,6 @@ if __name__ == '__main__':
             info[fh] = {'': 0, '0': 0, '1': 1}[info[fh]]
             if info[fh]:
                 sets_db['set:' + fh].add(key)
-            
-
-
 
     # Now populate the database !
     # Use a pipeline to make only one bundled TCP transaction
@@ -147,8 +142,7 @@ if __name__ == '__main__':
             pipe.sadd(set_name, *sets_db[set_name])
         pipe.hset('map:shm_lookup', mapping=shm_lookup_dict)
         pipe.hset('map:g2_lookup', mapping=g2_lookup_dict)
-        pipe.execute() # Execute the cached transactions
-
+        pipe.execute()  # Execute the cached transactions
 
     # Force a write to disk
     rdb.save()
