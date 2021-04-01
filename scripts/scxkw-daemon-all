@@ -34,14 +34,6 @@ from docopt import docopt
 from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, FITS_HEADER_PATH, CSV_DUMP_PATH
 from scxkw.redisutil.typed_db import Redis
 
-# Gen2 util
-from g2base.remoteObjects import remoteObjects as ro
-GEN2HOST = 'g2ins1.sum.subaru.nao.ac.jp'
-
-# g2push
-from scxkw.daemons.gen2_push import gen2_push
-# g2pull
-from scxkw.daemons.gen2_pull import gen2_pull
 # fits_write
 from scxkw.daemons.fits_write import write_headers
 # Dump telescope status to csv file
@@ -56,6 +48,16 @@ if __name__ == "__main__":
 
     G2PULL = args["--pull"] or not args["select"]
     G2PUSH = args["--push"] or not args["select"]
+
+    if G2PULL or G2PUSH:
+        # Gen2 util
+        from g2base.remoteObjects import remoteObjects as ro
+        GEN2HOST = 'g2ins1.sum.subaru.nao.ac.jp'
+        # g2push
+        from scxkw.daemons.gen2_push import gen2_push
+        # g2pull
+        from scxkw.daemons.gen2_pull import gen2_pull
+
     FITSWRITE = args["--fits"] or not args["select"]
     CSVWRITE = args["--csvwr"] or not args["select"]
 
@@ -70,8 +72,9 @@ if __name__ == "__main__":
         # Init redis db
         rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
 
-        ro.init([GEN2HOST])
-        status_obj = ro.remoteObjectProxy('status')
+        if G2PULL or G2PUSH:
+            ro.init([GEN2HOST])
+            status_obj = ro.remoteObjectProxy('status')
 
         # This loop runs every second
         # There's a counter for want you want to do every n seconds
