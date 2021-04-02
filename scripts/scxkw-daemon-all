@@ -52,11 +52,17 @@ if __name__ == "__main__":
     if G2PULL or G2PUSH:
         # Gen2 util
         from g2base.remoteObjects import remoteObjects as ro
+        from ro import remoteObjectProxy, remoteObjectError
         GEN2HOST = 'g2ins1.sum.subaru.nao.ac.jp'
         # g2push
         from scxkw.daemons.gen2_push import gen2_push
         # g2pull
         from scxkw.daemons.gen2_pull import gen2_pull
+    else:
+        # If not, we still want the error code to make sense
+        class remoteObjectError(Exception): pass
+        pass
+        
 
     FITSWRITE = args["--fits"] or not args["select"]
     CSVWRITE = args["--csvwr"] or not args["select"]
@@ -74,7 +80,7 @@ if __name__ == "__main__":
 
         if G2PULL or G2PUSH:
             ro.init([GEN2HOST])
-            status_obj = ro.remoteObjectProxy('status')
+            status_obj = remoteObjectProxy('status')
 
         # This loop runs every second
         # There's a counter for want you want to do every n seconds
@@ -100,7 +106,7 @@ if __name__ == "__main__":
                 print(f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}')
                 print('Likely cause: connection Error - can\'t ping SCExAO redis DB')
                 print(f'=== {e} ===')
-            except ro.remoteObjectError as e:
+            except remoteObjectError as e:
                 print(f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}')
                 print('Likely cause: timeout / gen2 offline')
                 print(f'=== {e} ===')
