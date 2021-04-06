@@ -44,7 +44,9 @@ def gen2_pull(rdb, status_obj):
         # ========================
         # WAVEPLATE SPECIFIC KEYS
         # ========================
-
+        
+        pipe.hset('INSTRUME', 'value', 'SCExAO  ')
+        pipe.hset('RADECSYS', 'value', 'FK5     ')
         pipe.hset('POL-ANG1', 'value', 0)
 
         stgps1 = float(pulled_for_pipe['P_STGPS1'])
