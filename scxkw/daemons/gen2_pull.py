@@ -37,6 +37,7 @@ def gen2_pull(rdb, status_obj):
     # ========================
     # SETTING VALUES
     # ========================
+
     with rdb.pipeline() as pipe:
         for key in pulled_for_pipe:
             pipe.hset(key, 'value', pulled_for_pipe[key])
