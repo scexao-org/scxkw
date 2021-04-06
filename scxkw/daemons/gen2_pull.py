@@ -51,31 +51,31 @@ def gen2_pull(rdb, status_obj):
 
         stgps1 = float(pulled_for_pipe['P_STGPS1'])
         if stgps1 == 0:
-            pipe.hset('POLARIZ1', 'value', 'NONE')
+            pipe.hset('POLARIZ1', 'value', 'NONE            ')
         elif stgps1 == 56:
-            pipe.hset('POLARIZ1', 'value', 'WireGrid(TIR)')
+            pipe.hset('POLARIZ1', 'value', 'WireGrid(TIR)   ')
         elif stgps1 == 90:
-            pipe.hset('POLARIZ1', 'value', 'WireGrid(NIR)')
+            pipe.hset('POLARIZ1', 'value', 'WireGrid(NIR)   ')
         else:
-            pipe.hset('POLARIZ1', 'value', 'UNKNOWN')
+            pipe.hset('POLARIZ1', 'value', 'UNKNOWN         ')
 
         stgps2 = float(pulled_for_pipe['P_STGPS2'])
         if stgps2 == 0:
-            pipe.hset('RETPLAT1', 'value', 'NONE')
+            pipe.hset('RETPLAT1', 'value', 'NONE            ')
         elif stgps2 == 56:
-            pipe.hset('RETPLAT1', 'value', 'HWP(NIR)')
+            pipe.hset('RETPLAT1', 'value', 'HWP(NIR)        ')
         else:
-            pipe.hset('RETPLAT1', 'value', 'UNKNOWN')
+            pipe.hset('RETPLAT1', 'value', 'UNKNOWN         ')
 
         stgps3 = float(pulled_for_pipe['P_STGPS3'])
         if stgps3 == 0:
-            pipe.hset('RETPLAT2', 'value', 'NONE')
+            pipe.hset('RETPLAT2', 'value', 'NONE            ')
         elif stgps3 == 56:
-            pipe.hset('RETPLAT2', 'value', 'HWP(TIR)')
+            pipe.hset('RETPLAT2', 'value', 'HWP(TIR)        ')
         elif stgps3 == 90:
-            pipe.hset('RETPLAT2', 'value', 'QWP(NIR)')
+            pipe.hset('RETPLAT2', 'value', 'QWP(NIR)        ')
         else:
-            pipe.hset('RETPLAT2', 'value', 'UNKNOWN')
+            pipe.hset('RETPLAT2', 'value', 'UNKNOWN         ')
 
         pipe.execute()
 
