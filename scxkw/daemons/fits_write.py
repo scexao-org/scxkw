@@ -32,7 +32,10 @@ def write_headers(rdb, path):
     with rdb.pipeline() as pipe:
         for kw_key in kw_keys:
             pipe.hget(kw_key, "value")
-        kw_data = {kw: val for kw, val in zip(kw_keys, pipe.execute())}
+            pipe.hget(kw_key, "Description")
+        res = pipe.execute()
+        # Generate (value, description tuples)
+        kw_data = {kw: (val, descr) for kw, val, descr in zip(kw_keys, res[::2], res[1::2])}
 
     # Now make the dicts on the fly for each file_key, and call the write_one_header
     for file_key in file_keys:
@@ -50,9 +53,13 @@ def write_one_header(key_val_dict, folder, name):
 
     # Write to _tmp.fits
     fits.writeto(folder + '/' +  name + '_tmp.fits', np.array([0.0]), header, overwrite=True)
-    # Rename file to final, in hope for atomicity
-    os.rename(folder + '/' +  name + '_tmp.fits', folder + '/' +  name + '.fits')
+    # Write to _header_dump_tmp.txt
+    with open(folder + '/' +  name + '_header_dump_tmp.txt', 'w') as f:
+        f.write(str(header))
 
+    # Rename files to final, in hope for atomicity
+    os.rename(folder + '/' +  name + '_tmp.fits', folder + '/' +  name + '.fits')
+    os.rename(folder + '/' +  name + '_header_dump_tmp.txt', folder + '/' +  name + '_header_dump.txt')
 
 if __name__ == "__main__":
 
