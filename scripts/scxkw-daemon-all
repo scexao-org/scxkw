@@ -14,8 +14,8 @@
     No argument: run everything
 
     Usage:
-        scxkw-setter [-h | --help]
-        scxkw-setter select [options]
+        scxkw-daemon-all [-h | --help]
+        scxkw-daemon-all select [options]
 
     Options:
         -h --help     Show this message
@@ -52,7 +52,6 @@ if __name__ == "__main__":
     if G2PULL or G2PUSH:
         # Gen2 util
         from g2base.remoteObjects import remoteObjects as ro
-        from ro import remoteObjectProxy, remoteObjectError
         GEN2HOST = 'g2ins1.sum.subaru.nao.ac.jp'
         # g2push
         from scxkw.daemons.gen2_push import gen2_push
@@ -62,7 +61,7 @@ if __name__ == "__main__":
         # If not, we still want the error code to make sense
         class remoteObjectError(Exception): pass
         pass
-        
+
 
     FITSWRITE = args["--fits"] or not args["select"]
     CSVWRITE = args["--csvwr"] or not args["select"]
@@ -74,13 +73,13 @@ if __name__ == "__main__":
     print(f'Telescope csv write:  {CSVWRITE}')
 
     try: # Catch a Ctrl+C
-        
+
         # Init redis db
         rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
 
         if G2PULL or G2PUSH:
             ro.init([GEN2HOST])
-            status_obj = remoteObjectProxy('status')
+            status_obj = ro.remoteObjectProxy('status')
 
         # This loop runs every second
         # There's a counter for want you want to do every n seconds
@@ -106,7 +105,7 @@ if __name__ == "__main__":
                 print(f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}')
                 print('Likely cause: connection Error - can\'t ping SCExAO redis DB')
                 print(f'=== {e} ===')
-            except remoteObjectError as e:
+            except ro.remoteObjectError as e:
                 print(f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}')
                 print('Likely cause: timeout / gen2 offline')
                 print(f'=== {e} ===')
