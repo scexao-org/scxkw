@@ -57,6 +57,10 @@ def write_one_header(key_val_dict, folder, name):
     with open(folder + '/' +  name + '_header_dump_tmp.txt', 'w') as f:
         f.write(str(header))
 
+    # Change permissions to 666
+    os.chmod(folder + '/' + name + '_tmp.fits', 0o666)
+    os.chmod(folder + '/' + name + '_header_dump_tmp.txt', 0o666)
+
     # Rename files to final, in hope for atomicity
     os.rename(folder + '/' +  name + '_tmp.fits', folder + '/' +  name + '.fits')
     os.rename(folder + '/' +  name + '_header_dump_tmp.txt', folder + '/' +  name + '_header_dump.txt')
