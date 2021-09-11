@@ -80,10 +80,16 @@ def gen2_pull(rdb, status_obj):
         else:
             pipe.hset('RETPLAT2', 'value', 'UNKNOWN         ')
 
-        retang1 = float(pulled_for_pipe['P_RTAGL1'])
-        pipe.hset('RET-ANG1', 'value', retang1)
-        retang2 = float(pulled_for_pipe['P_RTAGL2'])
-        pipe.hset('RET-ANG2', 'value', retang2)
+        try:
+            retang1 = float(pulled_for_pipe['P_RTAGL1'])
+            pipe.hset('RET-ANG1', 'value', retang1)
+        except:
+            pipe.hset('RET-ANG1', 'value', 0.)
+        try:
+            retang2 = float(pulled_for_pipe['P_RTAGL2'])
+            pipe.hset('RET-ANG2', 'value', retang2)
+        except:
+            pipe.hset('RET-ANG2', 'value', 0.)
         pipe.execute()
 
 
