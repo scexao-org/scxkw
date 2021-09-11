@@ -41,7 +41,7 @@ def write_headers(rdb, path):
     for file_key in file_keys:
         keyval_dict = {kw: kw_data[kw] for kw in data_fits_sets[file_key]}
         write_one_header(keyval_dict, path, file_key)
-    
+
     return(keyval_dict)
 
 

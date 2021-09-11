@@ -135,12 +135,20 @@ if __name__ == '__main__':
 
     # Now populate the database !
     # Use a pipeline to make only one bundled TCP transaction
+    # We del the prev sets/maps before recreating new ones
+    # This is important for when something starts or stops having a Gen2 key, etc.
     with rdb.pipeline() as pipe:
+        # Normal FITS keys
         for key in dict_db:
             pipe.hset(key, mapping=dict_db[key])
+        # Convenience sets !
         for set_name in sets_db:
+            pipe.delete(set_name)
             pipe.sadd(set_name, *sets_db[set_name])
+        # Convenience reverse lookup maps !
+        pipe.delete('map:shm_lookup')
         pipe.hset('map:shm_lookup', mapping=shm_lookup_dict)
+        pipe.delete('map:g2_lookup')
         pipe.hset('map:g2_lookup', mapping=g2_lookup_dict)
         pipe.execute()  # Execute the cached transactions
 
