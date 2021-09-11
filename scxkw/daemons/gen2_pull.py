@@ -46,6 +46,7 @@ def gen2_pull(rdb, status_obj):
         # WAVEPLATE SPECIFIC KEYS
         # ========================
         
+        pipe.hset('OBSERVAT', 'value', 'NAOJ    ')
         pipe.hset('INSTRUME', 'value', 'SCExAO  ')
         pipe.hset('RADESYS', 'value', 'FK5     ')
         pipe.hset('LONPOLE', 'value', 180)
@@ -79,6 +80,10 @@ def gen2_pull(rdb, status_obj):
         else:
             pipe.hset('RETPLAT2', 'value', 'UNKNOWN         ')
 
+        retang1 = float(pulled_for_pipe['P_RTAGL1'])
+        pipe.hset('RET-ANG1', 'value', retang1)
+        retang2 = float(pulled_for_pipe['P_RTAGL2'])
+        pipe.hset('RET-ANG2', 'value', retang2)
         pipe.execute()
 
 
