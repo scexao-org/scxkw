@@ -4,10 +4,10 @@
     To be conveniently imported all around the python scripts
 '''
 
-import scconf
 
 # Redis location - needs to be updated in the conf file as well
 try:
+    import scxconf
     REDIS_DB_HOST = scconf.REDIS_DB_HOST
     REDIS_DB_PORT = scconf.REDIS_DB_PORT
 except:
