@@ -9,6 +9,10 @@ from setuptools import setup
 with open("README.md", 'r') as f:
     long_description = f.read()
 
+import glob
+
+script_list = glob.glob('./scripts/scxkw-*')
+
 setup(
         name = 'scxkw',
         version = '0.1',
@@ -19,4 +23,5 @@ setup(
         url = "http://www.github.com/scexao-org/scxkw",
         packages = ['scxkw'],  # same as name
         install_requires = ['docopt', 'numpy', 'redis'],
-        scripts = [])
+        scripts = script_list
+    )
