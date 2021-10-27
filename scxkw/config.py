@@ -4,9 +4,15 @@
     To be conveniently imported all around the python scripts
 '''
 
+import scconf
+
 # Redis location - needs to be updated in the conf file as well
-REDIS_DB_HOST = '133.40.161.192'
-REDIS_DB_PORT = 6379
+try:
+    REDIS_DB_HOST = scconf.REDIS_DB_HOST
+    REDIS_DB_PORT = scconf.REDIS_DB_PORT
+except:
+    REDIS_DB_HOST = '133.40.161.192'
+    REDIS_DB_PORT = 6379
 
 import os
 # Where to write the data-less fits headers
