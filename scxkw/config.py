@@ -5,7 +5,7 @@
 '''
 
 # Redis location - needs to be updated in the conf file as well
-REDIS_DB_HOST = '133.40.161.194'
+REDIS_DB_HOST = '133.40.161.192'
 REDIS_DB_PORT = 6379
 
 import os
