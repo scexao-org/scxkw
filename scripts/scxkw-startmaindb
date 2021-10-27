@@ -1,0 +1,3 @@
+#!/bin/bash
+
+redis-server ${HOME}/src/scxkw/conf/redis_dbconf.conf
