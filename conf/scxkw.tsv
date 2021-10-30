@@ -152,7 +152,7 @@ FITS.SBR.M2-TYPE	M2-TYPE			NA	2nd mirror type		235	1	1	1	1
 FITS.SBR.MJD	MJD    		F20	J2000	Modified Julian Day at typical time		206	1	1	1	1										
 .	MJD-END		F20	J2000	Modified Julian Day at exposure end		208	1	1	1										1	
 .	MJD-STR		F20	J2000	Modified Julian Day at exposure start		207	1	1	1										1	
-.	NDR		I16	NA	Number of non-destructive reads			1	1											1	
+.	DET-NSMP		I16	NA	Number of non-destructive reads			1	1											1	
 FITS.CRS.OBJECT	OBJECT 		A30	NA	Object		199	1	1	1	1										
 FITS.AON.OBS-ALOC	OBS-ALOC		A12	NA	Observation or Standby		219	1	1	1	1										
 FITS.AON.OBS-MOD	OBS-MOD		A30	NA	Observation Mode		220	1	1	1	1										

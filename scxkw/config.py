@@ -11,7 +11,7 @@ try:
     REDIS_DB_HOST = scconf.REDIS_DB_HOST
     REDIS_DB_PORT = scconf.REDIS_DB_PORT
 except:
-    REDIS_DB_HOST = '133.40.161.192'
+    REDIS_DB_HOST = '133.40.161.195'
     REDIS_DB_PORT = 6379
 
 import os
