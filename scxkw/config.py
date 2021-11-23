@@ -22,7 +22,7 @@ except:
     FITS_HEADER_PATH = None
 
 # Where to write the data dump every now and then
-CSV_DUMP_PATH = '/mnt/md0/' # + date + csv file name
+CSV_DUMP_PATH = '/mnt/tier0/' # + date + csv file name
 if not os.path.ismount(CSV_DUMP_PATH):
     # scexao2 fallback !
     CSV_DUMP_PATH = '/media/data'
