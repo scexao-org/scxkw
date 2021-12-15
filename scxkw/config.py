@@ -10,8 +10,8 @@ try:
     import scxconf
     REDIS_DB_HOST = scconf.REDIS_DB_HOST
     REDIS_DB_PORT = scconf.REDIS_DB_PORT
-except:
-    REDIS_DB_HOST = '133.40.161.195'
+except: # Fallback pre-scxconf
+    REDIS_DB_HOST = '133.40.161.193'
     REDIS_DB_PORT = 6379
 
 import os

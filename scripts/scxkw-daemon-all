@@ -22,6 +22,7 @@
         --push          Push scexao status to Gen2
         --fits          Write fits headers
         --csvwr         Write a db dump in csv file
+        --status        Update the scexaostatus legacy display from DB pulls
 
 '''
 
@@ -37,6 +38,7 @@ from scxkw.redisutil.typed_db import Redis
 from scxkw.daemons.fits_write import write_headers
 # Dump telescope status to csv file
 from scxkw.daemons.csv_write import csv_write
+from scxkw.daemons.scexao_status_legacy import scexaostatus_legacy_update
 
 if __name__ == "__main__":
 
@@ -64,6 +66,7 @@ if __name__ == "__main__":
 
     FITSWRITE = args["--fits"] or not args["select"]
     CSVWRITE = args["--csvwr"] or not args["select"]
+    STATUSUPDATE = args["--status"] or not args["select"]
 
     print(
         f'Starting daemon loop at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}'
@@ -72,6 +75,7 @@ if __name__ == "__main__":
     print(f'Gen2 push: {G2PUSH}')
     print(f'Fits writing:  {FITSWRITE}')
     print(f'Telescope csv write:  {CSVWRITE}')
+    print(f'Updating scexaostatus display:  {STATUSUPDATE}')
 
     try:  # Catch a Ctrl+C
 
@@ -101,6 +105,8 @@ if __name__ == "__main__":
                 # Dump telescope status to csv file
                 if CSVWRITE and n % 10 == 2:
                     csv_write(rdb, CSV_DUMP_PATH)
+                if STATUSUPDATE and n % 2 == 1:
+                    scexaostatus_legacy_update(rdb)
 
             except ConnectionError as e:
                 print(

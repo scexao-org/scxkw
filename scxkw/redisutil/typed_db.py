@@ -23,6 +23,13 @@ class Pipeline(redis.client.Pipeline):
 
 class Redis(redis.Redis):
     
+    def __init__(self, *args, **kwargs):
+        if not "socket_connect_timeout" in kwargs:
+            kwargs["socket_connect_timeout"] = 0.1
+        if not "socket_timeout" in kwargs:
+            kwargs["socket_timeout"] = 0.1
+        return redis.Redis.__init__(self, *args, **kwargs)
+
     def pipeline(self, transaction=True, shard_hint=None):
         return Pipeline(
             self.connection_pool,
