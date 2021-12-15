@@ -59,6 +59,7 @@ if __name__ == '__main__':
         # Avoid the propagation of mis-types of SHM names from the db
         if not rdb.exists(name_kw):
             print(f'scxkw warning: sollicited key "{name_kw}" does not exist')
+            print(f"DEBUG: name {name}, value {value}, color {color}")
             name_kw = None
 
     # Set the database

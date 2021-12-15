@@ -6,7 +6,12 @@ from .type_cast import nested_cast
 def func_factory(method_name, superclass):
     def method(self, *args, **kwargs):
         superclass_method = getattr(superclass, method_name)
-        ret = superclass_method(self, *args, **kwargs)
+        try:
+            #1/0
+            ret = superclass_method(self, *args, **kwargs)
+        except (redis.exceptions.ConnectionError, ZeroDivisionError):
+            print("Running in Redis-less mode - not available")
+            return None # Bad idea?
         return nested_cast(ret)
 
     return method
