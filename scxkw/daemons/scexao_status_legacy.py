@@ -10,6 +10,7 @@ from scxkw.redisutil.typed_db import Redis
 
 LEGACY_EXEC = '/home/scexao/Instrument-Control-Main/src/SCExAO_status/scexaostatus'
 
+
 def scexaostatus_legacy_update(rdb):
 
     # Getall the mapping shm_lookup / fits keys
@@ -32,11 +33,13 @@ def scexaostatus_legacy_update(rdb):
         name, value, color = names[key], values[key], colors[key]
         if color is None:
             command = LEGACY_EXEC + ' set ' + name + ' "' + str(value) + '"'
+            # print(command)
             os.system(command)
         else:
-            command = LEGACY_EXEC + ' set ' + name + ' "' + str(value) + '" ' + color
+            command = LEGACY_EXEC + ' set ' + name + ' "' + str(
+                value) + '" ' + str(color)
+            # print(command)
             os.system(command)
-
 
 
 if __name__ == "__main__":
@@ -44,7 +47,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------
     #            Configure communication with SCExAO's redis
     # ------------------------------------------------------------------
-    
+
     # Is the server alive ?
     try:
         rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
