@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+'''
+    Obtain numerical/string values from the DB
+    Can do the increment/decrement math right after getting
+    Can push back the incr/decr value right away
+        Note this is not very useful if you don't call the appropriate hardware
+        and only push the value to the DB
+
+    Usage:
+        scxkw-getsetpm [--] <key> [(incr <val> | decr <val>)] [set]
+
+    Options:
+        -h --help        Show this
+'''
+
+import sys, os
+
+from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, KEYWORD_CSV_PATH
+from scxkw.redisutil.typed_db import Redis
+
+from docopt import docopt
+
+if __name__ == "__main__":
+
+    # Squeeze the -- for negative number interpretation
+    sys.argv = [sys.argv[0]] + ['--'] + sys.argv[1:]
+
+    # TODO would be nice to have get, set, incr, decr functions in the package
+    # TODO rather than just scripts.
+
+    args = docopt(__doc__)
+
+    key = args['<key>']
+
+    inc_dec = args['incr'] or args['decr']
+    if inc_dec:
+        inc_dec_mult = int(args['incr']) - int(args['decr'])
+        try:
+            inc_dec_val = int(args['<val>'])
+            print('int')
+        except ValueError:
+            inc_dec_val = float(args['<val>'])
+
+    set_val = args['set']
+
+
+    # Talk to REDIS
+    rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
+
+    # Warning: do not print anything to stdout - Bash callers would get very confused.
+    value = rdb.hget(key, 'value')
+    if value is None or isinstance(value, str):
+        sys.stderr.write(f'scxkw rdb [in scxkw-getsetpm]: key {key} not found or value None / not a number.\n')
+        sys.stderr.flush()
+        sys.exit(1)
+
+    if inc_dec:
+        value += inc_dec_mult * inc_dec_val
+    if set_val:
+        rdb.hset(key, 'value', value)
+    
+    print(value)
+    sys.exit(0)
+
+    
