@@ -31,6 +31,7 @@ import time, datetime
 from docopt import docopt
 
 # Redis utils
+import redis
 from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, FITS_HEADER_PATH, CSV_DUMP_PATH
 from scxkw.redisutil.typed_db import Redis
 
@@ -61,8 +62,10 @@ if __name__ == "__main__":
         # If not, we still want the error code to make sense
         class Dummy(object):
             pass
+
         class remoteObjectError(Exception):
             pass
+
         ro = Dummy()
         ro.remoteObjectError = remoteObjectError
 
@@ -112,13 +115,12 @@ if __name__ == "__main__":
                 if STATUSUPDATE and n % 2 == 1:
                     scexaostatus_legacy_update(rdb)
 
-            except ConnectionError as e:
+            except (ConnectionError, redis.exceptions.TimeoutError) as e:
                 print(
                     f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}'
                 )
-                print(
-                    'Likely cause: connection Error - can\'t ping SCExAO redis DB'
-                )
+                print('Likely cause: connection Error - can\'t ping SCExAO '
+                      'redis DB (briefly or due to something crashed)')
                 print(f'=== {e} ===')
             except ro.remoteObjectError as e:
                 # This catch statement will FAIL in not-Gen2 mode, because "ro" is undefined.
@@ -128,7 +130,7 @@ if __name__ == "__main__":
                 )
                 print('Likely cause: timeout / gen2 offline')
                 print(f'=== {e} ===')
-            
+
             # Except in case of socket timeout... print message, then re-init RDB ?
 
             time.sleep(1.)
