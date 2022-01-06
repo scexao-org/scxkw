@@ -4,7 +4,7 @@
     Can just grep the imports to keep track of the dependencies
 '''
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open("README.md", 'r') as f:
     long_description = f.read()
@@ -21,7 +21,7 @@ setup(
         author = 'Vincent Deo',
         author_email = 'vdeo@naoj.org',
         url = "http://www.github.com/scexao-org/scxkw",
-        packages = ['scxkw'],  # same as name
+        packages = find_packages(),  # same as name
         install_requires = ['docopt', 'numpy', 'redis'],
         scripts = script_list
     )
