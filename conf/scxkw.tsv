@@ -401,3 +401,7 @@ SCX.ZAP.NMO	X_ZAPNMO	zap_nmodes	I16	unitless	ZAP number of modes 		167	1	1	1				
 	Y_TEMP08		I16	K	temperature sensor 8		560	0	0	0				1							
 	Y_TEMP09		I16	K	temperature sensor 9		561	0	0	0				1							
 FITS.SBR.ZD	ZD     		F20	deg	Zenith distance at typical time (deg)		229	1	1	1	1										
+	X_ANALGA		F16	V	Scexao analog output channel A			0	0	1											
+	X_ANALGB		F16	V	Scexao analog output channel B			0	0	1											
+	X_ANALGC		F16	V	Scexao analog output channel C			0	0	1											
+	X_ANALGD		F16	V	Scexao analog output channel D			0	0	1											
