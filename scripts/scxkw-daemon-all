@@ -61,6 +61,8 @@ if __name__ == "__main__":
         # If not, we still want the error code to make sense
         class remoteObjectError(Exception):
             pass
+        ro = object()
+        ro.remoteObjectError = remoteObjectError
 
         pass
 
@@ -117,6 +119,8 @@ if __name__ == "__main__":
                 )
                 print(f'=== {e} ===')
             except ro.remoteObjectError as e:
+                # This catch statement will FAIL in not-Gen2 mode, because "ro" is undefined.
+                # See fix above
                 print(
                     f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}'
                 )
