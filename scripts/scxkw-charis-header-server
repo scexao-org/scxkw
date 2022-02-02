@@ -1,0 +1,101 @@
+#!/usr/bin/env python
+
+import os, sys
+import time, datetime
+import pickle
+import socketserver
+
+# Redis utils
+import redis
+from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT
+from scxkw.redisutil.typed_db import Redis
+
+from functools import partial
+
+class FITSFeeder(socketserver.StreamRequestHandler):
+
+    def __init__(self, rdb, *args, **kwargs):
+
+        self.rdb = rdb # For some reason must be BEFORE calling superclass
+        socketserver.StreamRequestHandler.__init__(self, *args, **kwargs)
+
+
+
+    def handle(self):
+        '''
+        Callback for when a TCP request comes in.
+        '''
+        self.data = self.rfile.readline().strip()
+        print(
+            f'CHARIS request at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}'
+        )
+        if self.data == b'hdr':
+            self.serve_header_wrap()
+        else:
+            self.wfile.write(b'WTF? %s\n' % (self.data))  # (c) C. Loomis
+
+    def serve_header_wrap(self):
+
+        for i in range(10):  # 10 sec hang max in case of missed ping
+            try:
+                self.serve_header()
+                break
+            except (ConnectionError, redis.exceptions.TimeoutError) as e:
+                print(
+                    f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}'
+                )
+                print('Likely cause: connection Error - can\'t ping SCExAO '
+                      'redis DB (briefly or due to something crashed)')
+                print(f'=== {e} ===')
+                time.sleep(1.0)
+
+    def serve_header(self):
+
+        keys = self.rdb.sunion("set:kw:X")
+
+        with rdb.pipeline() as pipe:
+            for key in keys:
+                pipe.hget(key, 'value')
+                pipe.hget(key, 'Description')
+            val_coms = pipe.execute()
+
+        values = val_coms[::2]
+        comments = val_coms[1::2]
+
+        hdr = [(k,v,c) for k,v,c in zip(keys, values, comments)]
+        hdr.sort()
+        self.wfile.write(pickle.dumps(hdr, protocol=-1))
+
+
+def parseDefs():
+    global structDefs
+
+    with open('SCExAO_KEYS.tsv', 'rb') as f:
+        reader = csv.reader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
+        okRows = []
+        for row in reader:
+            if len(row) != 6:
+                logging.warn('ignoring TSV line: %s', row)
+            else:
+                okRows.append(row)
+
+        structDefs = tuple(okRows)
+
+    return structDefs
+
+
+if __name__ == "__main__":
+
+    rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
+
+    FITSFeederWithRDB = partial(FITSFeeder, rdb)
+
+    server = socketserver.TCPServer(('', int(sys.argv[1])), # 18447
+                                    FITSFeederWithRDB)
+
+    try:
+        print('Starting X_* FITS server...')
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print('Keyboard interrupt !')
+        server.server_close()
