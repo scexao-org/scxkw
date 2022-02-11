@@ -51,7 +51,7 @@ class FITSFeeder(socketserver.StreamRequestHandler):
 
     def serve_header(self):
 
-        keys = self.rdb.sunion("set:kw:X")
+        keys = self.rdb.sunion("set:kw:X", "set:flag:waveplate")
 
         with rdb.pipeline() as pipe:
             for key in keys:
@@ -64,7 +64,7 @@ class FITSFeeder(socketserver.StreamRequestHandler):
 
         hdr = [(k,v,c) for k,v,c in zip(keys, values, comments)]
         hdr.sort()
-        self.wfile.write(pickle.dumps(hdr, protocol=-1))
+        self.wfile.write(pickle.dumps(hdr, protocol=2))
 
 
 def parseDefs():
@@ -90,7 +90,13 @@ if __name__ == "__main__":
 
     FITSFeederWithRDB = partial(FITSFeeder, rdb)
 
-    server = socketserver.TCPServer(('', int(sys.argv[1])), # 18447
+
+    if len(sys.argv) == 1:
+        PORT = 18447
+    else:
+        PORT = int(sys.argv[1])
+
+    server = socketserver.TCPServer(('', PORT), # 18447
                                     FITSFeederWithRDB)
 
     try:
