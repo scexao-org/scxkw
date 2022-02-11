@@ -18,7 +18,7 @@ def csv_write(rdb, root_path):
         os.makedirs(today_folder)
 
     # Fetch the data we want
-    sorted_keys = sorted(rdb.sunion('set:g2:FITS', 'set:g2:WAV', 'set:g2:AON'))
+    sorted_keys = sorted(rdb.sunion('set:g2:FITS', 'set:g2:WAV', 'set:g2:AON', 'set:kw:X'))
 
     # Make dictionary of interest
     with rdb.pipeline() as pipe:
