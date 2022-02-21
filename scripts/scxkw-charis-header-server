@@ -66,23 +66,7 @@ class FITSFeeder(socketserver.StreamRequestHandler):
         hdr.sort()
         self.wfile.write(pickle.dumps(hdr, protocol=2))
 
-
-def parseDefs():
-    global structDefs
-
-    with open('SCExAO_KEYS.tsv', 'rb') as f:
-        reader = csv.reader(f, delimiter='\t', quoting=csv.QUOTE_NONE)
-        okRows = []
-        for row in reader:
-            if len(row) != 6:
-                logging.warn('ignoring TSV line: %s', row)
-            else:
-                okRows.append(row)
-
-        structDefs = tuple(okRows)
-
-    return structDefs
-
+        
 
 if __name__ == "__main__":
 
