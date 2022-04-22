@@ -21,7 +21,7 @@ import os, sys
 LEGACY_EXEC = '/home/scexao/Instrument-Control-Main/src/SCExAO_status/scexaostatus'
 
 if __name__ == '__main__':
-    #print(sys.argv)
+    # print(sys.argv)
     # Be dirty and sneaky and make negative arguments legal by throwing in a "--"
     sys.argv = [sys.argv[0]] + ['--'] + sys.argv[1:]
     args = docopt.docopt(__doc__)
