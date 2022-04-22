@@ -1,0 +1,52 @@
+#!/bin/env python
+
+'''
+    Meant to override the astropy fitsheader command, which is slow as hell
+
+    ls - style regexes are allowed, e.g. `fitsheader "kcam*.fits"` BUT
+    the have to be in quotes.
+    Otherwise you can always
+    ls *.fits | xargs fitsheader
+
+    Usage:
+        fitsheader <fname_reg>
+'''
+
+import glob
+
+if __name__ == "__main__":
+    from docopt import docopt
+
+    args = docopt(__doc__)
+
+    file_list = glob.glob(args['<fname_reg>'])
+
+    for file_name in file_list:
+        if len(file_list) > 1:
+            print('---- ' + file_name + ': ----')
+        # There is some non-ascii, non-utf8 garbage somewhere in our header...
+        # But we can't see it !!!
+        with open(file_name, 'r', encoding='latin1') as curr_file:
+            k = 0
+            maybe_end = False
+            while True:
+                line = curr_file.read(80)
+                k += 80
+                
+                if k % 2880 == 80 and line[:8] in ['SIMPLE  ', 'XTENSION']:
+                    # Keep going if we find an extension at the start of the next 2880 block
+                    print('='*35 + ' ' + line[:8] + ' ' + '='*35)
+                    maybe_end = False
+
+
+                if not maybe_end: # Valid keyword line !
+                    print(line)
+
+                if line[:3] == 'END': # We found the end
+                    # Don't abort - maybe XTENSION in the next 2880 block.
+                    maybe_end = True
+
+                if maybe_end and k % 2880 == 80: # Quit for good
+                    break
+
+            

@@ -11,7 +11,7 @@ with open("README.md", 'r') as f:
 
 import glob
 
-script_list = glob.glob('./scripts/scxkw-*')
+script_list = glob.glob('./scripts/scxkw-*') + ['scripts/fitsheader']
 
 setup(
         name = 'scxkw',
