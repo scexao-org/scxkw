@@ -38,3 +38,10 @@ KEYWORD_CSV_PATH='/home/scexao/src/scxkw/conf/scxkw.tsv'
 #GEN2HOST = 'g2sim.subaru.nao.ac.jp'
 # actual summit
 GEN2HOST = 'g2ins1.sum.subaru.nao.ac.jp'
+
+
+class MAGIC_BOOL_STR:
+    TRUE = '#TRUE#'
+    FALSE = '#FALSE#'
+
+    TUPLE = ('#FALSE#', '#TRUE#')
