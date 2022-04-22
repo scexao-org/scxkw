@@ -16,6 +16,7 @@ def write_headers(rdb, path):
 
     # Fetch the flags !
     file_keys = [k.split(':')[-1] for k in rdb.keys('set:fits:*')]
+    file_keys.remove('charis') # set:fits:charis is indicative, we don't want to make this one
 
     # Now get all the keys we need for those flags
     with rdb.pipeline() as pipe:
@@ -33,28 +34,68 @@ def write_headers(rdb, path):
         for kw_key in kw_keys:
             pipe.hget(kw_key, "value")
             pipe.hget(kw_key, "Description")
+            pipe.hget(kw_key, "Type")
         res = pipe.execute()
         # Generate (value, description tuples)
-        kw_data = {kw: (val, descr) for kw, val, descr in zip(kw_keys, res[::2], res[1::2])}
+        kw_data = {
+            kw: (val, descr, fmt)
+            for kw, val, descr, fmt in zip(kw_keys, res[::3], res[1::3],
+                                           res[2::3])
+        }
+
+    # Reformat according to type values!
+    # fmt is a valid %-format string stored in the "Type" column of the spreadsheet
+    for key in kw_data:
+        v, d, fmt = kw_data[key]
+        # Some values are None: camera-stream keywords (EXPTIME, FG_SIZE1, ...),
+        # and time-keywords (MJD, HST, UTC...) generated upon saving
+        if v is not None:
+            try:
+                if fmt == 'BOOLEAN':
+                    v = bool(v)
+                elif fmt[-1] == 'd':
+                    v = int(fmt % v)
+                elif fmt[-1] == 'f':
+                    v = float(fmt % v)
+                elif fmt[-1] == 's':  # string
+                    v = fmt % v
+            except:  # Sometime garbage values cannot be formatted properly...
+                v = v
+                print(f"fits_headers: formatting error on {v}, {d}, {fmt}")
+
+        # Remove the formatter from the dict once used
+        kw_data[key] = (v, d)
 
     # Now make the dicts on the fly for each file_key, and call the write_one_header
     for file_key in file_keys:
         keyval_dict = {kw: kw_data[kw] for kw in data_fits_sets[file_key]}
         write_one_header(keyval_dict, path, file_key)
 
-    return(keyval_dict)
+    return (keyval_dict)
 
 
 def write_one_header(key_val_dict, folder, name):
+
     header = fits.Header()
-    # Be nice and sort the keys
+
     for k in sorted(key_val_dict.keys()):
+        if k in ['BZERO', 'BSCALE']:
+            continue
         header[k] = key_val_dict[k]
 
+    hdu = fits.PrimaryHDU(data=np.array([0, 1, 2, 3], dtype=np.float32),
+                          header=header)
+    # Must be set to not None AFTER creation of the HDU
+    # Insert point is in hope to maintain the alphabetical order
+    hdu.header.insert('BUNIT',('BSCALE',None,'Real=fits-value*BSCALE+BZERO'))
+    hdu.header.insert('BUNIT',('BZERO',None,'Real=fits-value*BSCALE+BZERO'), after=True)
+    
+    hdul = fits.HDUList(hdus=[hdu])
+
     # Write to _tmp.fits
-    fits.writeto(folder + '/' +  name + '_tmp.fits', np.array([0.0]), header, overwrite=True)
+    hdul.writeto(folder + '/' + name + '_tmp.fits', overwrite=True)
     # Write to _header_dump_tmp.txt
-    with open(folder + '/' +  name + '_header_dump_tmp.txt', 'w') as f:
+    with open(folder + '/' + name + '_header_dump_tmp.txt', 'w') as f:
         f.write(str(header))
 
     # Change permissions to 666
@@ -62,8 +103,10 @@ def write_one_header(key_val_dict, folder, name):
     os.chmod(folder + '/' + name + '_header_dump_tmp.txt', 0o666)
 
     # Rename files to final, in hope for atomicity
-    os.rename(folder + '/' +  name + '_tmp.fits', folder + '/' +  name + '.fits')
-    os.rename(folder + '/' +  name + '_header_dump_tmp.txt', folder + '/' +  name + '_header_dump.txt')
+    os.rename(folder + '/' + name + '_tmp.fits', folder + '/' + name + '.fits')
+    os.rename(folder + '/' + name + '_header_dump_tmp.txt',
+              folder + '/' + name + '_header_dump.txt')
+
 
 if __name__ == "__main__":
 
@@ -83,6 +126,7 @@ if __name__ == "__main__":
     try:
         while True:
             write_headers(rdb, FITS_HEADER_PATH)
+            break
             time.sleep(2.0)
     except KeyboardInterrupt:
         sys.exit(0)

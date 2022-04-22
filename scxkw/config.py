@@ -23,7 +23,7 @@ except:
 
 # Where to write the data dump every now and then
 CSV_DUMP_PATH = '/home/scexao/logdir/' # + date + csv file name
-if not os.path.ismount(CSV_DUMP_PATH):
+if not os.environ["WHICHCOMP"] == "6":
     # scexao2 fallback !
     CSV_DUMP_PATH = '/media/data'
 
@@ -38,6 +38,21 @@ KEYWORD_CSV_PATH='/home/scexao/src/scxkw/conf/scxkw.tsv'
 #GEN2HOST = 'g2sim.subaru.nao.ac.jp'
 # actual summit
 GEN2HOST = 'g2ins1.sum.subaru.nao.ac.jp'
+
+GEN2PATH_NODELETE = "/mnt/tier1/ARCHIVED_DATA/"
+GEN2PATH_OKDELETE = "/mnt/tier1/2_ARCHIVED_DATA/"
+
+# streamname: archive letter mapping
+CAMIDS = {
+    "kcam": "B", # Buffy
+    "ircam0": "C", # Chuck
+    #"first": "F", # FIRST (andor and hamamatsu, careful)
+    #"glint": "G", # GLINT
+    #"ocam2d": "P", # Reno
+    #"ircam1": "R", # Rajni
+    #"vcamim0": "V", # Vampires
+    #"vcamim1": "V", # Vampires
+}
 
 
 class MAGIC_BOOL_STR:

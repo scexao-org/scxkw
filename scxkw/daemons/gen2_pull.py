@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 
 import sys, time
+from astropy.coordinates import Angle
 
 from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, GEN2HOST
 from scxkw.redisutil.typed_db import Redis
 
 from g2base.remoteObjects import remoteObjects as ro
 
-
+from swmain.hwp.hwpmanager import ask_garde
 
 def gen2_pull(rdb, status_obj):
     # Getting the keys - this code is now repeated, while
@@ -38,59 +39,109 @@ def gen2_pull(rdb, status_obj):
     # SETTING VALUES
     # ========================
 
+    # Special - we need to re-fetch the IR wollaston position
+    wollaston = rdb.hget('X_IRCWOL', 'value')
+
+
     with rdb.pipeline() as pipe:
         for key in pulled_for_pipe:
             pipe.hset(key, 'value', pulled_for_pipe[key])
 
+        # =============================
+        # FIXING TELESCOPE AND WCS KEYS
+        # =============================
+
+        pipe.hset('OBSERVAT', 'value', 'NAOJ    ')
+        pipe.hset('INSTRUME', 'value', 'SCExAO  ')
+        if 'IN' in wollaston:
+            pipe.hset('OBS-MOD', 'value', 'IMAG-PDI')
+        else:
+            pipe.hset('OBS-MOD', 'value', 'Imaging')
+        pipe.hset('RADESYS', 'value', 'FK5     ')
+        pipe.hset('TIMESYS', 'value', 'UTC     ')
+        pipe.hset('WCS-ORIG', 'value', 'SUBARU')
+        pipe.hset('CDELT1', 'value', 4.5e-6)
+        pipe.hset('CDELT2', 'value', 4.5e-6)
+        pipe.hset('C2ELT1', 'value', 4.5e-6)
+        pipe.hset('C2ELT2', 'value', 4.5e-6)
+        pipe.hset('CTYPE1', 'value', 'RA--TAN   ')
+        pipe.hset('CTYPE2', 'value', 'DEC--TAN  ')
+        pipe.hset('C2YPE1', 'value', 'RA--TAN   ')
+        pipe.hset('C2YPE2', 'value', 'DEC--TAN  ')
+        pipe.hset('CUNIT1', 'value', 'DEGREE    ')
+        pipe.hset('CUNIT2', 'value', 'DEGREE    ')
+        pipe.hset('C2NIT1', 'value', 'DEGREE    ')
+        pipe.hset('C2NIT2', 'value', 'DEGREE    ')
+        pipe.hset('CRPIX1', 'value', 80.)
+        pipe.hset('CRPIX2', 'value', 40.)
+        pipe.hset('C2PIX1', 'value', 80.)
+        pipe.hset('C2PIX2', 'value', 120.)
+        pipe.hset('CD1_1', 'value', 4.5e-6)
+        pipe.hset('CD1_2', 'value', 0.)
+        pipe.hset('CD2_1', 'value', 0.)
+        pipe.hset('CD2_2', 'value', 4.5e-6)
+        
+        # ===================
+        # COMPUTE ORIENTATION
+        # ===================
+        ra = pulled_for_pipe['RA']
+        dec = pulled_for_pipe['DEC']
+        pad = pulled_for_pipe['D_IMRPAD']
+        crval1 = float("%20.8f" % (Angle(ra+"hours").degree))
+        crval2 = float("%20.8f" % (Angle(dec+"degrees").degree))
+        lonpole = float("%20.1f" % (3.4-pad))
+
+        
+        pipe.hset('CRVAL1', 'value', crval1)
+        pipe.hset('CRVAL2', 'value', crval2)
+        pipe.hset('C2VAL1', 'value', crval1)
+        pipe.hset('C2VAL2', 'value', crval2)
+        
+        pipe.hset('LONPOLE', 'value', lonpole)
+        
         # ========================
         # WAVEPLATE SPECIFIC KEYS
         # ========================
-        
-        pipe.hset('OBSERVAT', 'value', 'NAOJ    ')
-        pipe.hset('INSTRUME', 'value', 'SCExAO  ')
-        pipe.hset('RADESYS', 'value', 'FK5     ')
-        pipe.hset('LONPOLE', 'value', 180)
         pipe.hset('POL-ANG1', 'value', 0)
 
-        stgps1 = float(pulled_for_pipe['P_STGPS1'])
-        if stgps1 == 0:
-            pipe.hset('POLARIZ1', 'value', 'NONE            ')
-        elif stgps1 == 56:
-            pipe.hset('POLARIZ1', 'value', 'WireGrid(TIR)   ')
-        elif stgps1 == 90:
-            pipe.hset('POLARIZ1', 'value', 'WireGrid(NIR)   ')
-        else:
-            pipe.hset('POLARIZ1', 'value', 'UNKNOWN         ')
+        POLARIZ1_VALS = {
+            0: 'NONE            ',
+            56: 'WireGrid(TIR)   ',
+            90: 'WireGrid(NIR)   ',
+        }
+        RETPLAT1_VALS = {
+            0: 'NONE            ',
+            56: 'HWP(NIR)        ',
+        }
+        RETPLAT2_VALS = {
+            0: 'NONE            ',
+            56: 'HWP(TIR)        ',
+            90: 'QWP(NIR)        ',
+        }
+        UKN = 'UNKNOWN         '
 
-        stgps2 = float(pulled_for_pipe['P_STGPS2'])
-        if stgps2 == 0:
-            pipe.hset('RETPLAT1', 'value', 'NONE            ')
-        elif stgps2 == 56:
-            pipe.hset('RETPLAT1', 'value', 'HWP(NIR)        ')
-        else:
-            pipe.hset('RETPLAT1', 'value', 'UNKNOWN         ')
+        stage1_pos = float(pulled_for_pipe['P_STGPS1'])
+        pipe.hset('POLARIZ1', 'value',
+                  POLARIZ1_VALS.get(stage1_pos, UKN))
 
-        stgps3 = float(pulled_for_pipe['P_STGPS3'])
-        if stgps3 == 0:
-            pipe.hset('RETPLAT2', 'value', 'NONE            ')
-        elif stgps3 == 56:
-            pipe.hset('RETPLAT2', 'value', 'HWP(TIR)        ')
-        elif stgps3 == 90:
-            pipe.hset('RETPLAT2', 'value', 'QWP(NIR)        ')
-        else:
-            pipe.hset('RETPLAT2', 'value', 'UNKNOWN         ')
+        stage2_pos = float(pulled_for_pipe['P_STGPS2'])
+        pipe.hset('RETPLAT1', 'value',
+                  RETPLAT1_VALS.get(stage2_pos, UKN))
 
-        try:
-            retang1 = float(pulled_for_pipe['P_RTAGL1'])
-            pipe.hset('RET-ANG1', 'value', retang1)
-        except:
-            pipe.hset('RET-ANG1', 'value', 0.)
-        try:
-            retang2 = float(pulled_for_pipe['P_RTAGL2'])
-            pipe.hset('RET-ANG2', 'value', retang2)
-        except:
-            pipe.hset('RET-ANG2', 'value', 0.)
+        stage3_pos = float(pulled_for_pipe['P_STGPS3'])
+        pipe.hset('RETPLAT2', 'value',
+                  RETPLAT2_VALS.get(stage3_pos, UKN))
+
+        # We do NOT set RET-ANG1/2 from gen2. This is done from direct IRCS feedback.
+        val_hwp = ask_garde(hwp_true_qwp_false=True)
+        val_qwp = ask_garde(hwp_true_qwp_false=False)
+        pipe.hset('RET-ANG1', 'value', val_hwp)
+        pipe.hset('RET-ANG2', 'value', val_qwp)
+
         pipe.execute()
+
+
+    
 
 
 if __name__ == "__main__":

@@ -23,7 +23,8 @@
         --fits          Write fits headers
         --csvwr         Write a db dump in csv file
         --status        Update the scexaostatus legacy display from DB pulls
-
+        --archiveid     Archiver (frameid requests for files in GEN2PATH_NODELETE)
+        --fpack         Compress and migrate original fits files to GEN2PATH_OKDELETE
 '''
 
 import os, sys
@@ -32,7 +33,8 @@ from docopt import docopt
 
 # Redis utils
 import redis
-from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, FITS_HEADER_PATH, CSV_DUMP_PATH
+from scxkw.config import (REDIS_DB_HOST, REDIS_DB_PORT, FITS_HEADER_PATH,
+                          CSV_DUMP_PATH, GEN2HOST)
 from scxkw.redisutil.typed_db import Redis
 
 # fits_write
@@ -49,15 +51,18 @@ if __name__ == "__main__":
 
     G2PULL = args["--pull"] or not args["select"]
     G2PUSH = args["--push"] or not args["select"]
+    G2ARCHIVE = args["--archiveid"] or not args["select"]
+    COMPRESSFPACK = args["--fpack"] or not args["select"]
 
-    if G2PULL or G2PUSH:
+    if G2PULL or G2PUSH or G2ARCHIVE:
         # Gen2 util
         from g2base.remoteObjects import remoteObjects as ro
-        GEN2HOST = 'g2ins1.sum.subaru.nao.ac.jp'
         # g2push
         from scxkw.daemons.gen2_push import gen2_push
         # g2pull
         from scxkw.daemons.gen2_pull import gen2_pull
+        # archive IDs
+        from scxkw.daemons.gen2_archiving import archive_monitor_get_ids
     else:
         # If not, we still want the error code to make sense
         class Dummy(object):
@@ -69,7 +74,11 @@ if __name__ == "__main__":
         ro = Dummy()
         ro.remoteObjectError = remoteObjectError
 
-        pass
+    if COMPRESSFPACK:
+        # compression with fpack
+        from scxkw.daemons.gen2_archiving import archive_monitor_compression
+        # move compressed files
+        from scxkw.daemons.gen2_archiving import archive_migrate_compressed_files
 
     FITSWRITE = args["--fits"] or not args["select"]
     CSVWRITE = args["--csvwr"] or not args["select"]
@@ -80,6 +89,8 @@ if __name__ == "__main__":
     )
     print(f'Gen2 pull: {G2PULL}')
     print(f'Gen2 push: {G2PUSH}')
+    print(f'Gen2 monitor files and request frame IDs: {G2ARCHIVE}')
+    print(f'Compress archived files and move them around: {COMPRESSFPACK}')
     print(f'Fits writing:  {FITSWRITE}')
     print(f'Telescope csv write:  {CSVWRITE}')
     print(f'Updating scexaostatus display:  {STATUSUPDATE}')
@@ -89,11 +100,15 @@ if __name__ == "__main__":
         # Init redis db
         rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
 
-        if G2PULL or G2PUSH:
+        if G2PULL or G2PUSH or G2ARCHIVE:
             ro.init([GEN2HOST])
-            status_obj = ro.remoteObjectProxy('status')
+            if G2PUSH or G2PULL:
+                status_obj = ro.remoteObjectProxy('status')
+            if G2ARCHIVE:
+                proxy_obj = ro.remoteObjectProxy('SCEXAO')
 
-        # This loop runs every second
+
+        # This loop runs every "second"
         # There's a counter for want you want to do every n seconds
         n = 0
         while True:
@@ -107,13 +122,22 @@ if __name__ == "__main__":
                     gen2_pull(rdb, status_obj)
                 if G2PUSH and n % 10 == 1:
                     gen2_push(rdb, status_obj)
+                if G2ARCHIVE and n% 10 == 2:
+                    archive_monitor_get_ids(proxy_obj)
+                if COMPRESSFPACK and n % 10 == 4:
+                    archive_monitor_compression(max_jobs=20)
+                if COMPRESSFPACK and n % 10 == 5:
+                    archive_migrate_compressed_files(time_allowed=(1020, 1050))
+
                 if FITSWRITE and n % 2 == 0:
                     write_headers(rdb, FITS_HEADER_PATH)
+                
                 # Dump telescope status to csv file
                 if CSVWRITE and n % 10 == 2:
                     csv_write(rdb, CSV_DUMP_PATH)
                 if STATUSUPDATE and n % 2 == 1:
                     scexaostatus_legacy_update(rdb)
+
 
             except (ConnectionError, redis.exceptions.TimeoutError) as e:
                 print(

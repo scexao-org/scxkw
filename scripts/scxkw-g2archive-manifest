@@ -1,0 +1,69 @@
+#! /usr/bin/env python3
+"""
+Usage:
+  $ mkbulk.py -o manifest.csv -p SCX /some/path/to/*.fits
+
+  or, using stdin
+
+  $ ls /some/path/to/*.fits | mkbulk.py -o manifest.csv -p SCX
+"""
+import sys
+import os
+import csv
+import re
+from argparse import ArgumentParser
+
+def main(options, args):
+
+    outfile = options.outfile
+    if not outfile.lower().endswith('.csv'):
+        outfile = outfile + '.csv'
+
+    prefixes = []
+    if options.prefix is not None:
+        prefixes = [pfx.upper() for pfx in options.prefix.split(',')]
+
+    if len(args) == 0:
+        print("No files on command line; reading from stdin...")
+        args = sys.stdin.read().split('\n')
+
+    with open(outfile, 'w', newline='') as csv_f:
+        writer = csv.writer(csv_f, delimiter='|')
+
+        for arg in args:
+            path = os.path.abspath(arg)
+            frameid = None
+
+            if len(prefixes) > 0:
+                _dir, filename = os.path.split(path)
+                ok = False
+                for prefix in prefixes:
+                    if re.match(prefix, filename):
+                        ok = True
+                if not ok:
+                    continue
+                frameid, ext = os.path.splitext(filename)
+
+            size_bytes = os.stat(path).st_size
+
+            writer.writerow([frameid, path, size_bytes])
+
+
+if __name__ == '__main__':
+
+    argprs = ArgumentParser(description="Gen2 bulk file transfer list preparer")
+
+    argprs.add_argument("-o", "--outfile", dest="outfile", metavar="FILE",
+                        default=None,
+                        help="Specify FILE for output")
+    argprs.add_argument("-p", "--prefix", dest="prefix", metavar="PREFIX",
+                        default=None,
+                        help="Specify PREFIX to match for output")
+
+    (options, args) = argprs.parse_known_args(sys.argv[1:])
+
+    if options.outfile is None:
+        argprs.error("Please specify and output file with -o")
+
+    main(options, args)
+
