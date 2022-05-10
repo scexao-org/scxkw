@@ -60,3 +60,15 @@ class MAGIC_BOOL_STR:
     FALSE = '#FALSE#'
 
     TUPLE = ('#FALSE#', '#TRUE#')
+
+def redis_check_enabled():
+    try:
+        from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, GEN2HOST
+        from scxkw.redisutil.typed_db import Redis
+        RDB = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
+        HAS_REDIS = True
+    except:
+        RDB = None
+        HAS_REDIS = False
+
+    return RDB, HAS_REDIS
