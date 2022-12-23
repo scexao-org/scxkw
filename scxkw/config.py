@@ -8,8 +8,8 @@
 # Redis location - needs to be updated in the conf file as well
 try:
     import scxconf
-    REDIS_DB_HOST = scconf.REDIS_DB_HOST
-    REDIS_DB_PORT = scconf.REDIS_DB_PORT
+    REDIS_DB_HOST = scxconf.REDIS_DB_HOST
+    REDIS_DB_PORT = scxconf.REDIS_DB_PORT
 except: # Fallback pre-scxconf
     REDIS_DB_HOST = '133.40.161.193'
     REDIS_DB_PORT = 6379
