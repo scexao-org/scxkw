@@ -5,6 +5,7 @@ scxkw.egg-info
 *~
 *.swp
 
+*.pyc
 
 g2cam.log
 
