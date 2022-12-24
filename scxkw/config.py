@@ -61,6 +61,10 @@ class MAGIC_BOOL_STR:
 
     TUPLE = ('#FALSE#', '#TRUE#')
 
+class MAGIC_HW_STR:
+    HEIGHT = '#HEIGHT#'
+    WIDTH = '#WIDTH#'
+
 def redis_check_enabled():
     try:
         from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, GEN2HOST
