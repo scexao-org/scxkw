@@ -23,7 +23,7 @@ except:
 
 # Where to write the data dump every now and then
 CSV_DUMP_PATH = '/home/scexao/logdir/' # + date + csv file name
-if not os.environ["WHICHCOMP"] == "6":
+if not os.environ.get("WHICHCOMP", "0") == "6":
     # scexao2 fallback !
     CSV_DUMP_PATH = '/media/data'
 
