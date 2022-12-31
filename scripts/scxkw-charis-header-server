@@ -53,7 +53,8 @@ class FITSFeeder(socketserver.StreamRequestHandler):
 
     def serve_header(self):
 
-        keys = self.rdb.sunion("set:fits:charis")
+        # type to list cause we'll need to call index on it
+        keys = list(self.rdb.sunion("set:fits:charis"))
 
         with rdb.pipeline() as pipe:
             for key in keys:
@@ -95,4 +96,4 @@ if __name__ == "__main__":
         server.serve_forever()
     except KeyboardInterrupt:
         print('Keyboard interrupt !')
-        server.server_close()
+        server.server_close() # Doesn't seem to clean the socket as well as expected?
