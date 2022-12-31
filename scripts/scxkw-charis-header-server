@@ -10,6 +10,8 @@ import redis
 from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT
 from scxkw.redisutil.typed_db import Redis
 
+from swmain.hwp.hwpmanager import ask_garde
+
 from functools import partial
 
 class FITSFeeder(socketserver.StreamRequestHandler):
@@ -61,6 +63,11 @@ class FITSFeeder(socketserver.StreamRequestHandler):
 
         values = val_coms[::2]
         comments = val_coms[1::2]
+        
+        if 'RET-ANG1' in keys:
+            hwp_index = keys.index('RET-ANG1')
+            val_hwp = ask_garde(hwp_true_qwp_false=True)
+            values[hwp_index] = val_hwp
 
         hdr = [(k,v,c) for k,v,c in zip(keys, values, comments)]
         hdr.sort()
