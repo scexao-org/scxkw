@@ -369,11 +369,10 @@ def archive_monitor_get_ids(g2proxy_obj):
 
         # Update the keyword with the FRAMEID
         # This could error?
-        fits.setval(fname, "FRAMEID", value=frame_id, savecomment=True)
-        fits.setval(fname,
-                    "EXP-ID",
-                    value=frame_id.replace(frame_id[3], "E", 1),
-                    savecomment=True)
+        with fits.open(fname, "update") as hdul:
+            header = hdul[0] # get primary header
+            header["FRAMEID"] = frame_id
+            header["EXP-ID"] = frame_id.replace(frame_id[3], "E", 1)
 
         # Maintain the file/id mapping text files (per date and stream)
         with open(GEN2PATH_NODELETE + f'/{date}/{sname}/name_changes.txt',
