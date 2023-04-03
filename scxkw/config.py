@@ -44,8 +44,8 @@ GEN2PATH_OKDELETE = "/mnt/tier1/2_ARCHIVED_DATA/"
 
 # streamname: archive letter mapping
 CAMIDS = {
-    "kcam": "B", # Buffy
-    "ircam0": "C", # Chuck
+    "apapane": "B", # Buffy
+    "palila": "C", # Chuck
     #"first": "F", # FIRST (andor and hamamatsu, careful)
     #"glint": "G", # GLINT
     #"ocam2d": "P", # Reno
