@@ -370,7 +370,7 @@ def archive_monitor_get_ids(g2proxy_obj):
         # Update the keyword with the FRAMEID
         # This could error?
         with fits.open(fname, "update") as hdul:
-            header = hdul[0] # get primary header
+            header = hdul[0].header # get primary header
             header["FRAMEID"] = frame_id
             header["EXP-ID"] = frame_id.replace(frame_id[3], "E", 1)
 
