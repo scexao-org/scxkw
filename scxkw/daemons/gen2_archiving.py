@@ -1,9 +1,13 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import os, sys, glob, time, datetime, subprocess
 
 from scxkw.config import GEN2HOST, GEN2PATH_NODELETE, GEN2PATH_OKDELETE, CAMIDS
 from scxkw.redisutil.typed_db import Redis
+from scxkw.tools.compression_job_manager import FPackJobCodeEnum, FpackJobManager
 
 from g2base.remoteObjects import remoteObjects as ro
 
@@ -283,41 +287,48 @@ def archive_migrate_compressed_files(*, time_allowed=(1020, 1050)):
                       f'/{dates[ii]}/{stream_names[ii]}/name_changes.txt')
 
 
-def archive_monitor_compression(*, max_jobs=20):
+
+def archive_monitor_compression(*, job_manager: FpackJobManager):
     '''
         Macro function: watches for SCX*.fits files in GEN2_NODELETE and spawns
         fpack compression jobs.
 
         Manages a cap of max_jobs compression jobs.
     '''
+
     scx_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits')
     fz_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits.fz')
     # Remove the fz extension from the fz files
     fz_file_list = [filename[:-3] for filename in fz_file_list]
 
-    # Now check for active fpack jobs! We spawn fpack jobs with the full file path so we expect them as such
-    running_jobs = subprocess.run(
-        'ps -eo args | grep fpack', shell=True,
-        capture_output=True).stdout.decode('utf8').rstrip().split('\n')
-    running_jobs = [
-        job.split(' ')[-1] for job in running_jobs if job[-5:] == ".fits"
-    ]  # Now this should be a full path!
-
-    n_running_jobs = len(running_jobs)
-    print(
-        f'archive_monitor_compression: found {n_running_jobs} running fpack instances.'
-    )
-
-    file_list = list(
-        set(scx_file_list) - set(fz_file_list) - set(running_jobs))
+    # Note: for some of those files, the compression job may already be running!
+    file_list = list(set(scx_file_list) - set(fz_file_list))
     file_list.sort()
-    print(
-        f'archive_monitor_compression: found {len(file_list)} SCX files to compress.'
-    )
 
-    # Spawn compression jobs
-    for file_fullname in file_list[:max_jobs - n_running_jobs]:
-        subprocess.run(f'fpack -h -s 0 -q 20 -v {file_fullname} &', shell=True)
+    # Cleanup:
+    job_manager.refresh_running_jobs()
+    # Spawn and count
+    n_jobs = 0
+    for file_fullname in file_list:
+        ret = job_manager.run_fpack_compression_job(file_fullname)
+        if ret == FPackJobCodeEnum.STARTED:
+            n_jobs += 1
+        elif ret == FPackJobCodeEnum.TOOMANY:
+            break
+
+    print(f'archive_monitor_compression: '
+          f'found {len(file_list)} SCX files to compress; '
+          f'started {n_jobs} fpacks.')
+
+
+
+
+
+
+
+
+def archive_monitor_deinterleave():
+    pass
 
 
 def archive_monitor_get_ids(g2proxy_obj):

@@ -108,6 +108,11 @@ if __name__ == "__main__":
                 proxy_obj = ro.remoteObjectProxy('SCEXAO')
 
 
+        if COMPRESSFPACK:
+            from scxkw.tools.compression_job_manager import FpackJobManager
+            fpack_manager = FpackJobManager()
+
+
         # This loop runs every "second"
         # There's a counter for want you want to do every n seconds
         n = 0
@@ -125,7 +130,7 @@ if __name__ == "__main__":
                 if G2ARCHIVE and n% 10 == 2:
                     archive_monitor_get_ids(proxy_obj)
                 if COMPRESSFPACK and n % 10 == 4:
-                    archive_monitor_compression(max_jobs=20)
+                    archive_monitor_compression(fpack_manager)
                 if COMPRESSFPACK and n % 10 == 5:
                     archive_migrate_compressed_files(time_allowed=(1020, 1050))
 
