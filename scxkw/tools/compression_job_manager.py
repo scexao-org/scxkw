@@ -5,6 +5,7 @@ import subprocess as sproc
 
 from enum import IntEnum
 
+import logging as logg
 
 class FPackJobCodeEnum(IntEnum):
     ALREADY_RUNNING = -3
@@ -21,10 +22,17 @@ class FpackJobManager:
         self.pending_jobs: Dict[str, sproc.Popen] = {}
 
         # Now check for active fpack jobs that this manager didn't launch.
-        running_fpacks = sproc.run(
-            'ps -eo args | grep fpack', shell=True,
-            capture_output=True).stdout.decode('utf8').rstrip().split('\n')
+        running_fpacks_str = sproc.run(
+            'ps -eo args | egrep ^fpack', shell=True,
+            capture_output=True).stdout.decode('utf8').strip()
+        if running_fpacks_str == '':
+            running_fpacks = []
+        else:
+            running_fpacks = running_fpacks_str.split('\n')
+
         if len(running_fpacks) > 0:
+            logg.error('Running fpack jobs:')
+            logg.error(str(running_fpacks))
             raise AssertionError(
                 'There are running fpack jobs on the system. '
                 'It is bad juju to instantiate a FPackJobManager now.')
@@ -32,11 +40,10 @@ class FpackJobManager:
     def run_fpack_compression_job(self,
                                   file_fullname: str) -> FPackJobCodeEnum:
         if not os.path.isfile(file_fullname):
-            print(f'Fpack job manager: file {file_fullname} does not exist.')
+            logg.error(f'Fpack job manager: file {file_fullname} does not exist.')
             return FPackJobCodeEnum.NOFILE
         if len(self.pending_jobs) == self.MAX_CONCURRENT_JOBS:
-            print(
-                f'Fpack job manager: max allowed fpack jobs already running.')
+            logg.error(f'Fpack job manager: max allowed ({self.MAX_CONCURRENT_JOBS}) fpack jobs already running at the same time.')
             return FPackJobCodeEnum.TOOMANY
         if file_fullname in self.pending_jobs:
             return FPackJobCodeEnum.ALREADY_RUNNING
