@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+'''
+    Deinterleave a (compliant) FITS files into two FLC state files.
+
+    Filename will be resolved from CWD.
+
+    Filename - ".fits" + ".txt" is expected to provide the logshim timing file.
+    
+    Usage:
+        scxkw-pdideinterleave <fits_filename> [--keep]
+
+    Options:
+        -h --help        Show this
+        --keep           Keep the original, interleaved file. Otherwise it's deleted.
+'''
+from __future__ import annotations
+
+import os
+
+from astropy.io import fits
+
+from scxkw.tools.logshim_txt_parser import LogshimTxtParser
+from scxkw.tools.pdi_deinterleave import deinterleave_file
+
+class RETCODE:
+    NOT_DOTFITS = 1
+    NO_FITS = 2
+    NO_TXT = 3
+    MISSING_KW = 4
+    NO_DEINT_REQ = 5
+
+    OOPS = 6
+    
+    SUCCESS = 0
+
+
+if __name__ == "__main__":
+    
+    from docopt import docopt
+
+    args = docopt(__doc__)
+
+    fits_filename: str = args['<fits_filename>']
+
+    # Validate files.
+    if not fits_filename.endswith('.fits'):
+        exit(RETCODE.NOT_DOTFITS)
+
+    if not os.path.isfile(fits_filename):
+        exit(RETCODE.NO_FITS)
+
+    txt_filename = fits_filename[:-5] + '.txt'
+    if not os.path.isfile(txt_filename):
+        exit(RETCODE.NO_TXT)
+
+    # Validate header
+    header = fits.getheader(fits_filename)
+    if header['DETECTOR'] in ['CRED1 - APAPANE', 'CRED2 - PALILA']:
+        ir_true_vis_false = True
+        try:
+            flc_used = header['X_IFLCST'] == 'ON'
+            _ = int(header['X_IFLCDL'])
+            flc_halfper = int(header['X_IFLCTM'])
+            flc_jitt = int(header['X_IFLCJT'])
+            flc_state = header['X_IFLCAB']
+            exttrig = header['EXTTRIG']
+        except KeyError:
+            exit(RETCODE.MISSING_KW)
+    elif header['DETECTOR'] in ['QUEST - VCAM0', 'QUEST - VCAM1']:
+        ir_true_vis_false = False
+        raise NotImplementedError
+    else:
+        exit(RETCODE.OOPS)
+
+    # Validate this is as expected:
+    if (not flc_used) or (flc_state != 'NA') or (not exttrig):
+        exit(RETCODE.NO_DEINT_REQ)
+
+    # Load a timings parser
+    txtparser = LogshimTxtParser(txt_filename)
+
+    # Call the deinterleave job
+    # ir_true_vis_false should be directly replace by the appropriate FITS
+    # key for X_IFLCST / U_??????
+    deinterleave_file(fits_filename,
+                      ir_true_vis_false=ir_true_vis_false,
+                      flc_jitter_us_hint = flc_jitt)
+
+    # Be careful here... what happens if we had an error?
+    # DO NOT catch errors from deinterleave!!!
+    # Or catch and exit immediately?
+    if not args['--keep']:
+        os.remove
+
+    
