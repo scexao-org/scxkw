@@ -1,5 +1,7 @@
 from typing import List, Any, Tuple, Optional as Op
 
+import os
+
 import time
 import subprocess as sproc
 
@@ -50,8 +52,10 @@ def deinterleave_file(file_name: str, *, ir_true_vis_false: bool = True, flc_jit
     BUT it will not bother checking the header is sane.
     This should be done upstream and the relevant stuff is to be passed in the parameter.
     '''
-    header: fits.Header = fits.getheader(file_name)
-    data: np.ndarray = fits.getdata(file_name) # type: ignore
+    fullpath = os.path.abspath(file_name)
+
+    header: fits.Header = fits.getheader(fullpath)
+    data: np.ndarray = fits.getdata(fullpath) # type: ignore
 
     key = ('', 'X_IFLCJT')[ir_true_vis_false]
     if flc_jitter_us_hint is None:
@@ -59,13 +63,13 @@ def deinterleave_file(file_name: str, *, ir_true_vis_false: bool = True, flc_jit
     else:
         flc_jitter_us = flc_jitter_us_hint
 
-    assert file_name.endswith('.fits')
-    txtparser = LogshimTxtParser(file_name[:-5] + '.txt')
+    assert fullpath.endswith('.fits')
+    txtparser = LogshimTxtParser(fullpath[:-5] + '.txt')
 
 
     subfiles = deinterleave_data(data, flc_jitter_us, txtparser)
 
-    path_to_folder = '/'.join(file_name.split('/')[:-1])
+    path_to_folder = '/'.join(fullpath.split('/')[:-1])
 
     flc_st_type = ['%-16.16s' % s for s in ('ACTIVE', 'RELAXED', 'DUBIOUS')]
     key_flc_state = ('', 'X_IFLCAB')[ir_true_vis_false]
