@@ -75,10 +75,22 @@ def gen2_pull(rdb, status_obj):
         # This is actually common to all of SCExAO since we don't really
         # Do off-axis stuff.
         # If extreme high-precision is needed + off-axis pointing.... broken.
+        # For VAMPIRES MBI, we need up to 4 WCSs... plus the legacy wrong format of Subaru...
+
         pipe.hset('CRVAL1', 'value', crval1)
         pipe.hset('CRVAL2', 'value', crval2)
+        pipe.hset('CRVAL1B', 'value', crval1)
+        pipe.hset('CRVAL2B', 'value', crval2)
+        pipe.hset('CRVAL1C', 'value', crval1)
+        pipe.hset('CRVAL2C', 'value', crval2)
+        pipe.hset('CRVAL1D', 'value', crval1)
+        pipe.hset('CRVAL2D', 'value', crval2)
         pipe.hset('C2VAL1', 'value', crval1)
         pipe.hset('C2VAL2', 'value', crval2)
+        pipe.hset('C3VAL1', 'value', crval1)
+        pipe.hset('C3VAL2', 'value', crval2)
+        pipe.hset('C4VAL1', 'value', crval1)
+        pipe.hset('C4VAL2', 'value', crval2)
 
         pipe.hset('LONPOLE', 'value', lonpole)
 
