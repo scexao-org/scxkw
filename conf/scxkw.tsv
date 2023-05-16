@@ -1,490 +1,576 @@
-Use . to mean that it has to be filled by the FITS file writer and is not relevant to gen2. Fill in the blanks		If it has a SHM name, we need to forward the "set" execution to old scexaostatus. RED: old scexaostatus will not take it	VALID python %formatter OR "BOOLEAN". Nothing else.			Use this line and the "Comments" column ONLY for misc comments - the rest is automatically parsed.																	
-Gen2 Variable	FITS header 	Name in SHM	Type	Unit	Description	Comments	Original ordering	fits:chuck	fits:buffy	fits:charis	fits:reno	flag:fromvampires	flag:telescope	flag:waveplate	flag:ao188	flag:charis	flag:common	flag:ironly	flag:reach	flag:irfibinj	flag:first	flag:camera	flag:deprecated
-.	_FGSIZE1		%16d	pixel	Size of frame grabber for the X axis (pixel)			0	0		0											1	
-.	_FGSIZE2		%16d	pixel	Size of frame grabber for the Y axis (pixel)			0	0		0											1	
-.	_MAQTIME		%20d	us	Acquisition time of the frame measured by the framegrabber (us)			0	0		0												
-.	BIN-FCT1		%20d	pixel	Binning factor of X axis (pixel) 			1	1		1											1	
-.	BIN-FCT2		%20d	pixel	Binning factor of Y axis (pixel) 			1	1		1											1	
-.	BSCALE		%20.8f	NA	Real=fits-value*BSCALE+BZERO			1	1		1											1	
-.	BUNIT		%-10s	NA	Unit of original values			1	1		1											1	
-.	BZERO		%20.8f	NA	Real=fits-value*BSCALE+BZERO			1	1		1											1	
-.	CROPPED		BOOLEAN	NA	Partial Readout or cropped			1	1		1											1	
-.	DATA-TYP		%-30s	NA	Type / Characteristics of this data 		211	1	1		1											1	
-.	DET-NSMP		%20d	NA	Number of non-destructive reads			1	1													1	
-.	DET-SMPL		%-16.16s	NA	Sampling method			1	1		1											1	
-.	DET-TMP		%20.2f	K	Detector temperature (K)			1	1		1											1	
-.	DETECTOR		%-20s	NA	Name of the detector			1	1		1											1	
-.	DETGAIN		%16d	NA	Detector multiplication factor			1	1		1											1	
-.	EXP-ID		%-12s	NA	ID of the exposure this data was taken	copy of FRAMEID with E as 4th character		1	1		1											1	
-.	EXPTIME		%20.8f	s	Total integration time of the frame (sec)		210	1	1		1											1	
-.	EXTTRIG		BOOLEAN	NA	Exposure of detector by an external trigger			1	1		1												
-.	FILTER01		%-30s	NA	Filter name			1	1		1												
-.	FRAMEID		%-12s	NA	Image sequential number		209	1	1		1											1	
-.	FRATE		%16.3f	Hz	Frame rate of the acquisition (Hz)			1	1		1											1	
-.	GAIN		%20.3f	e/ADU	AD conversion factor (electron/ADU)			1	1		1											1	
-.	HST-END		%-12s	NA	HH:MM:SS.SS HST at exposure end		205	1	1		1											1	
-.	HST-STR		%-12s	NA	HH:MM:SS.SS HST at exposure start		204	1	1		1											1	
-.	MFRATE		%16.3f	Hz	Measured frame rate (Hz)			1	1		1												
-.	MJD-END		%20.8f	J2000	Modified Julian Day at exposure end		208	1	1		1											1	
-.	MJD-STR		%20.8f	J2000	Modified Julian Day at exposure start		207	1	1		1											1	
-.	PRD-MIN1		%16d	pixel	Origin in X of the cropped window (pixel)			1	1	1												1	
-.	PRD-MIN2		%16d	pixel	Origin in Y of the cropped window (pixel)			1	1	1												1	
-.	PRD-RNG1		%16d	pixel	Range in X of the cropped window (pixel)			1	1	1												1	
-.	PRD-RNG2		%16d	pixel	Range in Y of the cropped window (pixel)			1	1	1												1	
-.	UT-END 		%-12s	NA	HH:MM:SS.SS UTC at exposure end		202	1	1		1											1	
-.	UT-STR 		%-12s	NA	HH:MM:SS.SS UTC at exposure start		201	1	1		1											1	
-AON.ADC	D_SADC		%-12s	NA	SciPath ADC position (IN OUT)		267	1	1		1				1								
-AON.ADC.ANG1	D_SADCA1		%9.5f	deg	SciPath ADC prism #1 position (deg)		271	1	1		1				1								
-AON.ADC.ANG2	D_SADCA2		%9.5f	deg	SciPath ADC prism #2 position (deg)		272	1	1		1				1								
-AON.ADC.DEC	D_SADCDC		%-16s	J2000	SciPath ADC tracking declination (J2000)		275	1	1		1				1								
-AON.ADC.FC	D_SADCFC		%9.3f	NA	SciPath ADC prism angle correction factor		273	1	1		1				1								
-AON.ADC.MODE	D_SADCMD		%-12s	NA	SciPath ADC tracking mode		270	1	1		1				1								
-AON.ADC.PA	D_SADCPA		%9.3f	deg	SciPath ADC tracking position angle (deg)		276	1	1		1				1								
-AON.ADC.POS	D_SADCP		%9.5f	mm	SciPath ADC position (mm)		268	1	1		1				1								
-AON.ADC.RA	D_SADCRA		%-16s	J2000	SciPath ADC tracking right ascension (J2000)		274	1	1		1				1								
-AON.ADC.STAT	D_SADCST		%-12s	NA	SciPath ADC tracking status		269	1	1		1				1								
-AON.AU1.FOC	D_AU1FOC		%9.5f	mm	AU1 focus (mm)		289	1	1		1				1								
-AON.AU1.GSX	D_AU1GSX		%9.3f	pix	AU1 guide star X pos (pix)		292	1	1		1				1								
-AON.AU1.GSY	D_AU1GSY		%9.3f	pix	AU1 guide star Y pos (pix)		293	1	1		1				1								
-AON.AU1.M1X	D_AU1M1X		%9.5f	mm	AU1 M1 X actuator (mm)			1	1		1				1								
-AON.AU1.M1Y	D_AU1M1Y		%9.5f	mm	AU1 M1 Y actuator (mm)			1	1		1				1								
-AON.AU1.M1Z	D_AU1M1Z		%9.5f	mm	AU1 M1 Z stage (mm)			1	1		1				1								
-AON.AU1.M2X	D_AU1M2X		%9.5f	mm	AU1 M2 X actuator (mm)			1	1		1				1								
-AON.AU1.M2Y	D_AU1M2Y		%9.5f	mm	AU1 M2 Y actuator (mm)			1	1		1				1								
-AON.AU1.TILTX	D_AU1TX		%9.5f	deg	AU1 tilt X (deg)		290	1	1		1				1								
-AON.AU1.TILTY	D_AU1TY		%9.5f	deg	AU1 tilt Y (deg)		291	1	1		1				1								
-AON.AU1.XASEC	D_AU1XA		%9.5f	arcsec	AU1 offset X on sky (arcsec)		287	1	1		1				1								
-AON.AU1.XMM	D_AU1X		%9.5f	mm	AU1 offset X (mm)			1	1		1				1								
-AON.AU1.YASEC	D_AU1YA		%9.5f	arcsec	AU1 offset Y on sky (arcsec)		288	1	1		1				1								
-AON.AU1.YMM	D_AU1Y		%9.5f	mm	AU1 offset Y (mm)			1	1		1				1								
-AON.BS1	D_BS1		%-12s	NA	BS1 position (NIR1 NIR2 OPT)		281	1	1		1				1								
-AON.BS1.POS	D_BS1P		%9.5f	mm	BS1 position (mm)		282	1	1		1				1								
-AON.BS2	D_BS2		%-12s	NA	BS2 position (BS589 MIRROR)		283	1	1		1				1								
-AON.BS2.POS	D_BS2P		%9.5f	mm	BS2 position (mm)		284	1	1		1				1								
-AON.CAL.LD1	D_CLD1		%-8s	NA	CAL LD 655nm (ON,OFF)		253	1	1		1				1								
-AON.CAL.LD2	D_CLD2		%-8s	NA	CAL LD 1550nm (ON,OFF)		254	1	1		1				1								
-AON.CAL.LD3	D_CLD3		%-8s	NA	CAL LD 589nm (ON,OFF)		255	1	1		1				1								
-AON.CAL.X	D_CALX		%-12s	NA	CAL X stage position		256	1	1		1				1								
-AON.CAL.X.POS	D_CALXP		%9.3f	mm	CAL X stage position (mm)		257	1	1		1				1								
-AON.CAL.Z	D_CALZ		%-12s	NA	CAL Z stage position		258	1	1		1				1								
-AON.CAL.Z.POS	D_CALZP		%9.3f	mm	CAL Z stage position (mm)		259	1	1		1				1								
-AON.ENSHUT	D_ENSHUT		%-12s	NA	Entrance shutter position (OPEN,CLOSE)		251	1	1		1				1								
-AON.ENSHUT.POS	D_ESHUTP		%9.5f	mm	Entrance shutter position (mm)		252	1	1		1				1								
-AON.ENV.APDTI	D_APDTI		%6.2f	degC	APD coolant inlet temperature (degC)		343	1	1		1				1								
-AON.ENV.APDTO	D_APDTO		%6.2f	degC	APD coolant outlet temperature (degC)		344	1	1		1				1								
-AON.ENV.BNCHI	D_BNCHI		%6.2f	%	Humidity of AO bench inside (%)		347	1	1		1				1								
-AON.ENV.BNCHO	D_BNCHO		%6.2f	%	Humidity of AO bench outside (%)		348	1	1		1				1								
-AON.ENV.BNCTI	D_BNCTI		%6.2f	degC	Temperature of AO bench inside (degC)		345	1	1		1				1								
-AON.ENV.BNCTO	D_BNCTO		%6.2f	degC	Temperature of AO bench outside (degC)		346	1	1		1				1								
-AON.FCONV	D_FCONV		%-12s	NA	F-conversion optics position (IN OUT)		285	1	1		1				1								
-AON.FCONV.POS	D_FCONVP		%8.3f	mm	F-conversion optics stage position (mm)		286	1	1		1				1								
-AON.GS.MODE	D_MODE		%-8s	NA	Guide star mode (NGS,LGS,LGSwoNGS,NGS-NGS)		250	1	1		1				1								
-AON.HWFS.ABS	D_HWABS		%-12s	NA	HOWFS acq cam. BS position		308	1	1		1				1								
-AON.HWFS.ABS.POS	D_HWABSP		%9.5f	mm	HOWFS acq cam. BS position (mm)		309	1	1		1				1								
-AON.HWFS.ADC	D_HWAD		%-12s	NA	HOWFS ADC stage position (IN,OUT)		298	1	1		1				1								
-AON.HWFS.ADC.ANG1	D_HWADA1		%9.3f	deg	HOWFS ADC prism #1 position (deg)		302	1	1		1				1								
-AON.HWFS.ADC.ANG2	D_HWADA2		%9.3f	deg	HOWFS ADC prism #1 position (deg)		303	1	1		1				1								
-AON.HWFS.ADC.DEC	D_HWADDC		%-16s	J2000	HOWFS ADC tracking declination (J2000)		306	1	1		1				1								
-AON.HWFS.ADC.FC	D_HWADFC		%9.3f	NA	HOWFS ADC prism angle correction factor		304	1	1		1				1								
-AON.HWFS.ADC.MODE	D_HWADMD		%-12s	NA	HOWFS ADC tracking mode		301	1	1		1				1								
-AON.HWFS.ADC.PA	D_HWADPA		%9.3f	deg	HOWFS ADC tracking position angle (deg)		307	1	1		1				1								
-AON.HWFS.ADC.POS	D_HWADP		%9.5f	mm	HOWFS ADC stage position (mm)		299	1	1		1				1								
-AON.HWFS.ADC.RA	D_HWADRA		%-16s	J2000	HOWFS ADC tracking right ascension (J2000)		305	1	1		1				1								
-AON.HWFS.ADC.STAT	D_HWADST		%-12s	NA	HOWFS ADC tracking status		300	1	1		1				1								
-AON.HWFS.AFW1	D_HWAF1		%-12s	NA	HOWFS acq cam. filter wheel#1 state		310	1	1		1				1								
-AON.HWFS.AFW1.POS	D_HWAF1P		%9.5f	deg	HOWFS acq cam. filter wheel#1 pos (deg)		311	1	1		1				1								
-AON.HWFS.AFW2	D_HWAF2		%-12s		HOWFS acq cam. filter wheel#2 state		312	1	1		1				1								
-AON.HWFS.AFW2.POS	D_HWAF2P		%9.5f	deg	HOWFS acq cam. filter wheel#2 pos (deg)		313	1	1		1				1								
-AON.HWFS.APDAV	D_HWAPDA		%8.3f	kcps/elem	HOWFS APD Average Counts (kcps/elem)		325	1	1		1				1								
-AON.HWFS.HBS	D_HWHBS		%-12s	NA	HOWFS hires cam. BS position		314	1	1		1				1								
-AON.HWFS.HBS.POS	D_HWHBSP		%9.5f	mm	HOWFS hires cam. BS position (mm)		315	1	1		1				1								
-AON.HWFS.LAFW	D_HWLAF		%-12s	NA	HOWFS LA filter wheel position		322	1	1		1				1								
-AON.HWFS.LAFW.POS	D_HWLAFP		%9.5f	deg	HOWFS LA filter wheel pos (deg)		323	1	1		1				1								
-AON.HWFS.LASH	D_HWLASH		%-8s	NA	HOWFS LA shutter state (OPEN CLOSE)		324	1	1		1				1								
-AON.HWFS.LAZ	D_HWLAZ		%-12s	NA	HOWFS LA focus stage position		320	1	1		1				1								
-AON.HWFS.LAZ.POS	D_HWLAZP		%9.5f	mm	HOWFS LA focus stage pos (mm)		321	1	1		1				1								
-AON.HWFS.LGSAP	D_HWLAP		%-12s	NA	HOWFS LGS aperture name		296	1	1		1				1								
-AON.HWFS.LGSAP.POS	D_HWLAPP		%9.5f	mm	HOWFS LGS aperture position (mm)		297	1	1		1				1								
-AON.HWFS.NGSAP	D_HWNAP		%-12s	NA	HOWFS NGS aperture name		294	1	1		1				1								
-AON.HWFS.NGSAP.POS	D_HWNAPP		%9.5f	mm	HOWFS NGS aperture position (mm)		295	1	1		1				1								
-AON.HWFS.PBS	D_HWPBS		%-12s	NA	HOWFS pupil cam. BS position		318	1	1		1				1								
-AON.HWFS.PBS.POS	D_HWPBSP		%9.5f	mm	HOWFS pupil cam. BS position (mm)		319	1	1		1				1								
-AON.HWFS.VMAP	D_VMAP		%-12s	NA	HOWFS VM aperture		316	1	1		1				1								
-AON.HWFS.VMAP.SIZE	D_VMAPS		%9.4f	arcsec	HOWFS VM aperture size (arcsec)		317	1	1		1				1								
-AON.IMR.ANGLE	D_IMRANG		%9.3f	deg	IMR angle (deg)		262	1	1		1				1								
-AON.IMR.DEC	D_IMRDEC		%-16s	J2000	IMR tracking declination (J2000)		266	1	1		1				1								
-AON.IMR.MODE	D_IMRMOD		%-12s	NA	IMR tracking mode (SID NON-SID ADI STOP OTHER)		261	1	1		1				1								
-AON.IMR.PAD	D_IMRPAD		%9.3f	deg	IMR position angle of dec. axis (deg)		263	1	1		1				1								
-AON.IMR.PAP	D_IMRPAP		%9.3f	deg	IMR pupil position angle (deg)		264	1	1		1				1								
-AON.IMR.RA	D_IMRRA		%-16s	J2000	IMR tracking right ascension (J2000)		265	1	1		1				1								
-AON.IMR.STAT	D_IMR		%-12s	NA	IMR tracking status (TRACKING SLEWING STAND-BY)		260	1	1		1				1								
-AON.RTS.ADFGAIN	D_ADFG		%7.3f	NA	RTS AU1 defocus gain		341	1	1		1				1								
-AON.RTS.DMCMTX	D_DMCMTX		%-16s	NA	RTS DM control matrix		334	1	1		1				1								
-AON.RTS.DMGAIN	D_DMGAIN		%7.3f	NA	RTS DM gain		331	1	1		1				1								
-AON.RTS.HDFGAIN	D_HDFG		%7.3f	NA	RTS high order defocus gain		340	1	1		1				1								
-AON.RTS.HTTGAIN	D_HTTG		%7.3f	NA	RTS high order TT gain		339	1	1		1				1								
-AON.RTS.LDFGAIN	D_LDFG		%7.3f	NA	RTS low order defocus gain		338	1	1		1				1								
-AON.RTS.LOOP	D_LOOP		%-8s	NA	RTS Loop state (ON OFF)		330	1	1		1				1								
-AON.RTS.LTTGAIN	D_LTTG		%7.3f	NA	RTS low order TT gain		337	1	1		1				1								
-AON.RTS.PSUBGAIN	D_PSUBG		%5.2f	NA	RTS piston subtract gain		333	1	1		1				1								
-AON.RTS.STTGAIN	D_STTG		%7.3f	NA	RTS secondary TT gain		342	1	1		1				1								
-AON.RTS.TTCMTX	D_TTCMTX		%-16s	NA	RTS TT control matrix		335	1	1		1				1								
-AON.RTS.TTGAIN	D_TTGAIN		%7.5f	NA	RTS TT offload gain		332	1	1		1				1								
-AON.RTS.WTTGAIN	D_WTTG		%7.3f	NA	RTS HOWFS-TT gain		336	1	1		1				1								
-AON.TT.TTX	D_TTX		%8.3f	V	TT mount tip voltage (V)		277	1	1		1				1								
-AON.TT.TTY	D_TTY		%8.3f	V	TT mount tilt voltage (V)		278	1	1		1				1								
-AON.TT.WTTC1	D_WTTC1		%8.3f	V	HOWFS TT ch1 voltage (V)		279	1	1		1				1								
-AON.TT.WTTC2	D_WTTC2		%8.3f	V	HOWFS TT ch2 voltage (V)		280	1	1		1				1								
-AON.VM.DRIVE	D_VMDRV		%-8s	NA	VM drive (ON OFF)		326	1	1		1				1								
-AON.VM.FREQ	D_VMFREQ		%6.1f	Hz	VM frequency (Hz)		328	1	1		1				1								
-AON.VM.PHASE	D_VMPHAS		%6.1f	deg	VM phase (deg)		329	1	1		1				1								
-AON.VM.VOLT	D_VMVOLT		%6.2f	V	VM voltage (V)		327	1	1		1				1								
-FITS.AON.OBS-ALOC	OBS-ALOC		%-12s	NA	Observation or Standby		219	1	1		1		1										
-FITS.AON.OBSERVER	OBSERVER		%-50s	NA	Observer		218	1	1		1		1										
-FITS.AON.PROP-ID	PROP-ID		%-8s	NA	Proposal ID		217	1	1		1		1										
-FITS.CRS.FOC-POS	FOC-POS		%-12s	NA	Focus where instrument is attached		232	1	1		1		1										
-FITS.CRS.OBJECT	OBJECT 		%-30s	NA	Object		199	1	1		1		1										
-FITS.SBR.AIRMASS	AIRMASS		%20.3f	NA	Typical air mass during exposure        		228	1	1		1		1										
-FITS.SBR.ALTITUDE	ALTITUDE		%20.5f	deg	Altitude of telescope pointing (degree)        		231	1	1		1		1										
-FITS.SBR.AUTOGUID	AUTOGUID		%-8s	NA	Auto Guide ON/OFF 		233	1	1		1		1										
-FITS.SBR.AZIMUTH	AZIMUTH		%20.5f	deg	Azimuth of telescope pointing (degree)        		230	1	1		1		1										
-FITS.SBR.DATE-OBS	DATE-OBS		%-10s	NA	UT date of Observation (yyyy-mm-dd)		198	1	1		1		1										
-FITS.SBR.DEC	DEC    		%-12s	NA	DEC of telescope pointing (+/-DD:MM:SS.SS)		224	1	1		1		1										
-FITS.SBR.DEC2000	DEC2000		%-12s	NA	DEC(J2000) of pointing (+/-DD:MM:SS.SS)			1	1		1		1										
-FITS.SBR.DOM-HUM	DOM-HUM		%20.1f	%	Dome humidity ( %)		236	1	1		1		1										
-FITS.SBR.DOM-PRS	DOM-PRS		%20.2f	hpa	Dome pressure (hpa)		237	1	1		1		1										
-FITS.SBR.DOM-TMP	DOM-TMP		%20.2f	degC	Dome temperature (C)		238	1	1		1		1										
-FITS.SBR.DOM-WND	DOM-WND		%20.2f	m/s	Dome wind speed (m/sec)		239	1	1		1		1										
-FITS.SBR.EQUINOX	EQUINOX		%20.3f	years	Standard FK5 (years)		225	1	1		1		1										
-FITS.SBR.FOC-VAL	FOC-VAL		%20.3f	mm	Encoder value of the focus unit (mm)		227	1	1		1		1										
-FITS.SBR.HST	HST    		%-12s	NA	HH:MM:SS.SS typical HST at exposure		203	1	1		1		1										
-FITS.SBR.LST	LST		%-12s	LST	Typical LST during exp. (HH:MM:SS.SSS)			1	1		1		1										
-FITS.SBR.M2-TIP	M2-TIP 		%-8s	NA	2nd mirror tip-tilt on-off		234	1	1		1		1										
-FITS.SBR.M2-TYPE	M2-TYPE		%-8s	NA	2nd mirror type		235	1	1		1		1										
-FITS.SBR.MJD	MJD    		%20.8f	J2000	Modified Julian Day at typical time		206	1	1		1		1										
-FITS.SBR.OBSERVAT	OBSERVAT		%-20s	NA	Observatory		213	1	1		1		1										
-FITS.SBR.OUT-HUM	OUT-HUM		%20.1f	%	Outside humidity ( %)		240	1	1		1		1										
-FITS.SBR.OUT-PRS	OUT-PRS		%20.2f	hpa	Outside pressure (hpa)		241	1	1		1		1										
-FITS.SBR.OUT-TMP	OUT-TMP		%20.2f	degC	Outside temperature (C)		242	1	1		1		1										
-FITS.SBR.OUT-WND	OUT-WND		%20.2f	m/s	Outside wind speed (m/sec)		243	1	1		1		1										
-FITS.SBR.RA	RA     		%-12s	NA	RA of telescope pointing (HH:MM:SS.SSS)		223	1	1		1		1										
-FITS.SBR.RA2000	RA2000		%-12s	NA	RA(J2000) pointing (HH:MM:SS.SSS) 			1	1		1		1										
-FITS.SBR.TELESCOP	TELESCOP		%-16s	NA	Telescope/System which Inst. is attached		214	1	1		1		1										
-FITS.SBR.TELFOCUS	TELFOCUS		%-16s	NA	Focus where a beam is reachable		226	1	1		1		1										
-FITS.SBR.UT	UT     		%-12s	NA	HH:MM:SS.SS typical UTC at exposure		200	1	1		1		1										
-FITS.SBR.ZD	ZD     		%20.5f	deg	Zenith distance at typical time (deg)		229	1	1		1		1										
-SCX.APAPANE.PKO	X_APAPKO	apapane_pickoff_st	%-16.16s	NA	APAPANE pickoff state (HOME, IN, OUT)	Renamed from X_BUFPKO 2023-03-01		1	1	1	0							1					
-SCX.APAPANE.PKO.POS	X_APAPKP	apapane_pickoff	%16.3f	mm	APAPANE pickoff position (mm)	Renamed from X_BUFPKP 2023-03-01		1	1	1	0							1					
-SCX.BUFFY.PKO	X_BUFPKO	buffy_pickoff_st	%-16.16s	NA	BUFFYCAM pickoff state (HOME, IN, OUT)	Renamed 2023-03-01	97	0	0	0	0							1					1
-SCX.BUFFY.PKO.POS	X_BUFPKP	buffy_pickoff	%16.3f	mm	BUFFYCAM pickoff position (mm)	Renamed 2023-03-01	98	0	0	0	0							1					1
-SCX.BUFFY.PUP	X_BUFPUP	buffy_pup	%-16.16s	NA	BUFFYCAM pupil lens state (IN, OUT)	Deprecated 2023-03-01	102	0	0	0	0							1					1
-SCX.CHARIS.PKO	X_CHAPKO	charis_pickoff_st	%-16.16s	NA	CHARIS pickoff wheel state		56	1	1	1	0							1					
-SCX.CHARIS.PKO.POS	X_CHAPKP	charis_pickoff_wheel	%16.3f	deg	CHARIS pickoff wheel position (deg)		57	1	1	1	0							1					
-SCX.CHARIS.PKO.THETA	X_CHAPKT	charis_pickoff_theta	%16.3f	deg	CHARIS pickoff theta position (deg)		58	1	1	1	0							1					
-SCX.CHARIS.WOL	X_CHAWOL	charis_wollaston	%-16.16s	NA	CHARIS Wollaston prism state (IN, OUT)		59	1	1	1	0							1					
-SCX.CHUCK.PUP	X_CHKPUP	chuck_pup	%-16.16s	NA	CHUCKCAM pupil lens state (IN, OUT)	Renamed 2023-03-01	99	0	0	0	0							1					1
-SCX.CHUCK.PUP.F	X_CHKPUF	chuck_pup_fcs	%16.3f	mm	CHUCKCAM pupil lens focus position (mm)	Renamed 2023-03-01	100	0	0	0	0							1					1
-SCX.CHUCK.PUP.ST	X_CHKPUS	chuck_pup_fcs_st	%-16.16s	NA	CHUCKCAM pupil lens focus status 	Renamed 2023-03-01	100	0	0	0	0							1					1
-SCX.COMPPLATE	X_COMPPL	compplate	%-16.16s	NA	compensating plate pickoff state (IN, OUT)		10	1	1	1	1						1						
-SCX.DICHRO	X_DICHRO	dichroic_st	%-16.16s	NA	Dichroic state (HOME, IN, OUT)		15	1	1	1	1						1						
-SCX.DICHRO.POS	X_DICHRP	dichroic	%16.3f	mm	Dichroic position (mm)		16	1	1	1	1						1						
-SCX.FIBINJ.CAR	X_FINCAR	fibinj_car	%16d	step	Fiber Injection Carriage position (step)		109	0	0	0	0												
-SCX.FIBINJ.FIB	X_FINFIB	fibinj_fib_st	%-16.16s	NA	Fiber Injection fiber state (SMI, MMI, PHL)		105	0	0	0	0									1			
-SCX.FIBINJ.FIBF	X_FINFIF	fibinj_fib_f	%16d	step	Fiber Injection f position (step)		108	0	0	0	0									1			
-SCX.FIBINJ.FIBX	X_FINFIX	fibinj_fib_x	%16d	step	Fiber Injection x position (step)		106	0	0	0	0									1			
-SCX.FIBINJ.FIBY	X_FINFIY	fibinj_fib_y	%16d	step	Fiber Injection y position (step)		107	0	0	0	0									1			
-SCX.FIBINJ.LEN	X_FINLEN	fibinj_len_st	%-16.16s	NA	Fiber Injection lense state (HOME, PL, REACH)	New 2023-03-01		0	0	0	0									1			
-SCX.FIBINJ.LEN.POS	X_FINLEP	fibinj_len	%16.3f	mm	Fiber Injection pickoff position (mm)	New 2023-03-01		0	0	0	0									1			
-SCX.FIBINJ.PKO	X_FINPKO	fibinj_pickoff_st	%-16.16s	NA	Fiber Injection pickoff state (HOME, IN, OUT)		103	1	1	1	0							1					
-SCX.FIBINJ.PKO.POS	X_FINPKP	fibinj_pickoff	%16.3f	mm	Fiber Injection pickoff position (mm)		104	1	1	1	0							1					
-SCX.FIRST.IINJ.X	X_FIRINX	first_inj_x	%16d	step	FIRST injection x position (step)		132	0	0	0	0												
-SCX.FIRST.INJ	X_FIRINJ	first_inj_st	%-16.16s	NA	FIRST injection status		131	0	0	0	0												
-SCX.FIRST.INJ.F	X_FIRINF	first_inj_f	%16.3f	mm	FIRST injection focus (mm)		134	0	0	0	0												
-SCX.FIRST.INJ.Y	X_FIRINY	first_inj_y	%16d	step	FIRST injection y position (step)		133	0	0	0	0												
-SCX.FIRST.PHO	X_FIRPHO	first_photometry_st	%-16.16s	NA	FIRST photometry pickoff state (HOME, IN, OUT)		142	0	0	0	0												
-SCX.FIRST.PHO.POS	X_FIRPHP	first_photometry	%16.3f	mm	FIRST photometry pickoff position (mm)		143	0	0	0	0												
-SCX.FIRST.PHO1	X_FIRPH1	first_photometry_x1_st	%-16.16s	NA	FIRST photometry pickoff 1 state (HOME, IN, OUT) (deprecated)		138	0	0	0	0										1		1
-SCX.FIRST.PHO1.POS	X_FIRP1P	first_photometry_x1	%16.3f	mm	FIRST photometry pickoff 1 position (mm) (deprecated)		139	0	0	0	0										1		1
-SCX.FIRST.PHO2	X_FIRPH2	first_photometry_x2_st	%-16.16s	NA	FIRST photometry pickoff 2 state (HOME, IN, OUT) (deprecated)		140	0	0	0	0										1		1
-SCX.FIRST.PHO2.POS	X_FIRP2P	first_photometry_x2	%16.3f	mm	FIRST photometry pickoff 2 position (mm) (deprecated)		141	0	0	0	0										1		1
-SCX.FIRST.PKO	X_FIRPKO	first_pickoff_st	%-16.16s	NA	FIRST pickoff state		129	1	1	1	1						1				1		
-SCX.FIRST.PKO.POS	X_FIRPKP	first_pickoff	%16.3f	mm	FIRST pickoff position (mm)		130	1	1	1	1						1						
-SCX.FIRST.SRC	X_FIRSRC	first_src_st	%-16.16s	NA	FIRST cal source state		135	0	0	0	0												
-SCX.FIRST.SRC.X	X_FIRSRX	first_src_x	%16.3f	mm	FIRST cal source x position (mm)		136	0	0	0	0												
-SCX.FIRST.SRC.Y	X_FIRSRY	first_src_y	%16.3f	mm	FIRST cal source y position (mm)		137	0	0	0	0												
-SCX.FPM	X_FPM	fpm_st	%-16.16s	NA	FPM wheel state		33	1	1	1	0							1					
-SCX.FPM.F	X_FPMF	fpm_f	%16d	step	FPM wheel f position (step)		37	1	1	1	0							1					
-SCX.FPM.WHL	X_FPMWHL	fpm_wheel	%16.3f	deg	FPM wheel position (deg)		34	1	1	1	0							1					
-SCX.FPM.X	X_FPMX	fpm_x	%16d	step	FPM wheel x position (step)		35	1	1	1	0							1					
-SCX.FPM.Y	X_FPMY	fpm_y	%16d	step	FPM wheel y position (step)		36	1	1	1	0							1					
-SCX.FSTOP	X_FST	field_stop_st	%-16.16s	NA	Field Stop state		50	1	1	1	0							1					
-SCX.FSTOP.X	X_FSTX	field_stop_x	%16.3f	mm	Field Stop x position (mm)		51	1	1	1	0							1					
-SCX.FSTOP.Y	X_FSTY	field_stop_y	%16.3f	mm	Field Stop y position (mm)		52	1	1	1	0							1					
-SCX.GRID.AMP	X_GRDAMP	grid_amp	%16.3f	um	ASTROGRID amplitude (um)		172	1	1	1	1						1						
-SCX.GRID.MOD	X_GRDMOD	grid_mod	%16d	Hz	ASTROGRID modulation frequency (Hz)		173	1	1	1	1						1						
-SCX.GRID.SEP	X_GRDSEP	grid_sep	%16.3f	lambda/D	ASTROGRID separation (lambda/D)		171	1	1	1	1						1						
-SCX.GRID.STAT	X_GRDST	grid_st	%-16.16s	NA	ASTROGRID status (ON, OFF)		170	1	1	1	1						1						
-SCX.HOTSPOT	X_HOTSPT	hotspot	%-16.16s	NA	HOTSPOT alignment status 		169	1	1	1	1						1						
-SCX.INTSPH	X_INTSPH	intsphere	%-16.16s	NA	Integration sphere state (IN, OUT)		9	1	1	1	1						1						
-SCX.IPIAA	X_IPIAA	invpiaa_st	%-16.16s	NA	Inverse PIAA state		42	1	1	1	0							1					
-SCX.IPIAA.PHI	X_IPIPHI	invpiaa_phi	%16d	step	Inverse PIAA phi position (step)		46	1	1	1	0							1					
-SCX.IPIAA.THETA	X_IPITHE	invpiaa_theta	%16d	step	Inverse PIAA theta position (step)		45	1	1	1	0							1					
-SCX.IPIAA.X	X_IPIX	invpiaa_x	%16.3f	mm	Inverse PIAA x position (mm)		43	1	1	1	0							1					
-SCX.IPIAA.Y	X_IPIY	invpiaa_y	%16.3f	mm	Inverse PIAA y position (mm)		44	1	1	1	0							1					
-SCX.IRCAM.BLK	X_IRCBLK	ircam_block	%-16.16s	NA	IRCAMs block state (IN, OUT)		73	1	1	1	0							1					
-SCX.IRCAM.FCS	X_IRCFCS	ircam_fcs_st	%-16.16s	NA	IRCAMs focusing stage state		74	1	1	1	0							1					
-SCX.IRCAM.FCS.F1	X_IRCFCP	ircam_fcs_f1	%16d	step	IRCAMs focusing stage position (step)		75	1	1	1	0							1					
-SCX.IRCAM.FCS.F2	X_IRCFC2	ircam_fcs_f2	%16.3f	mm	IRCAMs lens2 focusing stage position (mm)		76	1	1	1	0							1					
-SCX.IRCAM.FLC	X_IRCFLC	ircam_flc_st	%-16.16s	NA	IRCAMs FLC state (IN, OUT)		64	1	1	1	0							1					
-SCX.IRCAM.FLC.POS	X_IRCFLP	ircam_flc	%16.3f	deg	IRCAMs FLC position (deg)		65	1	1	1	0							1					
-SCX.IRCAM.FLT	X_IRCFLT	ircam_filter	%-16.16s	NA	IRCAMs filter state		63	1	1	1	0							1					
-SCX.IRCAM.HWP	X_IRCHWP	ircam_hwp	%-16.16s	NA	IRCAMs HWP state (IN, OUT)		70	1	1	1	0							1					
-SCX.IRCAM.HWP.POS	X_IRCHPP	ircam_hwp_theta	%16.3f	deg	IRCAMs HWP position (deg)		71	1	1	1	0							1					
-SCX.IRCAM.PUPIL	X_IRCPUP	ircam_pupil_st	%-16.16s	NA	IRCAMs pupil mask state		66	1	1	1	0							1					
-SCX.IRCAM.PUPIL.X	X_IRCPUX	ircam_pupil_x	%16.3f	mm	IRCAMs pupil mask x position (mm)		67	1	1	1	0							1					
-SCX.IRCAM.PUPIL.Y	X_IRCPUY	ircam_pupil_y	%16.3f	mm	IRCAMs pupil mask y position (mm)		68	1	1	1	0							1					
-SCX.IRCAM.QWP	X_IRCQWP	ircam_qwp	%-16.16s	NA	IRCAMs QWP state (IN, OUT)		69	1	1	1	0							1					
-SCX.IRCAM.WOL	X_IRCWOL	ircam_wollaston	%-16.16s	NA	IRCAMs Wollaston prism state (IN, OUT)		72	1	1	1	0							1					
-SCX.IRSPEC.COL	X_IRSCOL	irspectro_col_st	%-16.16s	NA	IR spectrograph collimator	New 2023-03-01		0	1	0	0								1	1			
-SCX.IRSPEC.COL.POS	X_IRSCOP	irspectro_col	%16.3f	mm	IR spectrograph collimator position (mm)	New 2023-03-01		0	1	0	0								1	1			
-SCX.IRSPEC.FIB	X_IRSFIB	irspectro_fib_st	%-16.16s	NA	IR spectrograph fiber stage state	New 2023-03-01		0	1	0	0								1	1			
-SCX.IRSPEC.FIB.X	X_IRSFIX	irspectro_fib_x	%16.3f	mm	IR spectrograph fiber x stage position (mm)	New 2023-03-01		0	1	0	0								1	1			
-SCX.IRSPEC.FIB.Y	X_IRSFIP	irspectro_fib_y	%16.3f	mm	IR spectrograph fiber y stage position (mm)	New 2023-03-01		0	1	0	0								1	1			
-SCX.IRSPEC.MODE	X_IRSMOD	irspectro_mode_st	%-16.16s	NA	IR spectrograph mode stage	New 2023-03-01		0	0	0	0								1	1			
-SCX.IRSPEC.MODE.X1	X_IRSMO1	irspectro_mode_x1	%16d	step	IR spectrograph mode stage1 position (step)	New 2023-03-01		0	0	0	0								1	1			
-SCX.IRSPEC.MODE.X2	X_IRSMO2	irspectro_mode_x2	%16.3f	mm	IR spectrograph mode stage2 position (mm)	New 2023-03-01		0	0	0	0								1	1			
-SCX.LOWFS.BLK	X_LOWBLK	lowfs_block	%-16.16s	NA	LOWFS block state (IN, OUT)		111	1	1	1	0							1					
-SCX.LOWFS.FCS	X_LOWFCS	lowfs_fcs	%16d	step	LOWFS focus position (step)		112	1	1	1	0							1					
-SCX.LOWFS.FREQ	X_LOWFRQ	lowfs_freq	%16d	Hz	LOWFS loop frequency (Hz)		156	1	1	1	1						1						
-SCX.LOWFS.GAIN	X_LOWGN	lowfs_gain	%16.3f	unitless	LOWFS main gain (0-1)		159	1	1	1	1						1						
-SCX.LOWFS.LEAK	X_LOWLK	lowfs_leak	%16.3f	unitless	LOWFS leak term (0-1)		160	1	1	1	1						1						
-SCX.LOWFS.LOOP	X_LOWLP	lowfs_loop	%-16.16s	NA	LOWFS loop status (OPEN, CLOSED, DM, ...)		155	1	1	1	1						1						
-SCX.LOWFS.MOT	X_LOWMOT	lowfs_mtype	%-16.16s	NA	LOWFS mode types (ZERNIKE, FOURIER, ...)		158	1	1	1	1						1						
-SCX.LOWFS.NMO	X_LOWNMO	lowfs_nmodes	%16d	unitless	LOWFS number of modes 		157	1	1	1	1						1						
-SCX.LYOT	X_LYOT	lyot_st	%-16.16s	NA	LYOT wheel state		38	1	1	1	0							1					
-SCX.LYOT.WHL	X_LYOWHL	lyot_wheel	%16.3f	deg	LYOT wheel position (deg)		39	1	1	1	0							1					
-SCX.LYOT.X	X_LYOX	lyot_x	%16d	step	LYOT wheel x position (step)		40	1	1	1	0							1					
-SCX.LYOT.Y	X_LYOY	lyot_y	%16d	step	LYOT wheel y position (step)		41	1	1	1	0							1					
-SCX.MKIDS.PKO	X_MKIPKO	mkids_pickoff_st	%-16.16s	NA	MKIDS pickoff wheel state		60	1	1	1	0							1					
-SCX.MKIDS.PKO.POS	X_MKIPKP	mkids_pickoff_wheel	%16.3f	deg	MKIDS pickoff wheel position (deg)		61	1	1	1	0							1					
-SCX.MKIDS.PKO.THETA	X_MKIPKT	mkids_pickoff_theta	%16.3f	deg	MKIDS pickoff theta position (deg)		62	1	1	1	0							1					
-SCX.NPS.NPS11	X_NPS11	nps1_1	%-16.16s	NA	NPS1 status of port #1 (ON,OFF)		174	1	1	1	1						1						
-SCX.NPS.NPS12	X_NPS12	nps1_2	%-16.16s	NA	NPS1 status of port #2 (ON,OFF)		175	1	1	1	1						1						
-SCX.NPS.NPS13	X_NPS13	nps1_3	%-16.16s	NA	NPS1 status of port #3 (ON,OFF)		176	1	1	1	1						1						
-SCX.NPS.NPS14	X_NPS14	nps1_4	%-16.16s	NA	NPS1 status of port #4 (ON,OFF)		177	1	1	1	1						1						
-SCX.NPS.NPS15	X_NPS15	nps1_5	%-16.16s	NA	NPS1 status of port #5 (ON,OFF)		178	1	1	1	1						1						
-SCX.NPS.NPS16	X_NPS16	nps1_6	%-16.16s	NA	NPS1 status of port #6 (ON,OFF)		179	1	1	1	1						1						
-SCX.NPS.NPS17	X_NPS17	nps1_7	%-16.16s	NA	NPS1 status of port #7 (ON,OFF)		180	1	1	1	1						1						
-SCX.NPS.NPS18	X_NPS18	nps1_8	%-16.16s	NA	NPS1 status of port #8 (ON,OFF)		181	1	1	1	1						1						
-SCX.NPS.NPS21	X_NPS21	nps2_1	%-16.16s	NA	NPS2 status of port #1 (ON,OFF)		182	1	1	1	1						1						
-SCX.NPS.NPS210	X_NPS210	nps2_10	%-16.16s	NA	NPS2 status of port #10 (ON,OFF)			1	1	1	1						1						
-SCX.NPS.NPS211	X_NPS211	nps2_11	%-16.16s	NA	NPS2 status of port #11 (ON,OFF)			1	1	1	1						1						
-SCX.NPS.NPS212	X_NPS212	nps2_12	%-16.16s	NA	NPS2 status of port #12 (ON,OFF)			1	1	1	1						1						
-SCX.NPS.NPS213	X_NPS213	nps2_13	%-16.16s	NA	NPS2 status of port #13 (ON,OFF)			1	1	1	1						1						
-SCX.NPS.NPS214	X_NPS214	nps2_14	%-16.16s	NA	NPS2 status of port #14 (ON,OFF)			1	1	1	1						1						
-SCX.NPS.NPS215	X_NPS215	nps2_15	%-16.16s	NA	NPS2 status of port #15 (ON,OFF)			1	1	1	1						1						
-SCX.NPS.NPS216	X_NPS216	nps2_16	%-16.16s	NA	NPS2 status of port #16 (ON,OFF)			1	1	1	1						1						
-SCX.NPS.NPS22	X_NPS22	nps2_2	%-16.16s	NA	NPS2 status of port #2 (ON,OFF)		183	1	1	1	1						1						
-SCX.NPS.NPS23	X_NPS23	nps2_3	%-16.16s	NA	NPS2 status of port #3 (ON,OFF)		184	1	1	1	1						1						
-SCX.NPS.NPS24	X_NPS24	nps2_4	%-16.16s	NA	NPS2 status of port #4 (ON,OFF)		185	1	1	1	1						1						
-SCX.NPS.NPS25	X_NPS25	nps2_5	%-16.16s	NA	NPS2 status of port #5 (ON,OFF)		186	1	1	1	1						1						
-SCX.NPS.NPS26	X_NPS26	nps2_6	%-16.16s	NA	NPS2 status of port #6 (ON,OFF)		187	1	1	1	1						1						
-SCX.NPS.NPS27	X_NPS27	nps2_7	%-16.16s	NA	NPS2 status of port #7 (ON,OFF)		188	1	1	1	1						1						
-SCX.NPS.NPS28	X_NPS28	nps2_8	%-16.16s	NA	NPS2 status of port #8 (ON,OFF)		189	1	1	1	1						1						
-SCX.NPS.NPS29	X_NPS29	nps2_9	%-16.16s	NA	NPS2 status of port #9 (ON,OFF)			1	1	1	1						1						
-SCX.NPS.NPS31	X_NPS31	nps3_1	%-16.16s	NA	NPS3 status of port #1 (ON,OFF)		190	1	1	1	1						1						
-SCX.NPS.NPS32	X_NPS32	nps3_2	%-16.16s	NA	NPS3 status of port #2 (ON,OFF)		191	1	1	1	1						1						
-SCX.NPS.NPS33	X_NPS33	nps3_3	%-16.16s	NA	NPS3 status of port #3 (ON,OFF)		192	1	1	1	1						1						
-SCX.NPS.NPS34	X_NPS34	nps3_4	%-16.16s	NA	NPS3 status of port #4 (ON,OFF)		193	1	1	1	1						1						
-SCX.NPS.NPS35	X_NPS35	nps3_5	%-16.16s	NA	NPS3 status of port #5 (ON,OFF)		194	1	1	1	1						1						
-SCX.NPS.NPS36	X_NPS36	nps3_6	%-16.16s	NA	NPS3 status of port #6 (ON,OFF)		195	1	1	1	1						1						
-SCX.NPS.NPS37	X_NPS37	nps3_7	%-16.16s	NA	NPS3 status of port #7 (ON,OFF)		196	1	1	1	1						1						
-SCX.NPS.NPS38	X_NPS38	nps3_8	%-16.16s	NA	NPS3 status of port #8 (ON,OFF)		197	1	1	1	1						1						
-SCX.NULL.PKO	X_NULPKO	nuller_pickoff_st	%-16.16s	NA	NULLER pickoff state (HOME, IN, OUT)	Change name 2023-03-01	30	0	0	0	0							1					1
-SCX.NULL.PKO.POS	X_NULPKP	nuller_pickoff	%16.3f	mm	NULLER pickoff position (mm)	Change name 2023-03-01	31	0	0	0	0							1					1
-SCX.OAP1	X_OAP1	oap1_st	%-16.16s	NA	First OAP state (HOME, INT, AO)		11	1	1	1	1						1						
-SCX.OAP1.F	X_OAP1F	oap1_f	%16d	step	First OAP f position (step)		14	1	1	1	1						1						
-SCX.OAP1.PHI	X_OAP1PH	oap1_phi	%16.3f	deg	First OAP y position (deg)		13	1	1	1	1						1						
-SCX.OAP1.THETA	X_OAP1TH	oap1_theta	%16.3f	deg	First OAP x position (deg)		12	1	1	1	1						1						
-SCX.OAP4	X_OAP4	oap4_st	%-16.16s	NA	OAP 4 state		47	1	1	1	0							1					
-SCX.OAP4.PHI	X_OAP4PH	oap4_phi	%16.3f	deg	OAP 4 y position (deg)		49	1	1	1	0							1					
-SCX.OAP4.THETA	X_OAP4TH	oap4_theta	%16.3f	deg	OAP 4 x position (deg)		48	1	1	1	0							1					
-SCX.PALILA.PUP	X_PALPUP	palila_pup	%-16.16s	NA	PALILA pupil lens state (IN, OUT)	Renamed from X_CHKPUP 2023-03-01	99	1	1	1	0							1					
-SCX.PALILA.PUP.F	X_PALPUF	palila_pup_fcs	%16.3f	mm	PALILA pupil lens focus position (mm)	Renamed from X_CHKPUF 2023-03-01	100	1	1	1	0							1					
-SCX.PALILA.PUP.ST	X_PALPUS	palila_pup_fcs_st	%-16.16s	NA	PALILA pupil lens focus status 	Renamed from X_CHKPUS 2023-03-01	100	1	1	1	0							1					
-SCX.PCFI.FIB	X_PCFFIB	pcfi_fib_st	%-16.16s	NA	PCFI fiber state (HOME, MMI, SMI) (deprecated)		81	0	0	0	0												1
-SCX.PCFI.FIB.F	X_PCFFIF	pcfi_fib_f	%16.3f	mm	PCFI fiber f position (mm) (deprecated)		84	0	0	0	0												1
-SCX.PCFI.FIB.X	X_PCFFIX	pcfi_fib_x	%16.3f	mm	PCFI fiber x position (mm) (deprecated)		82	0	0	0	0												1
-SCX.PCFI.FIB.Y	X_PCFFIY	pcfi_fib_y	%16.3f	mm	PCFI fiber y position (mm) (deprecated)		83	0	0	0	0												1
-SCX.PCFI.LEN	X_PCFLEN	pcfi_len_st	%-16.16s	NA	PCFI lens state (HOME, MMI, SMI) (deprecated)		79	0	0	0	0												1
-SCX.PCFI.LEN.POS	X_PCFLEP	pcfi_len	%16.3f	mm	PCFI lens selection position (mm) (deprecated)		80	0	0	0	0												1
-SCX.PCFI.PKO	X_PCFPKO	pcfi_pickoff_st	%-16.16s	NA	PCFI pickoff state (deprecated)		77	0	0	0	0												1
-SCX.PCFI.PKO.POS	X_PCFPKP	pcfi_pickoff	%16.3f	mm	PCFI pickoff position (mm) (deprecated)		78	0	0	0	0												1
-SCX.PG1.PKO	X_PG1PKO	PG1_pickoff	%-16.16s	NA	Point Grey 1 Pickoff state (IN, OUT)		32	1	1	1	0							1					
-SCX.PG2.PKO	X_PG2PKO	PG2_pickoff	%-16.16s	NA	Point Grey 2 Pickoff state (IN, OUT) (deprecated)		110	0	0	0	0												1
-SCX.PHOT.COMPPLATE	X_PHOCPL	photonics_compplate	%-16.16s	NA	state of compensating plate for PHOTONICS pickoff (IN, OUT)	New 2023-03-01		1	1	1	0							1					
-SCX.PHOT.PKO	X_PHOPKO	photonics_pickoff_st	%-16.16s	NA	PHOTONICS pickoff state (HOME, IN, OUT)	Rename from X_NULPKO 2023-03-01		1	1	1	0							1					
-SCX.PHOT.PKO.POS	X_PHOPKP	photonics_pickoff	%16.3f	mm	PHOTONICS pickoff position (mm)	Rename from X_NULPKP 2023-03-01		1	1	1	0							1					
-SCX.PHOT.PKO.TYPE	X_PHOTYP	photonics_pickoff_type	%-16.16s	NA	PHOTONICS pickoff type (90-10, K-BAND)	New 2023-03-01		1	1	1	0							1					
-SCX.PIAA1	X_PIAA1	piaa1_st	%-16.16s	NA	PIAA1 wheel state		21	1	1	1	0							1					
-SCX.PIAA1.WHL	X_PI1WHL	piaa1_wheel	%16.3f	deg	PIAA1 wheel position (deg)		22	1	1	1	0							1					
-SCX.PIAA1.X	X_PI1X	piaa1_x	%16d	step	PIAA1 wheel x position (step)		23	1	1	1	0							1					
-SCX.PIAA1.Y	X_PI1Y	piaa1_y	%16d	step	PIAA1 wheel y position (step)		24	1	1	1	0							1					
-SCX.PIAA2	X_PIAA2	piaa2_st	%-16.16s	NA	PIAA2 wheel state		25	1	1	1	0							1					
-SCX.PIAA2.F	X_PI2F	piaa2_f	%16d	step	PIAA2 wheel focus position (step)		29	1	1	1	0							1					
-SCX.PIAA2.WHL	X_PI2WHL	piaa2_wheel	%16.3f	deg	PIAA2 wheel position (deg)		26	1	1	1	0							1					
-SCX.PIAA2.X	X_PI2X	piaa2_x	%16d	step	PIAA2 wheel x position (step)		27	1	1	1	0							1					
-SCX.PIAA2.Y	X_PI2Y	piaa2_y	%16d	step	PIAA2 wheel y position (step)		28	1	1	1	0							1					
-SCX.POLAR	X_POLAR	polarizer	%-16.16s	NA	Polarizer state (HOME, IN, OUT)		113	1	1	1	1						1						
-SCX.POLAR.POS	X_POLARP	polarizer_theta	%16.3f	deg	Polarizer angle (deg)		114	1	1	1	1						1						
-SCX.PUP	X_PUPIL	pupil_st	%-16.16s	NA	Pupil wheel state		17	1	1	1	0							1					
-SCX.PUP.WHL	X_PUPWHL	pupil_wheel	%16.3f	deg	Pupil wheel angle (deg)		18	1	1	1	0							1					
-SCX.PUP.X	X_PUPX	pupil_x	%16d	step	Pupil wheel x position (step)		19	1	1	1	0							1					
-SCX.PUP.Y	X_PUPY	pupil_y	%16d	step	Pupil wheel y position (step)		20	1	1	1	0							1					
-SCX.PYWFS.CAL	X_PYWCAL	pywfs_cal	%-16.16s	NA	PYWFS calibration status (HO RM, LO RM, ...)		147	1	1	1	1						1						
-SCX.PYWFS.CLOOP	X_PYWCLP	pywfs_cenloop	%-16.16s	NA	PYWFS flux centering loop status (OPEN, CLOSED)		153	1	1	1	1						1						
-SCX.PYWFS.COL	X_PYWCOL	pywfs_col	%16d	step	PYWFS collimation position (step)		121	1	1	1	1						1						
-SCX.PYWFS.DMOFF	X_PYWDMO	dmoffload	%-16.16s	NA	PYWFS DM Offload status (ON, OFF with channel)		154	1	1	1	1						1						
-SCX.PYWFS.FCS	X_PYWFCS	pywfs_fcs	%16d	step	PYWFS focus position (step)		122	1	1	1	1						1						
-SCX.PYWFS.FCS.PKO	X_PYWFPK	pywfs_fcs_pickoff	%-16.16s	NA	PYWFS focal plane pickoff state (IN, OUT)		123	1	1	1	1						1						
-SCX.PYWFS.FLT	X_PYWFLT	pywfs_filter	%-16.16s	NA	PYWFS filter state		120	1	1	1	1						1						
-SCX.PYWFS.FREQ	X_PYWFRQ	pywfs_freq	%16d	Hz	PYWFS loop frequency (Hz)		148	1	1	1	1						1						
-SCX.PYWFS.FSTOP	X_PYWFST	pywfs_fieldstop_st	%-16.16s	NA	PYWFS field stop state		117	1	1	1	1						1						
-SCX.PYWFS.FSTOP.X	X_PYWFSX	pywfs_fieldstop_x	%16.3f	mm	PYWFS field stop x position (mm)		118	1	1	1	1						1						
-SCX.PYWFS.FSTOP.Y	X_PYWFSY	pywfs_fieldstop_y	%16.3f	mm	PYWFS field stop y position (mm)		119	1	1	1	1						1						
-SCX.PYWFS.GAIN	X_PYWGN	pywfs_gain	%16.3f	unitless	PYWFS main loop gain (0-1)		149	1	1	1	1						1						
-SCX.PYWFS.LEAK	X_PYWLK	pywfs_leak	%16.3f	unitless	PYWFS leak term (0-1)		150	1	1	1	1						1						
-SCX.PYWFS.LOOP	X_PYWLP	pywfs_loop	%-16.16s	NA	PYWFS loop status (OPEN, CLOSED)		146	1	1	1	1						1						
-SCX.PYWFS.PKO	X_PYWPKO	pywfs_pickoff_st	%-16.16s	NA	PYWFS pickoff state		115	1	1	1	1						1						
-SCX.PYWFS.PKO.POS	X_PYWPKP	pywfs_pickoff	%16.3f	deg	PYWFS pickoff position (deg)		116	1	1	1	1						1						
-SCX.PYWFS.PLOOP	X_PYWPLP	pywfs_puploop	%-16.16s	NA	PYWFS pupil alignment loop status (OPEN, CLOSED)		152	1	1	1	1						1						
-SCX.PYWFS.PUPX	X_PYWPPX	pywfs_pup_x	%16d	step	PYWFS pupil lens x position (step)		124	1	1	1	1						1						
-SCX.PYWFS.PUPY	X_PYWPPY	pywfs_pup_y	%16d	step	PYWFS pupil lens y position (step)		125	1	1	1	1						1						
-SCX.PYWFS.RAD	X_PYWRAD	pywfs_rad	%16.3f	mas	PYWFS modulation radius (mas)		151	1	1	1	1						1						
-SCX.REACH.FIB	X_RCHFIB	reach_fib_st	%-16.16s	NA	REACH fiber status		90	1	0	0	0								1				
-SCX.REACH.FIB.F	X_RCHFIF	reach_fib_f	%16.3f	mm	REACH fiber focus (mm)		93	1	0	0	0								1				
-SCX.REACH.FIB.THETA	X_RCHFIT	reach_fib_theta	%16.3f	deg	REACH fiber rotation (deg)		94	1	0	0	0								1				
-SCX.REACH.FIB.X	X_RCHFIX	reach_fib_x	%16d	step	REACH fiber x position (step)		91	1	0	0	0								1				
-SCX.REACH.FIB.Y	X_RCHFIY	reach_fib_y	%16d	step	REACH fiber y position (step)		92	1	0	0	0								1				
-SCX.REACH.OAP	X_RCHOAP	reach_oap_st	%-16.16s	NA	REACH OAP state		87	1	0	0	0								1				
-SCX.REACH.OAP.PHI	X_RCHOPH	reach_oap_phi	%16.3f	deg	REACH OAP phi angle (deg)		89	1	0	0	0								1				
-SCX.REACH.OAP.THETA	X_RCHOTH	reach_oap_theta	%16.3f	deg	REACH OAP theta angle (deg)		88	1	0	0	0								1				
-SCX.REACH.PKO	X_RCHPKO	reach_pickoff_st	%-16.16s	NA	REACH pickoff state		85	1	1	1	0							1					
-SCX.REACH.PKO.POS	X_RCHPKP	reach_pickoff	%16.3f	mm	REACH pickoff position (mm)		86	1	1	1	0							1					
-SCX.RHEA.PKO	X_RHEPKO	rhea_pickoff_st	%-16.16s	NA	RHEA pickoff state (HOME, IN, OUT)		144	1	1	1	1						1						
-SCX.RHEA.PKO.POS	X_RHEPKP	rhea_pickoff	%16.3f	mm	RHEA pickoff position (mm)		145	1	1	1	1						1						
-SCX.SAPHIRA.PKO	X_SAPPKO	saphira_pickoff_st	%-16.16s	NA	SAPHIRA pickoff state (HOME, IN, OUT) (deprecated)		95	0	0	0	0												1
-SCX.SAPHIRA.PKO.POS	X_SAPPKP	saphira_pickoff	%16.3f	mm	SAPHIRA pickoff position (mm) (deprecated)		96	0	0	0	0												1
-SCX.SAPHIRA.PUP	X_SAPPUP	saphira_pup	%-16.16s	NA	SAPHIRA pupil lens state (IN, OUT) (deprecated)		101	0	0	0	0												1
-SCX.SPCT.FREQ	X_SPCFRQ	sn_freq	%16d	Hz	SPECKLE NULLING loop frequency (Hz)		162	1	1	1	1						1						
-SCX.SPCT.GAIN	X_SPCGN	sn_gain	%16.3f	unitless	SPECKLE NULLING loop gain (0-1)		163	1	1	1	1						1						
-SCX.SPCT.LOOP	X_SPCLP	sn_loop	%-16.16s	NA	SPECKLE NULLING loop status (OPEN, CLOSED)		161	1	1	1	1						1						
-SCX.SRC.FIB	X_SRCFIB	src_fib_st	%-16.16s	NA	internal source fiber stage (PINHOLE, IN, OUT)		1	1	1	1	1						1						
-SCX.SRC.FIB.X	X_SRCFIX	src_fib_x	%16.3f	mm	internal source fiber x stage position (mm)		2	1	1	1	1						1						
-SCX.SRC.FIB.Y	X_SRCFIP	src_fib_y	%16.3f	mm	internal source fiber y stage position (mm)		3	1	1	1	1						1						
-SCX.SRC.FLUX.FLT	X_SRCFFT	src_flux_filter	%-16.16s	NA	internal source filter		8	1	1	1	1						1						
-SCX.SRC.FLUX.IRND	X_SRCFIR	src_flux_irnd	%-16.16s	NA	internal source ir nd		6	1	1	1	1						1						
-SCX.SRC.FLUX.OPTND	X_SRCFOP	src_flux_optnd	%-16.16s	NA	internal source opt nd		7	1	1	1	1						1						
-SCX.SRC.SEL	X_SRCSEL	src_select_st	%-16.16s	NA	internal source type		4	1	1	1	1						1						
-SCX.SRC.SEL.POS	X_SRCSEP	src_select	%16.3f	deg	internal source selection position (deg)		5	1	1	1	1						1						
-SCX.STEER	X_STR	steering_st	%-16.16s	NA	Steering mirror state		53	1	1	1	0							1					
-SCX.STEER.PHI	X_STRPHI	steering_phi	%16.3f	deg	steering mirror phi position (deg)		55	1	1	1	0							1					
-SCX.STEER.THETA	X_STRTHE	steering_theta	%16.3f	deg	steering mirror theta position (deg)		54	1	1	1	0							1					
-SCX.VAMPIRES.FSTOP	X_VAMFST	vampires_fieldstop_st	%-16.16s	NA	VAMPIRES field stop state		126	1	1	1	1						1						
-SCX.VAMPIRES.FSTOP.X	X_VAMFSX	vampires_fieldstop_x	%16.3f	mm	VAMPIRES field stop x position (mm)		127	1	1	1	1						1						
-SCX.VAMPIRES.FSTOP.Y	X_VAMFSY	vampires_fieldstop_y	%16.3f	mm	VAMPIRES field stop y position (mm)		128	1	1	1	1						1						
-SCX.ZAP.FREQ	X_ZAPFRQ	zap_freq	%16d	Hz	ZAP loop frequency (Hz)		165	1	1	1	1						1						
-SCX.ZAP.GAIN	X_ZAPGN	zap_gain	%16.3f	unitless	ZAP loop gain (0-1)		166	1	1	1	1						1						
-SCX.ZAP.LOOP	X_ZAPLP	zap_loop	%-16.16s	NA	ZAP loop status (OPEN, CLOSED, RM, ...)		164	1	1	1	1						1						
-SCX.ZAP.MOT	X_ZAPMOT	zap_mtype	%-16.16s	NA	ZAP mode types (ZERNIKE, LWE, COMBO, ...)		168	1	1	1	1						1						
-SCX.ZAP.NMO	X_ZAPNMO	zap_nmodes	%16d	unitless	ZAP number of modes 		167	1	1	1	1						1						
-WAV.RT_ANG1	P_RTAGL1		%16.3f	deg	Angle of retarder1 (deg)			1	1	1	1			1									
-WAV.RT_ANG2	P_RTAGL2		%16.3f	deg	Angle of retarder2 (deg)			1	1	1	1			1									
-WAV.STG1_PS	P_STGPS1		%16.3f	mm	Position of stage1 (mm)			1	1	1	1			1									
-WAV.STG2_PS	P_STGPS2		%16.3f	mm	Position of stage2 (mm)			1	1	1	1			1									
-WAV.STG3_PS	P_STGPS3		%16.3f	mm	Position of stage3 (mm)			1	1	1	1			1									
-	C2ELT1		%20.8f	NA	X Scale projected on detector (#/pix)			1	1														
-	C2ELT2		%20.8f	NA	Y Scale projected on detector (#/pix)			1	1														
-	C2NIT1		%-10s	NA	Units used in both C2VAL1 and C2ELT1			1	1														
-	C2NIT2		%-10s	NA	Units used in both C2VAL2 and C2ELT2			1	1														
-	C2PIX1		%20.1f	pixel	Reference pixel in X (pixel)			1	1														
-	C2PIX2		%20.1f	pixel	Reference pixel in Y (pixel)			1	1														
-	C2VAL1		%20.8f	NA	Physical value of the reference pixel X			1	1														
-	C2VAL2		%20.8f	NA	Physical value of the reference pixel Y			1	1														
-	C2YPE1		%-10s	NA	Pixel coordinate system			1	1														
-	C2YPE2		%-10s	NA	Pixel coordinate system			1	1														
-	CD1_1		%20.8f	NA	Pixel coordinate translation matrix			1	1														
-	CD1_2		%20.8f	NA	Pixel coordinate translation matrix			1	1														
-	CD2_1		%20.8f	NA	Pixel coordinate translation matrix			1	1														
-	CD2_2		%20.8f	NA	Pixel coordinate translation matrix			1	1														
-	CDELT1		%20.8f	NA	X Scale projected on detector (#/pix)			1	1														
-	CDELT2		%20.8f	NA	Y Scale projected on detector (#/pix)			1	1														
-	CRPIX1		%20.1f	pixel	Reference pixel in X (pixel)			1	1														
-	CRPIX2		%20.1f	pixel	Reference pixel in Y (pixel)			1	1														
-	CRVAL1		%20.8f	NA	Physical value of the reference pixel X			1	1														
-	CRVAL2		%20.8f	NA	Physical value of the reference pixel Y			1	1														
-	CTYPE1		%-10s	NA	Pixel coordinate system			1	1														
-	CTYPE2		%-10s	NA	Pixel coordinate system			1	1														
-	CUNIT1		%-10s	NA	Units used in both CRVAL1 and CDELT1			1	1														
-	CUNIT2		%-10s	NA	Units used in both CRVAL2 and CDELT2			1	1														
-	INSTRUME		%-20s	NA	Instrument name	fixed SCExAO	215	1	1		1		1										
-	LONPOLE		%20.1f	deg	The North Pole of standard system (deg)		222	1	1		1											1	
-	OBS-MOD		%-16s	NA	Observation Mode		220	1	1		1		1										
-	POL-ANG1		%20.2f	deg	Position angle of first polarizer (deg)	0	249	1	1	1	1			1									
-	POLARIZ1		%-16s	NA	Identifier of first polarizer	if WAV.STG1_PS = 0, "NONE" else if WAV.STG1_PS = 56, "WireGrid(TIR)" else if WAV.STG1_PS = 90, "WireGrid(NIR)" else, "UNKNOWN"	248	1	1	1	1			1									
-	RADESYS		%-8s	NA	The equatorial coordinate system	fixed FK5	221	1	1		1												
-	RET-ANG1		%20.2f	deg	Position angle of first retarder plate (deg)	 = P_RTAGL1, manual upon G2fetch	245	1	1	1	1			1									
-	RET-ANG2		%20.2f	deg	Position angle of second retarder plate (deg)	 = P_RTAGL2, manual upon G2fetch	247	1	1	1	1			1									
-	RETPLAT1		%-16s	NA	Identifier of first retarder plate	if WAV.STG2_PS = 0, "NONE" else if WAV.STG2_PS = 56, "HWP(NIR)" else, "UNKNOWN"	244	1	1	1	1			1									
-	RETPLAT2		%-16s	NA	Identifier of second retarder plate	if WAV.STG3_PS = 0, "NONE" else if WAV.STG3_PS = 56, "HWP(TIR)" else if WAV.STG3_PS = 90, "QWP(NIR)" else, "UNKNOWN"	246	1	1	1	1			1									
-	TIMESYS		%-8s	NA	Time System used in the header	Fixed UTC	216	1	1		1											1	
-	U_AOHWP		%-30s	NA	True [if using AO188's HWP] / False							1											
-	U_AQDTIM		%20d	us	[us] Acquisition delta-time							1											
-	U_AQNCYC		%20d	NA	Number of cycles in acquisition							1											
-	U_AQSDEL		%20d	us	[us] Acquisition start delay							1											
-	U_AQTINT		%20d	us	[us] Integration time used in acquisition mode							1											
-	U_CAMERA		%16d	NA	Camera number (1 or 2)							1											
-	U_EMGAIN		%20d	NA	EM Gain setting							1											
-	U_FILTER		%-30s	NA	VAMPIRES filter							1											
-	U_FLCOFF		%20d	us	[us] FLC time offset							1											
-	U_HWPANG		%20.3f	deg	[deg] HWP angle							1											
-	U_LOOPIT		%20d	NA	Current loop iteration							1											
-	U_MANGLE		%20d	NA	Multi-angle state							1											
-	U_MASK		%-30s	NA	VAMPIRES aperture mask							1											
-	U_NLOOPS		%20d	NA	Total number of loops in acquisition series							1											
-	U_NPOLST		%20d	NA	Total number of polarisation (HWP) states per loop							1											
-	U_OGFNAM		%-30s	NA	Original filename							1											
-	U_OGFNUM		%-30s	NA	Original filenum							1											
-	U_ORGDIR		%-30s	NA	Original data save directory							1											
-	U_PLSTIT		%20d	NA	Pol. state iteration							1											
-	U_QWP1		%20.3f	deg	[deg] QWP 1 angle							1											
-	U_QWP2		%20.3f	deg	[deg] QWP 2 angle							1											
-	WCS-ORIG		%-20s	NA	Origin of the WCS value	Default is "SUBARU"		1	1														
-	X_ANALGA		%16.3f	V	Scexao analog output channel A			0	0	0	1												
-	X_ANALGB		%16.3f	V	Scexao analog output channel B			0	0	0	1												
-	X_ANALGC		%16.3f	V	Scexao analog output channel C			0	0	0	1												
-	X_ANALGD		%16.3f	V	Scexao analog output channel D			0	0	0	1												
-	X_APALOG	logapapane	%-16.16s	NA	APAPANE logging cubes from plugin	Renamed from X_BUFLOG 2023-03-01		0	0	0	0												
-	X_BUFLOG	logbuffy	%-16.16s	NA	BUFFYCAM logging cubes from plugin			0	0	0	0												1
-	X_CHKDRK	darkchuck	%-16.16s	NA	CHUCKCAM acquiring dark	Renamed 2023-03-01		0	0	0	0												1
-	X_CHKLOG	logchuck	%-16.16s	NA	CHUCKCAM logging cubes from plugin	Renamed 2023-03-01		0	0	0	0												1
-	X_PALDRK	darkpalila	%-16.16s	NA	PALILA acquiring dark	Renamed from X_CHKDRK 2023-03-01		0	0	0	0												
-	X_PALLOG	logpalila	%-16.16s	NA	PALILA logging cubes from plugin	Renamed from X_CHKLOG 2023-03-01		0	0	0	0												
-	Y_FLTNAM		%-16s	NA	current filter name		546	0	0		0					1							
-	Y_FLTSLT		%-16s	NA	current filter slot		547	0	0		0					1							
-	Y_GRISM		%-16s	NA	deprecated: grism position		544	0	0		0					1							
-	Y_LSRALM		%-16s	NA	laser alarms		551	0	0		0					1							
-	Y_LSRENB		%-16s	NA	is laserState enabled		549	0	0		0					1							
-	Y_LSRPWR		%16d	percent	laser power		550	0	0		0					1							
-	Y_PRISM		%-16s	NA	prism position		545	0	0		0					1							
-	Y_SHUTTR		%-16s	NA	shutter position		548	0	0		0					1							
-	Y_TEMP00		%16d	K	temperature sensor 0		552	0	0		0					1							
-	Y_TEMP01		%16d	K	temperature sensor 1		553	0	0		0					1							
-	Y_TEMP02		%16d	K	temperature sensor 2		554	0	0		0					1							
-	Y_TEMP03		%16d	K	temperature sensor 3		555	0	0		0					1							
-	Y_TEMP04		%16d	K	temperature sensor 4		556	0	0		0					1							
-	Y_TEMP05		%16d	K	temperature sensor 5		557	0	0		0					1							
-	Y_TEMP06		%16d	K	temperature sensor 6		558	0	0		0					1							
-	Y_TEMP07		%16d	K	temperature sensor 7		559	0	0		0					1							
-	Y_TEMP08		%16d	K	temperature sensor 8		560	0	0		0					1							
-	Y_TEMP09		%16d	K	temperature sensor 9		561	0	0		0					1							
+Use . to mean that it has to be filled by the FITS file writer and is not relevant to gen2. Fill in the blanks		Technical keyword type. Summary of what happens / when happens to the KW in the github documentation	If it has a SHM name, we need to forward the "set" execution to old scexaostatus. RED: old scexaostatus will not take it	VALID python %formatter OR "BOOLEAN". Nothing else.			Use this line and the "Comments" column ONLY for misc comments - the rest is automatically parsed.																			
+Gen2 Variable	FITS header 	Mgmt	Mgmt2	Name in SHM	Type	Unit	Description	Comments	Original ordering	fits:palila	fits:apapane	fits:charis	fits:pueo	fits:vampires	flag:vampires	flag:telescope	flag:waveplate	flag:ao188	flag:charis	flag:common	flag:ironly	flag:reach	flag:irfibinj	flag:first	flag:camera	flag:deprecated
+.	_FGSIZE1	SHM_TECHNICAL	FGRAB		%16d	pixel	[pixel] Size of frame grabber for the X axis			0	0		0	0											1	
+.	_FGSIZE2	SHM_TECHNICAL	FGRAB		%16d	pixel	[pixel] Size of frame grabber for the Y axis			0	0		0	0											1	
+.	_MAQTIME	SHM_TECHNICAL	FGRAB		%20d	us	[us] Frame acquisition time measured by the framegrabber			0	0		0	0												
+FITS.SBR.AIRMASS	AIRMASS	SUBARU	REDIS2AUXFITS		%20.3f	NA	Typical air mass during exposure        		228	1	1		1	1		1										
+FITS.SBR.ALTITUDE	ALTITUDE	SUBARU	REDIS2AUXFITS		%20.5f	deg	[deg] Altitude of telescope pointing		231	1	1		1	1		1										
+FITS.SBR.AUTOGUID	AUTOGUID	SUBARU	REDIS2AUXFITS		%-8s	NA	Auto Guide ON/OFF 		233	1	1		1	1		1										
+FITS.SBR.AZIMUTH	AZIMUTH	SUBARU	REDIS2AUXFITS		%20.5f	deg	[deg] Azimuth of telescope pointing		230	1	1		1	1		1										
+.	BIN-FCT1	SHM_CAMSTACK	CONTROLLED		%20d	pixel	[pixel] Binning factor of X axis			1	1		1	1											1	
+.	BIN-FCT2	SHM_CAMSTACK	CONTROLLED		%20d	pixel	[pixel] Binning factor of Y axis			1	1		1	1											1	
+.	BSCALE	LOGSHIM			%20.8f	NA	Real=fits-value*BSCALE+BZERO			1	1		1	1											1	
+.	BUNIT	LOGSHIM			%-10s	NA	Unit of original values			1	1		1	1											1	
+.	BZERO	LOGSHIM			%20.8f	NA	Real=fits-value*BSCALE+BZERO			1	1		1	1											1	
+	C2ELT1	SHM_CAMSTACK			%20.8f	NA	X Scale projected on detector (#/pix)	renamed CDELT1B 6/6/23																		1
+	C2ELT2	SHM_CAMSTACK			%20.8f	NA	Y Scale projected on detector (#/pix)	renamed CDELT2B 6/6/23																		1
+	C2NIT1	SHM_CAMSTACK			%-10s	NA	Units used in both C2VAL1 and C2ELT1	renamed CUNIT1B 6/6/23																		1
+	C2NIT2	SHM_CAMSTACK			%-10s	NA	Units used in both C2VAL2 and C2ELT2	renamed CUNIT2B 6/6/23																		1
+	C2PIX1	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in X	renamed CRPIX1B 6/6/24																		1
+	C2PIX2	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in Y	renamed CRPIX2B 6/6/25																		1
+	C2VAL1	G2PULL			%20.8f	NA	Physical value of the reference pixel X	renamed CRVAL1B 6/6/26																		1
+	C2VAL2	G2PULL			%20.8f	NA	Physical value of the reference pixel Y	renamed CRVAL2B 6/6/27																		1
+	C2YPE1	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system	renamed CTYPE1B 6/6/28																		1
+	C2YPE2	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system	renamed CTYPE2B 6/6/29																		1
+	CD1_1	SHM_CAMSTACK	CONTROLLED		%20.8f	NA	Pixel coordinate translation matrix			1	1			1												
+	CD1_1B	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD1_1C	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD1_1D	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD1_2	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix			1	1			1												
+	CD1_2B	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD1_2C	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD1_2D	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD2_1	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix			1	1			1												
+	CD2_1B	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD2_1C	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD2_1D	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD2_2	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix			1	1			1												
+	CD2_2B	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD2_2C	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CD2_2D	SHM_CAMSTACK			%20.8f	NA	Pixel coordinate translation matrix	VAMPIRES 2023 merge (6/6/23)																		
+	CDELT1	SHM_CAMSTACK			%20.8f	NA	X Scale projected on detector (#/pix)			1	1			1												
+	CDELT1B	SHM_CAMSTACK			%20.8f	NA	X Scale projected on detector (#/pix)	renamed from C2ELT1 6/6/23																		
+	CDELT1C	SHM_CAMSTACK			%20.8f	NA	X Scale projected on detector (#/pix)	VAMPIRES 2023 merge (6/6/23)																		
+	CDELT1D	SHM_CAMSTACK			%20.8f	NA	X Scale projected on detector (#/pix)	VAMPIRES 2023 merge (6/6/23)																		
+	CDELT2	SHM_CAMSTACK			%20.8f	NA	Y Scale projected on detector (#/pix)			1	1			1												
+	CDELT2B	SHM_CAMSTACK			%20.8f	NA	Y Scale projected on detector (#/pix)	renamed from C2ELT2 6/6/24																		
+	CDELT2C	SHM_CAMSTACK			%20.8f	NA	Y Scale projected on detector (#/pix)	VAMPIRES 2023 merge (6/6/23)																		
+	CDELT2D	SHM_CAMSTACK			%20.8f	NA	Y Scale projected on detector (#/pix)	VAMPIRES 2023 merge (6/6/23)																		
+.	CROPPED	SHM_CAMSTACK			BOOLEAN	NA	Partial Readout or cropped			1	1		1	1											1	
+	CRPIX1	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in X			1	1			1												
+	CRPIX1B	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in X	renamed from C2PIX1 6/6/25																		
+	CRPIX1C	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in X	VAMPIRES 2023 merge (6/6/23)																		
+	CRPIX1D	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in X	VAMPIRES 2023 merge (6/6/23)																		
+	CRPIX2	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in Y			1	1			1												
+	CRPIX2B	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in Y	renamed from C2PIX2 6/6/26																		
+	CRPIX2C	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in Y	VAMPIRES 2023 merge (6/6/23)																		
+	CRPIX2D	SHM_CAMSTACK			%20.1f	pixel	[pixel] Reference pixel in Y	VAMPIRES 2023 merge (6/6/23)																		
+	CRVAL1	G2PULL			%20.8f	NA	Physical value of the reference pixel X			1	1			1												
+	CRVAL1B	G2PULL			%20.8f	NA	Physical value of the reference pixel X	renamed from C2VAL1 6/6/27																		
+	CRVAL1C	G2PULL			%20.8f	NA	Physical value of the reference pixel X	VAMPIRES 2023 merge (6/6/23)																		
+	CRVAL1D	G2PULL			%20.8f	NA	Physical value of the reference pixel X	VAMPIRES 2023 merge (6/6/23)																		
+	CRVAL2	G2PULL			%20.8f	NA	Physical value of the reference pixel Y			1	1			1												
+	CRVAL2B	G2PULL			%20.8f	NA	Physical value of the reference pixel Y	renamed from C2VAL2 6/6/28																		
+	CRVAL2C	G2PULL			%20.8f	NA	Physical value of the reference pixel Y	VAMPIRES 2023 merge (6/6/23)																		
+	CRVAL2D	G2PULL			%20.8f	NA	Physical value of the reference pixel Y	VAMPIRES 2023 merge (6/6/23)																		
+	CTYPE1	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system			1	1			1												
+	CTYPE1B	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system	renamed from C2YPE1 6/6/29																		
+	CTYPE1C	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system	VAMPIRES 2023 merge (6/6/23)																		
+	CTYPE1D	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system	VAMPIRES 2023 merge (6/6/23)																		
+	CTYPE2	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system			1	1			1												
+	CTYPE2B	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system	renamed from C2YPE2 6/6/30																		
+	CTYPE2C	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system	VAMPIRES 2023 merge (6/6/23)																		
+	CTYPE2D	SHM_CAMSTACK			%-10s	NA	Pixel coordinate system	VAMPIRES 2023 merge (6/6/23)																		
+	CUNIT1	SHM_CAMSTACK			%-10s	NA	Units used in both CRVAL1 and CDELT1			1	1			1												
+	CUNIT1B	SHM_CAMSTACK			%-10s	NA	Units used in both CRVAL1B and CDELT1B	renamed from C2NIT1 6/6/31																		
+	CUNIT1C	SHM_CAMSTACK			%-10s	NA	Units used in both CRVAL1C and CDELT1C	VAMPIRES 2023 merge (6/6/23)																		
+	CUNIT1D	SHM_CAMSTACK			%-10s	NA	Units used in both CRVAL1D and CDELT1D	VAMPIRES 2023 merge (6/6/23)																		
+	CUNIT2	SHM_CAMSTACK			%-10s	NA	Units used in both CRVAL2 and CDELT2			1	1			1												
+	CUNIT2B	SHM_CAMSTACK			%-10s	NA	Units used in both CRVAL2B and CDELT2B	renamed from C2NIT2 6/6/32																		
+	CUNIT2C	SHM_CAMSTACK			%-10s	NA	Units used in both CRVAL2C and CDELT2C	VAMPIRES 2023 merge (6/6/23)																		
+	CUNIT2D	SHM_CAMSTACK			%-10s	NA	Units used in both CRVAL2D and CDELT2D	VAMPIRES 2023 merge (6/6/23)																		
+AON.RTS.ADFGAIN	D_ADFG	AO188	REDIS2AUXFITS		%7.3f	NA	RTS AU1 defocus gain		341	1	1		1	1				1								
+AON.ENV.APDTI	D_APDTI	AO188	REDIS2AUXFITS		%6.2f	deg C	[deg C] APD coolant inlet temperature		343	1	1		1	1				1								
+AON.ENV.APDTO	D_APDTO	AO188	REDIS2AUXFITS		%6.2f	deg C	[deg C] APD coolant outlet temperature		344	1	1		1	1				1								
+AON.AU1.FOC	D_AU1FOC	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] AU1 focus		289	1	1		1	1				1								
+AON.AU1.GSX	D_AU1GSX	AO188	REDIS2AUXFITS		%9.3f	pix	[pix] AU1 guide star X pos		292	1	1		1	1				1								
+AON.AU1.GSY	D_AU1GSY	AO188	REDIS2AUXFITS		%9.3f	pix	[pix] AU1 guide star Y pos		293	1	1		1	1				1								
+AON.AU1.M1X	D_AU1M1X	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] AU1 M1 X actuator			1	1		1	1				1								
+AON.AU1.M1Y	D_AU1M1Y	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] AU1 M1 Y actuator			1	1		1	1				1								
+AON.AU1.M1Z	D_AU1M1Z	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] AU1 M1 Z stage			1	1		1	1				1								
+AON.AU1.M2X	D_AU1M2X	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] AU1 M2 X actuator			1	1		1	1				1								
+AON.AU1.M2Y	D_AU1M2Y	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] AU1 M2 Y actuator			1	1		1	1				1								
+AON.AU1.TILTX	D_AU1TX	AO188	REDIS2AUXFITS		%9.5f	deg	[deg] AU1 tilt X		290	1	1		1	1				1								
+AON.AU1.TILTY	D_AU1TY	AO188	REDIS2AUXFITS		%9.5f	deg	[deg] AU1 tilt Y		291	1	1		1	1				1								
+AON.AU1.XMM	D_AU1X	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] AU1 offset X			1	1		1	1				1								
+AON.AU1.XASEC	D_AU1XA	AO188	REDIS2AUXFITS		%9.5f	arcsec	[arcsec] AU1 offset X on sky		287	1	1		1	1				1								
+AON.AU1.YMM	D_AU1Y	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] AU1 offset Y			1	1		1	1				1								
+AON.AU1.YASEC	D_AU1YA	AO188	REDIS2AUXFITS		%9.5f	arcsec	[arcsec] AU1 offset Y on sky		288	1	1		1	1				1								
+AON.ENV.BNCHI	D_BNCHI	AO188	REDIS2AUXFITS		%6.2f	%	[%] Humidity of AO bench inside		347	1	1		1	1				1								
+AON.ENV.BNCHO	D_BNCHO	AO188	REDIS2AUXFITS		%6.2f	%	[%] Humidity of AO bench outside		348	1	1		1	1				1								
+AON.ENV.BNCTI	D_BNCTI	AO188	REDIS2AUXFITS		%6.2f	deg C	[deg C] Temperature of AO bench inside		345	1	1		1	1				1								
+AON.ENV.BNCTO	D_BNCTO	AO188	REDIS2AUXFITS		%6.2f	deg C	[deg C] Temperature of AO bench outside		346	1	1		1	1				1								
+AON.BS1	D_BS1	AO188	REDIS2AUXFITS		%-12s	NA	BS1 position (NIR1 NIR2 OPT)		281	1	1		1	1				1								
+AON.BS1.POS	D_BS1P	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] BS1 position		282	1	1		1	1				1								
+AON.BS2	D_BS2	AO188	REDIS2AUXFITS		%-12s	NA	BS2 position (BS589 MIRROR)		283	1	1		1	1				1								
+AON.BS2.POS	D_BS2P	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] BS2 position		284	1	1		1	1				1								
+AON.CAL.X	D_CALX	AO188	REDIS2AUXFITS		%-12s	NA	CAL X stage position		256	1	1		1	1				1								
+AON.CAL.X.POS	D_CALXP	AO188	REDIS2AUXFITS		%9.3f	mm	[mm] CAL X stage position		257	1	1		1	1				1								
+AON.CAL.Z	D_CALZ	AO188	REDIS2AUXFITS		%-12s	NA	CAL Z stage position		258	1	1		1	1				1								
+AON.CAL.Z.POS	D_CALZP	AO188	REDIS2AUXFITS		%9.3f	mm	[mm] CAL Z stage position		259	1	1		1	1				1								
+AON.CAL.LD1	D_CLD1	AO188	REDIS2AUXFITS		%-8s	NA	CAL LD 655nm (ON,OFF)		253	1	1		1	1				1								
+AON.CAL.LD2	D_CLD2	AO188	REDIS2AUXFITS		%-8s	NA	CAL LD 1550nm (ON,OFF)		254	1	1		1	1				1								
+AON.CAL.LD3	D_CLD3	AO188	REDIS2AUXFITS		%-8s	NA	CAL LD 589nm (ON,OFF)		255	1	1		1	1				1								
+AON.RTS.DMCMTX	D_DMCMTX	AO188	REDIS2AUXFITS		%-16s	NA	RTS DM control matrix		334	1	1		1	1				1								
+AON.RTS.DMGAIN	D_DMGAIN	AO188	REDIS2AUXFITS		%7.3f	NA	RTS DM gain		331	1	1		1	1				1								
+AON.ENSHUT	D_ENSHUT	AO188	REDIS2AUXFITS		%-12s	NA	Entrance shutter position (OPEN,CLOSE)		251	1	1		1	1				1								
+AON.ENSHUT.POS	D_ESHUTP	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] Entrance shutter position		252	1	1		1	1				1								
+AON.FCONV	D_FCONV	AO188	REDIS2AUXFITS		%-12s	NA	F-conversion optics position (IN OUT)		285	1	1		1	1				1								
+AON.FCONV.POS	D_FCONVP	AO188	REDIS2AUXFITS		%8.3f	mm	[mm] F-conversion optics stage position		286	1	1		1	1				1								
+AON.RTS.HDFGAIN	D_HDFG	AO188	REDIS2AUXFITS		%7.3f	NA	RTS high order defocus gain		340	1	1		1	1				1								
+AON.RTS.HTTGAIN	D_HTTG	AO188	REDIS2AUXFITS		%7.3f	NA	RTS high order TT gain		339	1	1		1	1				1								
+AON.HWFS.ABS	D_HWABS	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS acq cam. BS position		308	1	1		1	1				1								
+AON.HWFS.ABS.POS	D_HWABSP	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] HOWFS acq cam. BS position		309	1	1		1	1				1								
+AON.HWFS.ADC	D_HWAD	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS ADC stage position (IN,OUT)		298	1	1		1	1				1								
+AON.HWFS.ADC.ANG1	D_HWADA1	AO188	REDIS2AUXFITS		%9.3f	deg	[deg] HOWFS ADC prism #1 position		302	1	1		1	1				1								
+AON.HWFS.ADC.ANG2	D_HWADA2	AO188	REDIS2AUXFITS		%9.3f	deg	[deg] HOWFS ADC prism #2 position		303	1	1		1	1				1								
+AON.HWFS.ADC.DEC	D_HWADDC	AO188	REDIS2AUXFITS		%-16s	J2000	HOWFS ADC tracking declination (J2000)		306	1	1		1	1				1								
+AON.HWFS.ADC.FC	D_HWADFC	AO188	REDIS2AUXFITS		%9.3f	NA	HOWFS ADC prism angle correction factor		304	1	1		1	1				1								
+AON.HWFS.ADC.MODE	D_HWADMD	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS ADC tracking mode		301	1	1		1	1				1								
+AON.HWFS.ADC.POS	D_HWADP	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] HOWFS ADC stage position		299	1	1		1	1				1								
+AON.HWFS.ADC.PA	D_HWADPA	AO188	REDIS2AUXFITS		%9.3f	deg	[deg] HOWFS ADC tracking position angle		307	1	1		1	1				1								
+AON.HWFS.ADC.RA	D_HWADRA	AO188	REDIS2AUXFITS		%-16s	J2000	HOWFS ADC tracking right ascension (J2000)		305	1	1		1	1				1								
+AON.HWFS.ADC.STAT	D_HWADST	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS ADC tracking status		300	1	1		1	1				1								
+AON.HWFS.AFW1	D_HWAF1	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS acq cam. filter wheel#1 state		310	1	1		1	1				1								
+AON.HWFS.AFW1.POS	D_HWAF1P	AO188	REDIS2AUXFITS		%9.5f	deg	[deg] HOWFS acq cam. filter wheel#1 pos		311	1	1		1	1				1								
+AON.HWFS.AFW2	D_HWAF2	AO188	REDIS2AUXFITS		%-12s		HOWFS acq cam. filter wheel#2 state		312	1	1		1	1				1								
+AON.HWFS.AFW2.POS	D_HWAF2P	AO188	REDIS2AUXFITS		%9.5f	deg	[deg] HOWFS acq cam. filter wheel#2 pos		313	1	1		1	1				1								
+AON.HWFS.APDAV	D_HWAPDA	AO188	REDIS2AUXFITS		%8.3f	kct/s/elem	[kct/s/elem] HOWFS APD Average Counts		325	1	1		1	1				1								
+AON.HWFS.HBS	D_HWHBS	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS hires cam. BS position		314	1	1		1	1				1								
+AON.HWFS.HBS.POS	D_HWHBSP	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] HOWFS hires cam. BS position		315	1	1		1	1				1								
+AON.HWFS.LAFW	D_HWLAF	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS LA filter wheel position		322	1	1		1	1				1								
+AON.HWFS.LAFW.POS	D_HWLAFP	AO188	REDIS2AUXFITS		%9.5f	deg	[deg] HOWFS LA filter wheel pos		323	1	1		1	1				1								
+AON.HWFS.LGSAP	D_HWLAP	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS LGS aperture name		296	1	1		1	1				1								
+AON.HWFS.LGSAP.POS	D_HWLAPP	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] HOWFS LGS aperture position		297	1	1		1	1				1								
+AON.HWFS.LASH	D_HWLASH	AO188	REDIS2AUXFITS		%-8s	NA	HOWFS LA shutter state (OPEN CLOSE)		324	1	1		1	1				1								
+AON.HWFS.LAZ	D_HWLAZ	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS LA focus stage position		320	1	1		1	1				1								
+AON.HWFS.LAZ.POS	D_HWLAZP	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] HOWFS LA focus stage pos		321	1	1		1	1				1								
+AON.HWFS.NGSAP	D_HWNAP	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS NGS aperture name		294	1	1		1	1				1								
+AON.HWFS.NGSAP.POS	D_HWNAPP	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] HOWFS NGS aperture position		295	1	1		1	1				1								
+AON.HWFS.PBS	D_HWPBS	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS pupil cam. BS position		318	1	1		1	1				1								
+AON.HWFS.PBS.POS	D_HWPBSP	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] HOWFS pupil cam. BS position		319	1	1		1	1				1								
+AON.IMR.STAT	D_IMR	AO188	REDIS2AUXFITS		%-12s	NA	IMR tracking status (TRACKING SLEWING STAND-BY)		260	1	1		1	1				1								
+AON.IMR.ANGLE	D_IMRANG	AO188	REDIS2AUXFITS		%9.3f	deg	[deg] IMR angle		262	1	1		1	1				1								
+AON.IMR.DEC	D_IMRDEC	AO188	REDIS2AUXFITS		%-16s	J2000	IMR tracking declination (J2000)		266	1	1		1	1				1								
+AON.IMR.MODE	D_IMRMOD	AO188	REDIS2AUXFITS		%-12s	NA	IMR tracking mode (SID NON-SID ADI STOP OTHER)		261	1	1		1	1				1								
+AON.IMR.PAD	D_IMRPAD	AO188	REDIS2AUXFITS		%9.3f	deg	[deg] IMR position angle of dec. axis		263	1	1		1	1				1								
+AON.IMR.PAP	D_IMRPAP	AO188	REDIS2AUXFITS		%9.3f	deg	[deg] IMR pupil position angle		264	1	1		1	1				1								
+AON.IMR.RA	D_IMRRA	AO188	REDIS2AUXFITS		%-16s	J2000	IMR tracking right ascension (J2000)		265	1	1		1	1				1								
+AON.RTS.LDFGAIN	D_LDFG	AO188	REDIS2AUXFITS		%7.3f	NA	RTS low order defocus gain		338	1	1		1	1				1								
+AON.RTS.LOOP	D_LOOP	AO188	REDIS2AUXFITS		%-8s	NA	RTS Loop state (ON OFF)		330	1	1		1	1				1								
+AON.RTS.LTTGAIN	D_LTTG	AO188	REDIS2AUXFITS		%7.3f	NA	RTS low order TT gain		337	1	1		1	1				1								
+AON.GS.MODE	D_MODE	AO188	REDIS2AUXFITS		%-8s	NA	Guide star mode (NGS,LGS,LGSwoNGS,NGS-NGS)		250	1	1		1	1				1								
+AON.RTS.PSUBGAIN	D_PSUBG	AO188	REDIS2AUXFITS		%5.2f	NA	RTS piston subtract gain		333	1	1		1	1				1								
+AON.ADC	D_SADC	AO188	REDIS2AUXFITS		%-12s	NA	SciPath ADC position (IN OUT)		267	1	1		1	1				1								
+AON.ADC.ANG1	D_SADCA1	AO188	REDIS2AUXFITS		%9.5f	deg	[deg] SciPath ADC prism #1 position		271	1	1		1	1				1								
+AON.ADC.ANG2	D_SADCA2	AO188	REDIS2AUXFITS		%9.5f	deg	[deg] SciPath ADC prism #2 position		272	1	1		1	1				1								
+AON.ADC.DEC	D_SADCDC	AO188	REDIS2AUXFITS		%-16s	J2000	SciPath ADC tracking declination (J2000)		275	1	1		1	1				1								
+AON.ADC.FC	D_SADCFC	AO188	REDIS2AUXFITS		%9.3f	NA	SciPath ADC prism angle correction factor		273	1	1		1	1				1								
+AON.ADC.MODE	D_SADCMD	AO188	REDIS2AUXFITS		%-12s	NA	SciPath ADC tracking mode		270	1	1		1	1				1								
+AON.ADC.POS	D_SADCP	AO188	REDIS2AUXFITS		%9.5f	mm	[mm] SciPath ADC position		268	1	1		1	1				1								
+AON.ADC.PA	D_SADCPA	AO188	REDIS2AUXFITS		%9.3f	deg	[deg] SciPath ADC tracking position angle		276	1	1		1	1				1								
+AON.ADC.RA	D_SADCRA	AO188	REDIS2AUXFITS		%-16s	J2000	SciPath ADC tracking right ascension (J2000)		274	1	1		1	1				1								
+AON.ADC.STAT	D_SADCST	AO188	REDIS2AUXFITS		%-12s	NA	SciPath ADC tracking status		269	1	1		1	1				1								
+AON.RTS.STTGAIN	D_STTG	AO188	REDIS2AUXFITS		%7.3f	NA	RTS secondary TT gain		342	1	1		1	1				1								
+AON.RTS.TTCMTX	D_TTCMTX	AO188	REDIS2AUXFITS		%-16s	NA	RTS TT control matrix		335	1	1		1	1				1								
+AON.RTS.TTGAIN	D_TTGAIN	AO188	REDIS2AUXFITS		%7.5f	NA	RTS TT offload gain		332	1	1		1	1				1								
+AON.TT.TTX	D_TTX	AO188	REDIS2AUXFITS		%8.3f	V	[V] TT mount tip voltage		277	1	1		1	1				1								
+AON.TT.TTY	D_TTY	AO188	REDIS2AUXFITS		%8.3f	V	[V] TT mount tilt voltage		278	1	1		1	1				1								
+AON.HWFS.VMAP	D_VMAP	AO188	REDIS2AUXFITS		%-12s	NA	HOWFS VM aperture		316	1	1		1	1				1								
+AON.HWFS.VMAP.SIZE	D_VMAPS	AO188	REDIS2AUXFITS		%9.4f	arcsec	[arcsec] HOWFS VM aperture size		317	1	1		1	1				1								
+AON.VM.DRIVE	D_VMDRV	AO188	REDIS2AUXFITS		%-8s	NA	VM drive (ON OFF)		326	1	1		1	1				1								
+AON.VM.FREQ	D_VMFREQ	AO188	REDIS2AUXFITS		%6.1f	Hz	[Hz] VM frequency		328	1	1		1	1				1								
+AON.VM.PHASE	D_VMPHAS	AO188	REDIS2AUXFITS		%6.1f	deg	[deg] VM phase		329	1	1		1	1				1								
+AON.VM.VOLT	D_VMVOLT	AO188	REDIS2AUXFITS		%6.2f	V	[V] VM voltage		327	1	1		1	1				1								
+AON.TT.WTTC1	D_WTTC1	AO188	REDIS2AUXFITS		%8.3f	V	[V] HOWFS TT ch1 voltage		279	1	1		1	1				1								
+AON.TT.WTTC2	D_WTTC2	AO188	REDIS2AUXFITS		%8.3f	V	[V] HOWFS TT ch2 voltage		280	1	1		1	1				1								
+AON.RTS.WTTGAIN	D_WTTG	AO188	REDIS2AUXFITS		%7.3f	NA	RTS HOWFS-TT gain		336	1	1		1	1				1								
+.	DATA-TYP	SHM_FEED_IN	USER PROMPT		%-30s	NA	Type / Characteristics of this data 		211	1	1		1	1											1	
+FITS.SBR.DATE-OBS	DATE-OBS	SUBARU	REDIS2AUXFITS		%-10s	NA	UT date of Observation (yyyy-mm-dd)		198	1	1		1	1		1										
+FITS.SBR.DEC	DEC    	SUBARU	REDIS2AUXFITS		%-12s	NA	DEC of telescope pointing (+/-DD:MM:SS.SS)		224	1	1		1	1		1										
+FITS.SBR.DEC2000	DEC2000	SUBARU			%-12s	NA	DEC(J2000) of pointing (+/-DD:MM:SS.SS)			1	1		1	1		1										
+.	DET-NSMP	SHM_CAMSTACK			%20d	NA	Number of non-destructive reads			1	1														1	
+.	DET-SMPL	SHM_CAMSTACK			%-16.16s	NA	Sampling method			1	1		1												1	
+.	DET-TMP	SHM_CAMSTACK			%20.2f	K	[K] Detector temperature			1	1		1	1											1	
+.	DETECTOR	SHM_CAMSTACK			%-20s	NA	Name of the detector			1	1		1	1											1	
+.	DETGAIN	SHM_CAMSTACK			%16d	NA	Detector multiplication factor			1	1		1												1	
+FITS.SBR.DOM-HUM	DOM-HUM	SUBARU	REDIS2AUXFITS		%20.1f	%	[%] Dome humidity		236	1	1		1	1		1										
+FITS.SBR.DOM-PRS	DOM-PRS	SUBARU	REDIS2AUXFITS		%20.2f	hPa	[hPa] Dome pressure		237	1	1		1	1		1										
+FITS.SBR.DOM-TMP	DOM-TMP	SUBARU	REDIS2AUXFITS		%20.2f	deg C	[deg C] Dome temperature		238	1	1		1	1		1										
+FITS.SBR.DOM-WND	DOM-WND	SUBARU	REDIS2AUXFITS		%20.2f	m/s	[m/s] Dome wind speed		239	1	1		1	1		1										
+FITS.SBR.EQUINOX	EQUINOX	SUBARU	REDIS2AUXFITS		%20.3f	yr	[yr] Standard FK5		225	1	1		1	1		1										
+.	EXP-ID	APOSTERIORI	FRAMEID DAEMON		%-12s	NA	ID of the exposure this data was taken	copy of FRAMEID with E as 4th character		1	1		1	1											1	
+.	EXPTIME	SHM_CAMSTACK			%20.8f	s	[s] Total integration time of the frame		210	1	1		1	1											1	
+.	EXTTRIG	SHM_CAMSTACK			BOOLEAN	NA	Exposure of detector by an external trigger			1	1		1	1											1	
+.	FILTER01	SHM_CAMSTACK			%-30s	NA	Filter name			1	1		1	1											1	
+.	FILTER02	SHM_CAMSTACK			%-30s	NA	Filter name	Vampires merge 6/6/23		0	0		0	1											1	
+FITS.CRS.FOC-POS	FOC-POS	SUBARU	REDIS2AUXFITS		%-12s	NA	Focus where instrument is attached		232	1	1		1	1		1										
+FITS.SBR.FOC-VAL	FOC-VAL	SUBARU	REDIS2AUXFITS		%20.3f	mm	[mm] Encoder value of the focus unit		227	1	1		1	1		1										
+.	FRAMEID	APOSTERIORI	FRAMEID DAEMON		%-12s	NA	Image sequential number		209	1	1		1	1											1	
+.	FRATE	SHM_CAMSTACK			%16.3f	Hz	[Hz] Frame rate of the acquisition			1	1		1	1											1	
+.	GAIN	SHM_CAMSTACK			%20.3f	e/adu	[e/adu] AD conversion factor			1	1		1	1											1	
+FITS.SBR.HST	HST    	LOGSHIM			%-12s	NA	HH:MM:SS.SS typical HST at exposure		203	1	1		1	1		1										
+.	HST-END	LOGSHIM			%-12s	NA	HH:MM:SS.SS HST at exposure end		205	1	1		1	1											1	
+.	HST-STR	LOGSHIM			%-12s	NA	HH:MM:SS.SS HST at exposure start		204	1	1		1	1											1	
+	INSTRUME	G2PULL	REDIS2AUXFITS		%-20s	NA	Instrument name	fixed SCExAO	215	1	1		1	1		1										
+	LONPOLE	G2PULL	REDIS2AUXFITS		%20.1f	deg	[deg] The North Pole of standard system		222	1	1		1	1											1	
+FITS.SBR.LST	LST	SUBARU	REDIS2AUXFITS		%-12s	LST	Typical LST during exp. (HH:MM:SS.SSS)			1	1		1	1		1										
+FITS.SBR.M2-TIP	M2-TIP 	SUBARU	REDIS2AUXFITS		%-8s	NA	2nd mirror tip-tilt on-off		234	1	1		1	1		1										
+FITS.SBR.M2-TYPE	M2-TYPE	SUBARU	REDIS2AUXFITS		%-8s	NA	2nd mirror type		235	1	1		1	1		1										
+.	MFRATE	SHM_CAMSTACK			%16.3f	Hz	[Hz] Measured frame rate			1	1		1	1												
+FITS.SBR.MJD	MJD    	LOGSHIM			%20.8f	J2000	Modified Julian Day at typical time		206	1	1		1	1		1										
+.	MJD-END	LOGSHIM			%20.8f	J2000	Modified Julian Day at exposure end		208	1	1		1	1											1	
+.	MJD-STR	LOGSHIM			%20.8f	J2000	Modified Julian Day at exposure start		207	1	1		1	1											1	
+FITS.CRS.OBJECT	OBJECT 	SUBARU	REDIS2AUXFITS		%-30s	NA	Object		199	1	1		1	1		1										
+FITS.AON.OBS-ALOC	OBS-ALOC	SUBARU	REDIS2AUXFITS		%-12s	NA	Observation or Standby		219	1	1		1	1		1										
+	OBS-MOD	G2PULL	REDIS2AUXFITS		%-16s	NA	Observation Mode		220	1	1		1	1		1										
+FITS.SBR.OBSERVAT	OBSERVAT	G2PULL	REDIS2AUXFITS		%-20s	NA	Observatory		213	1	1		1	1		1										
+FITS.AON.OBSERVER	OBSERVER	SUBARU	REDIS2AUXFITS		%-50s	NA	Observer		218	1	1		1	1		1										
+FITS.SBR.OUT-HUM	OUT-HUM	SUBARU	REDIS2AUXFITS		%20.1f	%	[%] Outside humidity		240	1	1		1	1		1										
+FITS.SBR.OUT-PRS	OUT-PRS	SUBARU	REDIS2AUXFITS		%20.2f	hPa	[hPa] Outside pressure		241	1	1		1	1		1										
+FITS.SBR.OUT-TMP	OUT-TMP	SUBARU	REDIS2AUXFITS		%20.2f	deg C	[deg C] Outside temperature		242	1	1		1	1		1										
+FITS.SBR.OUT-WND	OUT-WND	SUBARU	REDIS2AUXFITS		%20.2f	m/s	[m/s] Outside wind speed		243	1	1		1	1		1										
+WAV.RT_ANG1	P_RTAGL1	WPU	REDIS2AUXFITS		%16.3f	deg	[deg] Angle of retarder1			1	1	1	1	1			1									
+WAV.RT_ANG2	P_RTAGL2	WPU	REDIS2AUXFITS		%16.3f	deg	[deg] Angle of retarder2			1	1	1	1	1			1									
+WAV.STG1_PS	P_STGPS1	WPU	REDIS2AUXFITS		%16.3f	mm	[mm] Position of stage1			1	1	1	1	1			1									
+WAV.STG2_PS	P_STGPS2	WPU	REDIS2AUXFITS		%16.3f	mm	[mm] Position of stage2			1	1	1	1	1			1									
+WAV.STG3_PS	P_STGPS3	WPU	REDIS2AUXFITS		%16.3f	mm	[mm] Position of stage3			1	1	1	1	1			1									
+	POL-ANG1	G2PULL	REDIS2AUXFITS		%20.2f	deg	[deg] Position angle of first polarizer	0	249	1	1	1	1	1			1									
+	POLARIZ1	G2PULL	REDIS2AUXFITS		%-16s	NA	Identifier of first polarizer	if WAV.STG1_PS = 0, "NONE" else if WAV.STG1_PS = 56, "WireGrid(TIR)" else if WAV.STG1_PS = 90, "WireGrid(NIR)" else, "UNKNOWN"	248	1	1	1	1	1			1									
+.	PRD-MIN1	SHM_CAMSTACK			%16d	pixel	[pixel] Origin in X of the cropped window			1	1	1		1											1	
+.	PRD-MIN2	SHM_CAMSTACK			%16d	pixel	[pixel] Origin in Y of the cropped window			1	1	1		1											1	
+.	PRD-RNG1	SHM_CAMSTACK			%16d	pixel	[pixel] Range in X of the cropped window			1	1	1		1											1	
+.	PRD-RNG2	SHM_CAMSTACK			%16d	pixel	[pixel] Range in Y of the cropped window			1	1	1		1											1	
+FITS.AON.PROP-ID	PROP-ID	SUBARU	REDIS2AUXFITS		%-8s	NA	Proposal ID		217	1	1		1	1		1										
+FITS.SBR.RA	RA     	SUBARU	REDIS2AUXFITS		%-12s	NA	RA of telescope pointing (HH:MM:SS.SSS)		223	1	1		1	1		1										
+FITS.SBR.RA2000	RA2000	SUBARU	REDIS2AUXFITS		%-12s	NA	RA(J2000) pointing (HH:MM:SS.SSS) 			1	1		1	1		1										
+	RADESYS	G2PULL	REDIS2AUXFITS		%-8s	NA	The equatorial coordinate system	fixed FK5	221	1	1		1	1												
+	RET-ABS1	SHM_FEED_IN	WPUSYNC_GARDE		%20.2f	deg	[deg] Absolute angle of first retarder plate	P_RTAGL1 + OFFSET1 (6/6/23)	245	1	1	1	1	1			1									
+	RET-ABS2	SHM_FEED_IN	WPUSYNC_GARDE		%20.2f	deg	[deg] Absolute angle of second retarder plate	P_RTAGL2 + OFFSET2 (6/6/23)	247	1	1	1	1	1			1									
+	RET-ANG1	SHM_FEED_IN	WPUSYNC_GARDE		%20.2f	deg	[deg] Relative angle of first retarder plate	 = P_RTAGL1, but set by WPU daemon to reduce latency.	245	1	1	1	1	1			1									
+	RET-ANG2	SHM_FEED_IN	WPUSYNC_GARDE		%20.2f	deg	[deg] Relative angle of second retarder plate	 = P_RTAGL2, but set by WPU daemon to reduce latency.	247	1	1	1	1	1			1									
+	RETPLAT1	G2PULL	REDIS2AUXFITS		%-16s	NA	Identifier of first retarder plate	if WAV.STG2_PS = 0, "NONE" else if WAV.STG2_PS = 56, "HWP(NIR)" else, "UNKNOWN"	244	1	1	1	1	1			1									
+	RETPLAT2	G2PULL	REDIS2AUXFITS		%-16s	NA	Identifier of second retarder plate	if WAV.STG3_PS = 0, "NONE" else if WAV.STG3_PS = 56, "HWP(TIR)" else if WAV.STG3_PS = 90, "QWP(NIR)" else, "UNKNOWN"	246	1	1	1	1	1			1									
+FITS.SBR.TELESCOP	TELESCOP	SUBARU			%-16s	NA	Telescope/System which Inst. is attached		214	1	1		1	1		1										
+FITS.SBR.TELFOCUS	TELFOCUS	SUBARU			%-16s	NA	Focus where a beam is reachable		226	1	1		1	1		1										
+	TIMESYS	G2PULL	REDIS2AUXFITS		%-8s	NA	Time System used in the header	Fixed UTC	216	1	1		1	1											1	
+	U_AOHWP	VAMPIRES			%-30s	NA	True if using AO188's HWP	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_AQDTIM	VAMPIRES			%20d	us	[us] Acquisition delta-time	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_AQNCYC	VAMPIRES			%20d	NA	Number of cycles in acquisition	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_AQSDEL	VAMPIRES			%20d	us	[us] Acquisition start delay	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_AQTINT	VAMPIRES			%20d	us	[us] Integration time used in acquisition mode	VAMPIRES 2023 merge (6/6/23)							1											1
+SCX.VAMPIRES.BS	U_BS	VAMPIRES	REDIS2AUXFITS	vampires_bs	%-20s	NA	VAMPIRES beamsplitter	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.BS.THETA	U_BSTH	VAMPIRES	REDIS2AUXFITS	vampires_bs_th	%16.3f	deg	[deg] VAMPIRES beamsplitter theta	VAMPIRES 2023 merge (6/6/23)						1	1											
+.	U_CAMERA	SHM_CAMSTACK	CONTROLLED		%16d	NA	VAMPIRES camera number (1 or 2)							1											1	
+SCX.VAMPIRES.CAMFCS.F	U_CAMFCF	VAMPIRES	REDIS2AUXFITS	vampires_camfcs_f	%16.3f	mm	[mm] VAMPIRES camera focus	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.CAMFCS	U_CAMFCS	VAMPIRES	REDIS2AUXFITS	vampires_camfcs	%-20s	NA	VAMPIRES camera focus state	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_CAMMOD	SHM_CAMSTACK	CONTROLLED		%-20s	NA	VAMPIRES camera mode	VAMPIRES 2023 merge (6/6/23)																	1	
+SCX.VAMPIRES.DETMOD	U_DETMOD	SHM_CAMSTACK	CONTROLLED	vampires_det_mod	%-20s	NA	VAMPIRES detector readout mode (FAST/SLOW)	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.DIFF.1	U_DIFFL1	SHM_FEED_IN	VAMP_SPV	vampires_diff_1	%-20s	NA	VAMPIRES differential filter cam 1 state	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.DIFF.2	U_DIFFL2	SHM_FEED_IN	VAMP_SPV	vampires_diff_2	%-20s	NA	VAMPIRES differential filter cam 2 state	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_DIFFLT	SHM_FEED_IN	VAMP_SPV		%-20s	NA	VAMPIRES differential filter	VAMPIRES 2023 merge (6/6/23)						1	1										1	
+SCX.VAMPIRES.DIFF.THETA	U_DIFFTH	VAMPIRES	REDIS2AUXFITS	vampires_diff_th	%16.3f	deg	[deg] VAMPIRES differential filter theta	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_EMGAIN	VAMPIRES			%20d	NA	EM Gain setting	VAMPIRES 2023 merge (6/6/23)							1											1
+SCX.VAMPIRES.FCS	U_FCS	VAMPIRES	REDIS2AUXFITS	vampires_focus	%-20s	NA	VAMPIRES focus state	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.FCS.F	U_FCSF	VAMPIRES	REDIS2AUXFITS	vampires_focus_f	%16.3f	mm	[mm] VAMPIRES focus	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.FILTER	U_FILTER	VAMPIRES	REDIS2AUXFITS	vampires_filter	%-20s	NA	VAMPIRES filter							1	1											
+SCX.VAMPIRES.FILTER.THETA	U_FILTTH	VAMPIRES	REDIS2AUXFITS	vampires_filter_th	%16.3f	deg	[deg] VAMPIRES filter wheel theta	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_FLC	APOSTERIORI	DEINTERLEAVER		%-20s	NA	VAMPIRES FLC polarization state	VAMPIRES 2023 merge (6/6/23)						1												
+	U_FLCDL	SHM_FEED_IN	VAMP_SPV		%16d	us	[us] VAMPIRES FLC timing: FLC offset delay	Renamed from. U_FLCOFF 6/6/23						1	1											
+SCX.VAMPIRES.FLC	U_FLCEN	SHM_FEED_IN	VAMP_SPV	vampires_flc	%-20s	NA	VAMPIRES FLC enabled (ON/OFF)	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_FLCJT	SHM_FEED_IN	VAMP_SPV		%16d	us	[us] VAMPIRES FLC timing: on/off half-period jitter	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_FLCOFF	VAMPIRES			%20d	us	[us] FLC time offset	VAMPIRES 2023 merge (6/6/23)							1											1
+SCX.VAMPIRES.FLC.ST	U_FLCST	VAMPIRES	REDIS2AUXFITS	vampires_flc_st	%-20s	NA	VAMPIRES FLC stage status (IN/OUT)	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.FLC.POS	U_FLCSTP	VAMPIRES	REDIS2AUXFITS	vampires_flc_pos	%16.3f	mm	[mm] VAMPIRES FLC stage position	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_FLCTM	SHM_FEED_IN	VAMP_SPV		%16d	us	[us] VAMPIRES FLC timing: FLC half-period	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.FLC.TEMP	U_FLCTMP	VAMPIRES	REDIS2AUXFITS	vampires_flc_temp	%16.3f	deg C	[deg C] VAMPIRES FLC temperature	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.FSTOP	U_FLDSTP	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_st	%-20s	NA	VAMPIRES field stop state	Renamed from. X_VAMFST 6/6/23	126	1	1	1	1	1						1						
+SCX.VAMPIRES.FSTOP.X	U_FLDSTX	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_x	%16.3f	mm	[mm] VAMPIRES field stop x position	Renamed from. X_VAMFSX 6/6/23	127	1	1	1	1	1						1						
+SCX.VAMPIRES.FSTOP.Y	U_FLDSTY	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_y	%16.3f	mm	[mm] VAMPIRES field stop y position	Renamed from. X_VAMFSY 6/6/23	128	1	1	1	1	1						1						
+	U_HWPANG	VAMPIRES			%20.3f	deg	[deg] HWP angle	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_LOOPIT	VAMPIRES			%20d	NA	Current loop iteration	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_MANGLE	VAMPIRES			%20d	NA	Multi-angle state	VAMPIRES 2023 merge (6/6/23)							1											1
+SCX.VAMPIRES.MASK	U_MASK	VAMPIRES	REDIS2AUXFITS	vampires_mask	%-20s	NA	VAMPIRES pupil mask	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.MASK.THETA	U_MASKTH	VAMPIRES	REDIS2AUXFITS	vampires_mask_th	%16.3f	deg	[deg] VAMPIRES pupil mask theta	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.MASK.X	U_MASKX	VAMPIRES	REDIS2AUXFITS	vampires_mask_x	%16.3f	mm	[mm] VAMPIRES pupil mask x	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.MASK.Y	U_MASKY	VAMPIRES	REDIS2AUXFITS	vampires_mask_y	%16.3f	mm	[mm] VAMPIRES pupil mask y	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.MBI	U_MBI	VAMPIRES	REDIS2AUXFITS	vampires_mbi	%-20s	NA	VAMPIRES MBI state (IN/OUT)	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.MBI.THETA	U_MBITH	VAMPIRES	REDIS2AUXFITS	vampires_mbi_th	%16.3f	deg	[deg] VAMPIRES MBI wheel theta	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_NLOOPS	VAMPIRES			%20d	NA	Total number of loops in acquisition series	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_NPOLST	VAMPIRES			%20d	NA	Total number of polarisation (HWP) states per loop	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_OGFNAM	VAMPIRES			%-30s	NA	Original filename	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_OGFNUM	VAMPIRES			%-30s	NA	Original filenum	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_ORGDIR	VAMPIRES			%-30s	NA	Original data save directory	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_PLSTIT	VAMPIRES			%20d	NA	Pol. state iteration	VAMPIRES 2023 merge (6/6/23)							1											1
+SCX.VAMPIRES.PUPIL	U_PUPST	VAMPIRES	REDIS2AUXFITS	vampires_pup_st	%-20s	NA	VAMPIRES pupil lens state (IN/OUT)	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.QWP.1	U_QWP1	SHM_FEED_IN	VAMP_QWP_DAEMON	vampires_qwp1	%16.3f	deg	[deg] VAMPIRES QWP 1 angle	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.QWP.1.THETA	U_QWP1TH	SHM_FEED_IN	VAMP_QWP_DAEMON	vampires_qwp1_th	%16.3f	deg	[deg] VAMPIRES QWP 1 wheel theta	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.QWP.2.THETA	U_QWP2	SHM_FEED_IN	VAMP_QWP_DAEMON	vampires_qwp2	%16.3f 	deg	[deg] VAMPIRES QWP 2 angle	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.QWP.2.THETA	U_QWP2TH	SHM_FEED_IN	VAMP_QWP_DAEMON	vampires_qwp2_th	%16.3f	deg	[deg] VAMPIRES QWP 2 wheel theta	VAMPIRES 2023 merge (6/6/23)						1	1											
+SCX.VAMPIRES.QWP.MOD	U_QWPMOD	VAMPIRES	REDIS2AUXFITS	vampires_qwp_mode	%-20s	NA	VAMPIRES QWP tracking mode	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_VLOG1	VAMPIRES	REDIS2AUXFITS	log_vcam1	%-20s	NA	Logging VAMPIRES cam 1	VAMPIRES 2023 merge (6/6/23)							1											
+	U_VLOG2	VAMPIRES	REDIS2AUXFITS	log_vcam2	%-20s	NA	Logging VAMPIRES cam 2	VAMPIRES 2023 merge (6/6/23)							1											
+	U_VLOGP	VAMPIRES	REDIS2AUXFITS	log_vcampup	%-20s	NA	Logging VAMPIRES pupil cam	VAMPIRES 2023 merge (6/6/23)							1											
+FITS.SBR.UT	UT     	LOGSHIM			%-12s	NA	HH:MM:SS.SS typical UTC at exposure		200	1	1		1	1		1										
+.	UT-END 	LOGSHIM			%-12s	NA	HH:MM:SS.SS UTC at exposure end		202	1	1		1	1											1	
+.	UT-STR 	LOGSHIM			%-12s	NA	HH:MM:SS.SS UTC at exposure start		201	1	1		1	1											1	
+	WCS-ORIG	G2PULL	REDIS2AUXFITS		%-20s	NA	Origin of the WCS value	Default is "SUBARU"		1	1			1												
+	X_ANALGA	SCEXAO	REDIS2AUXFITS		%16.3f	V	Scexao analog output channel A			0	0	0	1													
+	X_ANALGB	SCEXAO	REDIS2AUXFITS		%16.3f	V	Scexao analog output channel B			0	0	0	1													
+	X_ANALGC	SCEXAO	REDIS2AUXFITS		%16.3f	V	Scexao analog output channel C			0	0	0	1													
+	X_ANALGD	SCEXAO	REDIS2AUXFITS		%16.3f	V	Scexao analog output channel D			0	0	0	1													
+	X_APALOG	SCEXAO		logapapane	%-16.16s	NA	APAPANE logging cubes from plugin	Renamed from X_BUFLOG 2023-03-01		0	0	0	0													
+SCX.APAPANE.PKO	X_APAPKO	SCEXAO	REDIS2AUXFITS	apapane_pickoff_st	%-16.16s	NA	APAPANE pickoff state (HOME, IN, OUT)	Renamed from X_BUFPKO 2023-03-01		1	1	1	0								1					
+SCX.APAPANE.PKO.POS	X_APAPKP	SCEXAO	REDIS2AUXFITS	apapane_pickoff	%16.3f	mm	[mm] APAPANE pickoff position	Renamed from X_BUFPKP 2023-03-01		1	1	1	0								1					
+	X_BUFLOG	SCEXAO		logbuffy	%-16.16s	NA	BUFFYCAM logging cubes from plugin	Renamed 2023-03-01		0	0	0	0													1
+SCX.BUFFY.PKO	X_BUFPKO	SCEXAO		buffy_pickoff_st	%-16.16s	NA	BUFFYCAM pickoff state (HOME, IN, OUT)	Renamed 2023-03-01	97	0	0	0	0								1					1
+SCX.BUFFY.PKO.POS	X_BUFPKP	SCEXAO		buffy_pickoff	%16.3f	mm	[mm] BUFFYCAM pickoff position	Renamed 2023-03-01	98	0	0	0	0								1					1
+SCX.BUFFY.PUP	X_BUFPUP	SCEXAO		buffy_pup	%-16.16s	NA	BUFFYCAM pupil lens state (IN, OUT)	Deprecated 2023-03-01	102	0	0	0	0								1					1
+SCX.CHARIS.PKO	X_CHAPKO	SCEXAO	REDIS2AUXFITS	charis_pickoff_st	%-16.16s	NA	CHARIS pickoff wheel state		56	1	1	1	0								1					
+SCX.CHARIS.PKO.POS	X_CHAPKP	SCEXAO	REDIS2AUXFITS	charis_pickoff_wheel	%16.3f	deg	[deg] CHARIS pickoff wheel position		57	1	1	1	0								1					
+SCX.CHARIS.PKO.THETA	X_CHAPKT	SCEXAO	REDIS2AUXFITS	charis_pickoff_theta	%16.3f	deg	[deg] CHARIS pickoff theta position		58	1	1	1	0								1					
+SCX.CHARIS.WOL	X_CHAWOL	SCEXAO	REDIS2AUXFITS	charis_wollaston	%-16.16s	NA	CHARIS Wollaston prism state (IN, OUT)		59	1	1	1	0								1					
+	X_CHKDRK	SCEXAO		darkchuck	%-16.16s	NA	CHUCKCAM acquiring dark	Renamed 2023-03-01		0	0	0	0													1
+	X_CHKLOG	SCEXAO		logchuck	%-16.16s	NA	CHUCKCAM logging cubes from plugin	Renamed 2023-03-01		0	0	0	0													1
+SCX.CHUCK.PUP.F	X_CHKPUF	SCEXAO		chuck_pup_fcs	%16.3f	mm	[mm] CHUCKCAM pupil lens focus position	Renamed 2023-03-01	100	0	0	0	0								1					1
+SCX.CHUCK.PUP	X_CHKPUP	SCEXAO		chuck_pup	%-16.16s	NA	CHUCKCAM pupil lens state (IN, OUT)	Renamed 2023-03-01	99	0	0	0	0								1					1
+SCX.CHUCK.PUP.ST	X_CHKPUS	SCEXAO		chuck_pup_fcs_st	%-16.16s	NA	CHUCKCAM pupil lens focus status 	Renamed 2023-03-01	100	0	0	0	0								1					1
+SCX.COMPPLATE	X_COMPPL	SCEXAO	REDIS2AUXFITS	compplate	%-16.16s	NA	compensating plate pickoff state (IN, OUT)		10	1	1	1	1	1						1						
+SCX.DICHRO	X_DICHRO	SCEXAO	REDIS2AUXFITS	dichroic_st	%-16.16s	NA	Dichroic state (HOME, IN, OUT)		15	1	1	1	1	1						1						
+SCX.DICHRO.POS	X_DICHRP	SCEXAO	REDIS2AUXFITS	dichroic	%16.3f	mm	[mm] Dichroic position		16	1	1	1	1	1						1						
+SCX.FIBINJ.CAR	X_FINCAR	SCEXAO	REDIS2AUXFITS	fibinj_car	%16d	step	[step] Fiber Injection Carriage position		109	0	0	0	0													
+SCX.FIBINJ.FIB	X_FINFIB	SCEXAO	REDIS2AUXFITS	fibinj_fib_st	%-16.16s	NA	Fiber Injection fiber state (SMI, MMI, PHL)		105	0	0	0	0										1			
+SCX.FIBINJ.FIBF	X_FINFIF	SCEXAO	REDIS2AUXFITS	fibinj_fib_f	%16d	step	[step] Fiber Injection f position		108	0	0	0	0										1			
+SCX.FIBINJ.FIBX	X_FINFIX	SCEXAO	REDIS2AUXFITS	fibinj_fib_x	%16d	step	[step] Fiber Injection x position		106	0	0	0	0										1			
+SCX.FIBINJ.FIBY	X_FINFIY	SCEXAO	REDIS2AUXFITS	fibinj_fib_y	%16d	step	[step] Fiber Injection y position		107	0	0	0	0										1			
+SCX.FIBINJ.LEN	X_FINLEN	SCEXAO	REDIS2AUXFITS	fibinj_len_st	%-16.16s	NA	Fiber Injection lense state (HOME, PL, REACH)	New 2023-03-01		0	0	0	0										1			
+SCX.FIBINJ.LEN.POS	X_FINLEP	SCEXAO	REDIS2AUXFITS	fibinj_len	%16.3f	mm	[mm] Fiber Injection pickoff position	New 2023-03-01		0	0	0	0										1			
+SCX.FIBINJ.PKO	X_FINPKO	SCEXAO	REDIS2AUXFITS	fibinj_pickoff_st	%-16.16s	NA	Fiber Injection pickoff state (HOME, IN, OUT)		103	1	1	1	0								1					
+SCX.FIBINJ.PKO.POS	X_FINPKP	SCEXAO	REDIS2AUXFITS	fibinj_pickoff	%16.3f	mm	[mm] Fiber Injection pickoff position		104	1	1	1	0								1					
+SCX.FIRST.INJ.F	X_FIRINF	SCEXAO	REDIS2AUXFITS	first_inj_f	%16.3f	mm	[mm] FIRST injection focus		134	0	0	0	0													
+SCX.FIRST.INJ	X_FIRINJ	SCEXAO	REDIS2AUXFITS	first_inj_st	%-16.16s	NA	FIRST injection status		131	0	0	0	0													
+SCX.FIRST.IINJ.X	X_FIRINX	SCEXAO	REDIS2AUXFITS	first_inj_x	%16d	step	[step] FIRST injection x position		132	0	0	0	0													
+SCX.FIRST.INJ.Y	X_FIRINY	SCEXAO	REDIS2AUXFITS	first_inj_y	%16d	step	[step] FIRST injection y position		133	0	0	0	0													
+SCX.FIRST.PHO1.POS	X_FIRP1P	SCEXAO		first_photometry_x1	%16.3f	mm	[mm] FIRST photometry pickoff 1 position (deprecated)		139	0	0	0	0											1		1
+SCX.FIRST.PHO2.POS	X_FIRP2P	SCEXAO		first_photometry_x2	%16.3f	mm	[mm] FIRST photometry pickoff 2 position (deprecated)		141	0	0	0	0											1		1
+SCX.FIRST.PHO1	X_FIRPH1	SCEXAO		first_photometry_x1_st	%-16.16s	NA	FIRST photometry pickoff 1 state (HOME, IN, OUT) (deprecated)		138	0	0	0	0											1		1
+SCX.FIRST.PHO2	X_FIRPH2	SCEXAO		first_photometry_x2_st	%-16.16s	NA	FIRST photometry pickoff 2 state (HOME, IN, OUT) (deprecated)		140	0	0	0	0											1		1
+SCX.FIRST.PHO	X_FIRPHO	SCEXAO	REDIS2AUXFITS	first_photometry_st	%-16.16s	NA	FIRST photometry pickoff state (HOME, IN, OUT)		142	0	0	0	0													
+SCX.FIRST.PHO.POS	X_FIRPHP	SCEXAO	REDIS2AUXFITS	first_photometry	%16.3f	mm	[mm] FIRST photometry pickoff position		143	0	0	0	0													
+SCX.FIRST.PKO	X_FIRPKO	SCEXAO	REDIS2AUXFITS	first_pickoff_st	%-16.16s	NA	FIRST pickoff state		129	1	1	1	1	1						1				1		
+SCX.FIRST.PKO.POS	X_FIRPKP	SCEXAO	REDIS2AUXFITS	first_pickoff	%16.3f	mm	[mm] FIRST pickoff position		130	1	1	1	1	1						1						
+SCX.FIRST.SRC	X_FIRSRC	SCEXAO	REDIS2AUXFITS	first_src_st	%-16.16s	NA	FIRST cal source state		135	0	0	0	0													
+SCX.FIRST.SRC.X	X_FIRSRX	SCEXAO	REDIS2AUXFITS	first_src_x	%16.3f	mm	[mm] FIRST cal source x position		136	0	0	0	0													
+SCX.FIRST.SRC.Y	X_FIRSRY	SCEXAO	REDIS2AUXFITS	first_src_y	%16.3f	mm	[mm] FIRST cal source y position		137	0	0	0	0													
+SCX.FPM	X_FPM	SCEXAO	REDIS2AUXFITS	fpm_st	%-16.16s	NA	FPM wheel state		33	1	1	1	0								1					
+SCX.FPM.F	X_FPMF	SCEXAO	REDIS2AUXFITS	fpm_f	%16d	step	[step] FPM wheel f position		37	1	1	1	0								1					
+SCX.FPM.WHL	X_FPMWHL	SCEXAO	REDIS2AUXFITS	fpm_wheel	%16.3f	deg	[deg] FPM wheel position		34	1	1	1	0								1					
+SCX.FPM.X	X_FPMX	SCEXAO	REDIS2AUXFITS	fpm_x	%16d	step	[step] FPM wheel x position		35	1	1	1	0								1					
+SCX.FPM.Y	X_FPMY	SCEXAO	REDIS2AUXFITS	fpm_y	%16d	step	[step] FPM wheel y position		36	1	1	1	0								1					
+SCX.FSTOP	X_FST	SCEXAO	REDIS2AUXFITS	field_stop_st	%-16.16s	NA	Field Stop state		50	1	1	1	0								1					
+SCX.FSTOP.X	X_FSTX	SCEXAO	REDIS2AUXFITS	field_stop_x	%16.3f	mm	[mm] Field Stop x position		51	1	1	1	0								1					
+SCX.FSTOP.Y	X_FSTY	SCEXAO	REDIS2AUXFITS	field_stop_y	%16.3f	mm	[mm] Field Stop y position		52	1	1	1	0								1					
+SCX.GRID.AMP	X_GRDAMP	SCEXAO	REDIS2AUXFITS	grid_amp	%16.3f	um	[um] ASTROGRID amplitude		172	1	1	1	1	1						1						
+SCX.GRID.MOD	X_GRDMOD	SCEXAO	REDIS2AUXFITS	grid_mod	%16d	Hz	[Hz] ASTROGRID modulation frequency		173	1	1	1	1	1						1						
+SCX.GRID.SEP	X_GRDSEP	SCEXAO	REDIS2AUXFITS	grid_sep	%16.3f	lambda/D	[lambda/D] ASTROGRID separation		171	1	1	1	1	1						1						
+SCX.GRID.STAT	X_GRDST	SCEXAO	REDIS2AUXFITS	grid_st	%-16.16s	NA	ASTROGRID status (ON, OFF)		170	1	1	1	1	1						1						
+SCX.HOTSPOT	X_HOTSPT	SCEXAO	REDIS2AUXFITS	hotspot	%-16.16s	NA	HOTSPOT alignment status 		169	1	1	1	1	1						1						
+	X_IFLCAB	APOSTERIORI	DEINTERLEAVER		%-16.16s	NA	IRCAM FLC polarization state (NA/ACTIVE/RELAX/DUBIOUS)	New 2023-04-03 - Always NA except in files post-deinterleave		1	1										1					
+	X_IFLCDL	SCEXAO	REDIS2AUXFITS		%16d	us	[us] IRCAMs FLC timing: FLC -> Camera delay	New 2023-04-03		1	1										1					
+	X_IFLCJT	SCEXAO	REDIS2AUXFITS		%16d	us	[us] IRCAMs FLC timing: on-off jitter from half-period	New 2023-04-03		1	1										1					
+	X_IFLCST	SCEXAO	REDIS2AUXFITS		%-16.16s	NA	IRCAMs FLC being used status (ON/OFF)	New 2023-04-03; = X_IRCFLC + EXTTRIG + flc_trig script says so.		1	1										1					
+	X_IFLCTM	SCEXAO	REDIS2AUXFITS		%16d	us	[us] IRCAMs FLC timing: FLC half-period	New 2023-04-03		1	1										1					
+SCX.INTSPH	X_INTSPH	SCEXAO	REDIS2AUXFITS	intsphere	%-16.16s	NA	Integration sphere state (IN, OUT)		9	1	1	1	1	1						1						
+SCX.IPIAA	X_IPIAA	SCEXAO	REDIS2AUXFITS	invpiaa_st	%-16.16s	NA	Inverse PIAA state		42	1	1	1	0								1					
+SCX.IPIAA.PHI	X_IPIPHI	SCEXAO	REDIS2AUXFITS	invpiaa_phi	%16d	step	[step] Inverse PIAA phi position		46	1	1	1	0								1					
+SCX.IPIAA.THETA	X_IPITHE	SCEXAO	REDIS2AUXFITS	invpiaa_theta	%16d	step	[step] Inverse PIAA theta position		45	1	1	1	0								1					
+SCX.IPIAA.X	X_IPIX	SCEXAO	REDIS2AUXFITS	invpiaa_x	%16.3f	mm	[mm] Inverse PIAA x position		43	1	1	1	0								1					
+SCX.IPIAA.Y	X_IPIY	SCEXAO	REDIS2AUXFITS	invpiaa_y	%16.3f	mm	[mm] Inverse PIAA y position		44	1	1	1	0								1					
+SCX.IRCAM.BLK	X_IRCBLK	SCEXAO	REDIS2AUXFITS	ircam_block	%-16.16s	NA	IRCAMs block state (IN, OUT)		73	1	1	1	0								1					
+SCX.IRCAM.FCS.F2	X_IRCFC2	SCEXAO	REDIS2AUXFITS	ircam_fcs_f2	%16.3f	mm	[mm] IRCAMs lens2 focusing stage position		76	1	1	1	0								1					
+SCX.IRCAM.FCS.F1	X_IRCFCP	SCEXAO	REDIS2AUXFITS	ircam_fcs_f1	%16d	step	[step] IRCAMs focusing stage position		75	1	1	1	0								1					
+SCX.IRCAM.FCS	X_IRCFCS	SCEXAO	REDIS2AUXFITS	ircam_fcs_st	%-16.16s	NA	IRCAMs focusing stage state		74	1	1	1	0								1					
+SCX.IRCAM.FLC	X_IRCFLC	SCEXAO	REDIS2AUXFITS	ircam_flc_st	%-16.16s	NA	IRCAMs FLC state (IN, OUT)		64	1	1	1	0								1					
+SCX.IRCAM.FLC.POS	X_IRCFLP	SCEXAO	REDIS2AUXFITS	ircam_flc	%16.3f	deg	[deg] IRCAMs FLC position		65	1	1	1	0								1					
+SCX.IRCAM.FLT	X_IRCFLT	SCEXAO	REDIS2AUXFITS	ircam_filter	%-16.16s	NA	IRCAMs filter state		63	1	1	1	0								1					
+SCX.IRCAM.HWP.POS	X_IRCHPP	SCEXAO	REDIS2AUXFITS	ircam_hwp_theta	%16.3f	deg	[deg] IRCAMs HWP position		71	1	1	1	0								1					
+SCX.IRCAM.HWP	X_IRCHWP	SCEXAO	REDIS2AUXFITS	ircam_hwp	%-16.16s	NA	IRCAMs HWP state (IN, OUT)		70	1	1	1	0								1					
+SCX.IRCAM.PUPIL	X_IRCPUP	SCEXAO	REDIS2AUXFITS	ircam_pupil_st	%-16.16s	NA	IRCAMs pupil mask state		66	1	1	1	0								1					
+SCX.IRCAM.PUPIL.X	X_IRCPUX	SCEXAO	REDIS2AUXFITS	ircam_pupil_x	%16.3f	mm	[mm] IRCAMs pupil mask x position		67	1	1	1	0								1					
+SCX.IRCAM.PUPIL.Y	X_IRCPUY	SCEXAO	REDIS2AUXFITS	ircam_pupil_y	%16.3f	mm	[mm] IRCAMs pupil mask y position		68	1	1	1	0								1					
+SCX.IRCAM.QWP	X_IRCQWP	SCEXAO	REDIS2AUXFITS	ircam_qwp	%-16.16s	NA	IRCAMs QWP state (IN, OUT)		69	1	1	1	0								1					
+SCX.IRCAM.WOL	X_IRCWOL	SCEXAO	REDIS2AUXFITS	ircam_wollaston	%-16.16s	NA	IRCAMs Wollaston prism state (IN, OUT)		72	1	1	1	0								1					
+SCX.IRSPEC.COL	X_IRSCOL	SCEXAO	REDIS2AUXFITS	irspectro_col_st	%-16.16s	NA	IR spectrograph collimator	New 2023-03-01		0	1	0	0									1	1			
+SCX.IRSPEC.COL.POS	X_IRSCOP	SCEXAO	REDIS2AUXFITS	irspectro_col	%16.3f	mm	[mm] IR spectrograph collimator position	New 2023-03-01		0	1	0	0									1	1			
+SCX.IRSPEC.FIB	X_IRSFIB	SCEXAO	REDIS2AUXFITS	irspectro_fib_st	%-16.16s	NA	IR spectrograph fiber stage state	New 2023-03-01		0	1	0	0									1	1			
+SCX.IRSPEC.FIB.Y	X_IRSFIP	SCEXAO	REDIS2AUXFITS	irspectro_fib_y	%16.3f	mm	[mm] IR spectrograph fiber y stage position	New 2023-03-01		0	1	0	0									1	1			
+SCX.IRSPEC.FIB.X	X_IRSFIX	SCEXAO	REDIS2AUXFITS	irspectro_fib_x	%16.3f	mm	[mm] IR spectrograph fiber x stage position	New 2023-03-01		0	1	0	0									1	1			
+SCX.IRSPEC.MODE.X1	X_IRSMO1	SCEXAO	REDIS2AUXFITS	irspectro_mode_x1	%16d	step	[step] IR spectrograph mode stage1 position	New 2023-03-01		0	0	0	0									1	1			
+SCX.IRSPEC.MODE.X2	X_IRSMO2	SCEXAO	REDIS2AUXFITS	irspectro_mode_x2	%16.3f	mm	[mm] IR spectrograph mode stage2 position	New 2023-03-01		0	0	0	0									1	1			
+SCX.IRSPEC.MODE	X_IRSMOD	SCEXAO	REDIS2AUXFITS	irspectro_mode_st	%-16.16s	NA	IR spectrograph mode stage	New 2023-03-01		0	0	0	0									1	1			
+SCX.LOWFS.BLK	X_LOWBLK	SCEXAO	REDIS2AUXFITS	lowfs_block	%-16.16s	NA	LOWFS block state (IN, OUT)		111	1	1	1	0								1					
+SCX.LOWFS.FCS	X_LOWFCS	SCEXAO	REDIS2AUXFITS	lowfs_fcs	%16d	step	[step] LOWFS focus position		112	1	1	1	0								1					
+SCX.LOWFS.FREQ	X_LOWFRQ	SCEXAO	REDIS2AUXFITS	lowfs_freq	%16d	Hz	[Hz] LOWFS loop frequency		156	1	1	1	1							1						
+SCX.LOWFS.GAIN	X_LOWGN	SCEXAO	REDIS2AUXFITS	lowfs_gain	%16.3f	unitless	LOWFS main gain (0-1)		159	1	1	1	1							1						
+SCX.LOWFS.LEAK	X_LOWLK	SCEXAO	REDIS2AUXFITS	lowfs_leak	%16.3f	unitless	LOWFS leak term (0-1)		160	1	1	1	1							1						
+SCX.LOWFS.LOOP	X_LOWLP	SCEXAO	REDIS2AUXFITS	lowfs_loop	%-16.16s	NA	LOWFS loop status (OPEN, CLOSED, DM, ...)		155	1	1	1	1							1						
+SCX.LOWFS.MOT	X_LOWMOT	SCEXAO	REDIS2AUXFITS	lowfs_mtype	%-16.16s	NA	LOWFS mode types (ZERNIKE, FOURIER, ...)		158	1	1	1	1							1						
+SCX.LOWFS.NMO	X_LOWNMO	SCEXAO	REDIS2AUXFITS	lowfs_nmodes	%16d	unitless	LOWFS number of modes 		157	1	1	1	1							1						
+SCX.LYOT	X_LYOT	SCEXAO	REDIS2AUXFITS	lyot_st	%-16.16s	NA	LYOT wheel state		38	1	1	1	0								1					
+SCX.LYOT.WHL	X_LYOWHL	SCEXAO	REDIS2AUXFITS	lyot_wheel	%16.3f	deg	[deg] LYOT wheel position		39	1	1	1	0								1					
+SCX.LYOT.X	X_LYOX	SCEXAO	REDIS2AUXFITS	lyot_x	%16d	step	[step] LYOT wheel x position		40	1	1	1	0								1					
+SCX.LYOT.Y	X_LYOY	SCEXAO	REDIS2AUXFITS	lyot_y	%16d	step	[step] LYOT wheel y position		41	1	1	1	0								1					
+SCX.MKIDS.PKO	X_MKIPKO	SCEXAO	REDIS2AUXFITS	mkids_pickoff_st	%-16.16s	NA	MKIDS pickoff wheel state		60	1	1	1	0								1					
+SCX.MKIDS.PKO.POS	X_MKIPKP	SCEXAO	REDIS2AUXFITS	mkids_pickoff_wheel	%16.3f	deg	[deg] MKIDS pickoff wheel position		61	1	1	1	0								1					
+SCX.MKIDS.PKO.THETA	X_MKIPKT	SCEXAO	REDIS2AUXFITS	mkids_pickoff_theta	%16.3f	deg	[deg] MKIDS pickoff theta position		62	1	1	1	0								1					
+SCX.NPS.NPS11	X_NPS11	SCEXAO	REDIS2AUXFITS	nps1_1	%-16.16s	NA	NPS1 status of port #1 (ON,OFF)		174	1	1	1	1	1						1						
+SCX.NPS.NPS12	X_NPS12	SCEXAO	REDIS2AUXFITS	nps1_2	%-16.16s	NA	NPS1 status of port #2 (ON,OFF)		175	1	1	1	1	1						1						
+SCX.NPS.NPS13	X_NPS13	SCEXAO	REDIS2AUXFITS	nps1_3	%-16.16s	NA	NPS1 status of port #3 (ON,OFF)		176	1	1	1	1	1						1						
+SCX.NPS.NPS14	X_NPS14	SCEXAO	REDIS2AUXFITS	nps1_4	%-16.16s	NA	NPS1 status of port #4 (ON,OFF)		177	1	1	1	1	1						1						
+SCX.NPS.NPS15	X_NPS15	SCEXAO	REDIS2AUXFITS	nps1_5	%-16.16s	NA	NPS1 status of port #5 (ON,OFF)		178	1	1	1	1	1						1						
+SCX.NPS.NPS16	X_NPS16	SCEXAO	REDIS2AUXFITS	nps1_6	%-16.16s	NA	NPS1 status of port #6 (ON,OFF)		179	1	1	1	1	1						1						
+SCX.NPS.NPS17	X_NPS17	SCEXAO	REDIS2AUXFITS	nps1_7	%-16.16s	NA	NPS1 status of port #7 (ON,OFF)		180	1	1	1	1	1						1						
+SCX.NPS.NPS18	X_NPS18	SCEXAO	REDIS2AUXFITS	nps1_8	%-16.16s	NA	NPS1 status of port #8 (ON,OFF)		181	1	1	1	1	1						1						
+SCX.NPS.NPS21	X_NPS21	SCEXAO	REDIS2AUXFITS	nps2_1	%-16.16s	NA	NPS2 status of port #1 (ON,OFF)		182	1	1	1	1	1						1						
+SCX.NPS.NPS210	X_NPS210	SCEXAO	REDIS2AUXFITS	nps2_10	%-16.16s	NA	NPS2 status of port #10 (ON,OFF)			1	1	1	1	1						1						
+SCX.NPS.NPS211	X_NPS211	SCEXAO	REDIS2AUXFITS	nps2_11	%-16.16s	NA	NPS2 status of port #11 (ON,OFF)			1	1	1	1	1						1						
+SCX.NPS.NPS212	X_NPS212	SCEXAO	REDIS2AUXFITS	nps2_12	%-16.16s	NA	NPS2 status of port #12 (ON,OFF)			1	1	1	1	1						1						
+SCX.NPS.NPS213	X_NPS213	SCEXAO	REDIS2AUXFITS	nps2_13	%-16.16s	NA	NPS2 status of port #13 (ON,OFF)			1	1	1	1	1						1						
+SCX.NPS.NPS214	X_NPS214	SCEXAO	REDIS2AUXFITS	nps2_14	%-16.16s	NA	NPS2 status of port #14 (ON,OFF)			1	1	1	1	1						1						
+SCX.NPS.NPS215	X_NPS215	SCEXAO	REDIS2AUXFITS	nps2_15	%-16.16s	NA	NPS2 status of port #15 (ON,OFF)			1	1	1	1	1						1						
+SCX.NPS.NPS216	X_NPS216	SCEXAO	REDIS2AUXFITS	nps2_16	%-16.16s	NA	NPS2 status of port #16 (ON,OFF)			1	1	1	1	1						1						
+SCX.NPS.NPS22	X_NPS22	SCEXAO	REDIS2AUXFITS	nps2_2	%-16.16s	NA	NPS2 status of port #2 (ON,OFF)		183	1	1	1	1	1						1						
+SCX.NPS.NPS23	X_NPS23	SCEXAO	REDIS2AUXFITS	nps2_3	%-16.16s	NA	NPS2 status of port #3 (ON,OFF)		184	1	1	1	1	1						1						
+SCX.NPS.NPS24	X_NPS24	SCEXAO	REDIS2AUXFITS	nps2_4	%-16.16s	NA	NPS2 status of port #4 (ON,OFF)		185	1	1	1	1	1						1						
+SCX.NPS.NPS25	X_NPS25	SCEXAO	REDIS2AUXFITS	nps2_5	%-16.16s	NA	NPS2 status of port #5 (ON,OFF)		186	1	1	1	1	1						1						
+SCX.NPS.NPS26	X_NPS26	SCEXAO	REDIS2AUXFITS	nps2_6	%-16.16s	NA	NPS2 status of port #6 (ON,OFF)		187	1	1	1	1	1						1						
+SCX.NPS.NPS27	X_NPS27	SCEXAO	REDIS2AUXFITS	nps2_7	%-16.16s	NA	NPS2 status of port #7 (ON,OFF)		188	1	1	1	1	1						1						
+SCX.NPS.NPS28	X_NPS28	SCEXAO	REDIS2AUXFITS	nps2_8	%-16.16s	NA	NPS2 status of port #8 (ON,OFF)		189	1	1	1	1	1						1						
+SCX.NPS.NPS29	X_NPS29	SCEXAO	REDIS2AUXFITS	nps2_9	%-16.16s	NA	NPS2 status of port #9 (ON,OFF)			1	1	1	1	1						1						
+SCX.NPS.NPS31	X_NPS31	SCEXAO	REDIS2AUXFITS	nps3_1	%-16.16s	NA	NPS3 status of port #1 (ON,OFF)		190	1	1	1	1	1						1						
+SCX.NPS.NPS32	X_NPS32	SCEXAO	REDIS2AUXFITS	nps3_2	%-16.16s	NA	NPS3 status of port #2 (ON,OFF)		191	1	1	1	1	1						1						
+SCX.NPS.NPS33	X_NPS33	SCEXAO	REDIS2AUXFITS	nps3_3	%-16.16s	NA	NPS3 status of port #3 (ON,OFF)		192	1	1	1	1	1						1						
+SCX.NPS.NPS34	X_NPS34	SCEXAO	REDIS2AUXFITS	nps3_4	%-16.16s	NA	NPS3 status of port #4 (ON,OFF)		193	1	1	1	1	1						1						
+SCX.NPS.NPS35	X_NPS35	SCEXAO	REDIS2AUXFITS	nps3_5	%-16.16s	NA	NPS3 status of port #5 (ON,OFF)		194	1	1	1	1	1						1						
+SCX.NPS.NPS36	X_NPS36	SCEXAO	REDIS2AUXFITS	nps3_6	%-16.16s	NA	NPS3 status of port #6 (ON,OFF)		195	1	1	1	1	1						1						
+SCX.NPS.NPS37	X_NPS37	SCEXAO	REDIS2AUXFITS	nps3_7	%-16.16s	NA	NPS3 status of port #7 (ON,OFF)		196	1	1	1	1	1						1						
+SCX.NPS.NPS38	X_NPS38	SCEXAO	REDIS2AUXFITS	nps3_8	%-16.16s	NA	NPS3 status of port #8 (ON,OFF)		197	1	1	1	1	1						1						
+SCX.NULL.PKO	X_NULPKO	SCEXAO		nuller_pickoff_st	%-16.16s	NA	NULLER pickoff state (HOME, IN, OUT)	Change name 2023-03-01	30	0	0	0	0								1					1
+SCX.NULL.PKO.POS	X_NULPKP	SCEXAO		nuller_pickoff	%16.3f	mm	[mm] NULLER pickoff position	Change name 2023-03-01	31	0	0	0	0								1					1
+SCX.OAP1	X_OAP1	SCEXAO	REDIS2AUXFITS	oap1_st	%-16.16s	NA	First OAP state (HOME, INT, AO)		11	1	1	1	1	1						1						
+SCX.OAP1.F	X_OAP1F	SCEXAO	REDIS2AUXFITS	oap1_f	%16d	step	[step] First OAP f position		14	1	1	1	1	1						1						
+SCX.OAP1.PHI	X_OAP1PH	SCEXAO	REDIS2AUXFITS	oap1_phi	%16.3f	deg	[deg] First OAP y position		13	1	1	1	1	1						1						
+SCX.OAP1.THETA	X_OAP1TH	SCEXAO	REDIS2AUXFITS	oap1_theta	%16.3f	deg	[deg] First OAP x position		12	1	1	1	1	1						1						
+SCX.OAP4	X_OAP4	SCEXAO	REDIS2AUXFITS	oap4_st	%-16.16s	NA	OAP 4 state		47	1	1	1	0								1					
+SCX.OAP4.PHI	X_OAP4PH	SCEXAO	REDIS2AUXFITS	oap4_phi	%16.3f	deg	[deg] OAP 4 y position		49	1	1	1	0								1					
+SCX.OAP4.THETA	X_OAP4TH	SCEXAO	REDIS2AUXFITS	oap4_theta	%16.3f	deg	[deg] OAP 4 x position		48	1	1	1	0								1					
+	X_PALDRK	SCEXAO		darkpalila	%-16.16s	NA	PALILA acquiring dark	Renamed from X_CHKDRK 2023-03-01		0	0	0	0													
+	X_PALLOG	SCEXAO		logpalila	%-16.16s	NA	PALILA logging cubes from plugin	Renamed from X_CHKLOG 2023-03-01		0	0	0	0													
+SCX.PALILA.PUP.F	X_PALPUF	SCEXAO	REDIS2AUXFITS	palila_pup_fcs	%16.3f	mm	[mm] PALILA pupil lens focus position	Renamed from X_CHKPUF 2023-03-01	100	1	1	1	0								1					
+SCX.PALILA.PUP	X_PALPUP	SCEXAO	REDIS2AUXFITS	palila_pup	%-16.16s	NA	PALILA pupil lens state (IN, OUT)	Renamed from X_CHKPUP 2023-03-01	99	1	1	1	0								1					
+SCX.PALILA.PUP.ST	X_PALPUS	SCEXAO	REDIS2AUXFITS	palila_pup_fcs_st	%-16.16s	NA	PALILA pupil lens focus status 	Renamed from X_CHKPUS 2023-03-01	100	1	1	1	0								1					
+SCX.PCFI.FIB	X_PCFFIB	SCEXAO		pcfi_fib_st	%-16.16s	NA	PCFI fiber state (HOME, MMI, SMI) (deprecated)		81	0	0	0	0													1
+SCX.PCFI.FIB.F	X_PCFFIF	SCEXAO		pcfi_fib_f	%16.3f	mm	[mm] PCFI fiber f position (deprecated)		84	0	0	0	0													1
+SCX.PCFI.FIB.X	X_PCFFIX	SCEXAO		pcfi_fib_x	%16.3f	mm	[mm] PCFI fiber x position (deprecated)		82	0	0	0	0													1
+SCX.PCFI.FIB.Y	X_PCFFIY	SCEXAO		pcfi_fib_y	%16.3f	mm	[mm] PCFI fiber y position (deprecated)		83	0	0	0	0													1
+SCX.PCFI.LEN	X_PCFLEN	SCEXAO		pcfi_len_st	%-16.16s	NA	PCFI lens state (HOME, MMI, SMI) (deprecated)		79	0	0	0	0													1
+SCX.PCFI.LEN.POS	X_PCFLEP	SCEXAO		pcfi_len	%16.3f	mm	[mm] PCFI lens selection position (deprecated)		80	0	0	0	0													1
+SCX.PCFI.PKO	X_PCFPKO	SCEXAO		pcfi_pickoff_st	%-16.16s	NA	PCFI pickoff state (deprecated)		77	0	0	0	0													1
+SCX.PCFI.PKO.POS	X_PCFPKP	SCEXAO		pcfi_pickoff	%16.3f	mm	[mm] PCFI pickoff position (deprecated)		78	0	0	0	0													1
+SCX.PG1.PKO	X_PG1PKO	SCEXAO	REDIS2AUXFITS	PG1_pickoff	%-16.16s	NA	Point Grey 1 Pickoff state (IN, OUT)		32	1	1	1	0								1					
+SCX.PG2.PKO	X_PG2PKO	SCEXAO		PG2_pickoff	%-16.16s	NA	Point Grey 2 Pickoff state (IN, OUT) (deprecated)		110	0	0	0	0													1
+SCX.PHOT.COMPPLATE	X_PHOCPL	SCEXAO	REDIS2AUXFITS	photonics_compplate	%-16.16s	NA	state of compensating plate for PHOTONICS pickoff (IN, OUT)	New 2023-03-01		1	1	1	0								1					
+SCX.PHOT.PKO	X_PHOPKO	SCEXAO	REDIS2AUXFITS	photonics_pickoff_st	%-16.16s	NA	PHOTONICS pickoff state (HOME, IN, OUT)	Rename from X_NULPKO 2023-03-01		1	1	1	0								1					
+SCX.PHOT.PKO.POS	X_PHOPKP	SCEXAO	REDIS2AUXFITS	photonics_pickoff	%16.3f	mm	[mm] PHOTONICS pickoff position	Rename from X_NULPKP 2023-03-01		1	1	1	0								1					
+SCX.PHOT.PKO.TYPE	X_PHOTYP	SCEXAO	REDIS2AUXFITS	photonics_pickoff_type	%-16.16s	NA	PHOTONICS pickoff type (90-10, K-BAND)	New 2023-03-01		1	1	1	0								1					
+SCX.PIAA1.WHL	X_PI1WHL	SCEXAO	REDIS2AUXFITS	piaa1_wheel	%16.3f	deg	[deg] PIAA1 wheel position		22	1	1	1	0								1					
+SCX.PIAA1.X	X_PI1X	SCEXAO	REDIS2AUXFITS	piaa1_x	%16d	step	[step] PIAA1 wheel x position		23	1	1	1	0								1					
+SCX.PIAA1.Y	X_PI1Y	SCEXAO	REDIS2AUXFITS	piaa1_y	%16d	step	[step] PIAA1 wheel y position		24	1	1	1	0								1					
+SCX.PIAA2.F	X_PI2F	SCEXAO	REDIS2AUXFITS	piaa2_f	%16d	step	[step] PIAA2 wheel focus position		29	1	1	1	0								1					
+SCX.PIAA2.WHL	X_PI2WHL	SCEXAO	REDIS2AUXFITS	piaa2_wheel	%16.3f	deg	[deg] PIAA2 wheel position		26	1	1	1	0								1					
+SCX.PIAA2.X	X_PI2X	SCEXAO	REDIS2AUXFITS	piaa2_x	%16d	step	[step] PIAA2 wheel x position		27	1	1	1	0								1					
+SCX.PIAA2.Y	X_PI2Y	SCEXAO	REDIS2AUXFITS	piaa2_y	%16d	step	[step] PIAA2 wheel y position		28	1	1	1	0								1					
+SCX.PIAA1	X_PIAA1	SCEXAO	REDIS2AUXFITS	piaa1_st	%-16.16s	NA	PIAA1 wheel state		21	1	1	1	0								1					
+SCX.PIAA2	X_PIAA2	SCEXAO	REDIS2AUXFITS	piaa2_st	%-16.16s	NA	PIAA2 wheel state		25	1	1	1	0								1					
+SCX.POLAR	X_POLAR	SCEXAO	REDIS2AUXFITS	polarizer	%-16.16s	NA	Polarizer state (HOME, IN, OUT)		113	1	1	1	1	1						1						
+SCX.POLAR.POS	X_POLARP	SCEXAO	REDIS2AUXFITS	polarizer_theta	%16.3f	deg	[deg] Polarizer angle		114	1	1	1	1	1						1						
+SCX.PUP	X_PUPIL	SCEXAO	REDIS2AUXFITS	pupil_st	%-16.16s	NA	Pupil wheel state		17	1	1	1	0								1					
+SCX.PUP.WHL	X_PUPWHL	SCEXAO	REDIS2AUXFITS	pupil_wheel	%16.3f	deg	[deg] Pupil wheel angle		18	1	1	1	0								1					
+SCX.PUP.X	X_PUPX	SCEXAO	REDIS2AUXFITS	pupil_x	%16d	step	[step] Pupil wheel x position		19	1	1	1	0								1					
+SCX.PUP.Y	X_PUPY	SCEXAO	REDIS2AUXFITS	pupil_y	%16d	step	[step] Pupil wheel y position		20	1	1	1	0								1					
+SCX.PYWFS.CAL	X_PYWCAL	SCEXAO	REDIS2AUXFITS	pywfs_cal	%-16.16s	NA	PYWFS calibration status (HO RM, LO RM, ...)		147	1	1	1	1	1						1						
+SCX.PYWFS.CLOOP	X_PYWCLP	SCEXAO	REDIS2AUXFITS	pywfs_cenloop	%-16.16s	NA	PYWFS flux centering loop status (OPEN, CLOSED)		153	1	1	1	1	1						1						
+SCX.PYWFS.COL	X_PYWCOL	SCEXAO	REDIS2AUXFITS	pywfs_col	%16d	step	[step] PYWFS collimation position		121	1	1	1	1	1						1						
+SCX.PYWFS.DMOFF	X_PYWDMO	SCEXAO	REDIS2AUXFITS	dmoffload	%-16.16s	NA	PYWFS DM Offload status (ON, OFF with channel)		154	1	1	1	1	1						1						
+SCX.PYWFS.FCS	X_PYWFCS	SCEXAO	REDIS2AUXFITS	pywfs_fcs	%16d	step	[step] PYWFS focus position		122	1	1	1	1	1						1						
+SCX.PYWFS.FLT	X_PYWFLT	SCEXAO	REDIS2AUXFITS	pywfs_filter	%-16.16s	NA	PYWFS filter state		120	1	1	1	1	1						1						
+SCX.PYWFS.FCS.PKO	X_PYWFPK	SCEXAO	REDIS2AUXFITS	pywfs_fcs_pickoff	%-16.16s	NA	PYWFS focal plane pickoff state (IN, OUT)		123	1	1	1	1	1						1						
+SCX.PYWFS.FREQ	X_PYWFRQ	SCEXAO	REDIS2AUXFITS	pywfs_freq	%16d	Hz	[Hz] PYWFS loop frequency		148	1	1	1	1	1						1						
+SCX.PYWFS.FSTOP	X_PYWFST	SCEXAO	REDIS2AUXFITS	pywfs_fieldstop_st	%-16.16s	NA	PYWFS field stop state		117	1	1	1	1	1						1						
+SCX.PYWFS.FSTOP.X	X_PYWFSX	SCEXAO	REDIS2AUXFITS	pywfs_fieldstop_x	%16.3f	mm	[mm] PYWFS field stop x position		118	1	1	1	1	1						1						
+SCX.PYWFS.FSTOP.Y	X_PYWFSY	SCEXAO	REDIS2AUXFITS	pywfs_fieldstop_y	%16.3f	mm	[mm] PYWFS field stop y position		119	1	1	1	1	1						1						
+SCX.PYWFS.GAIN	X_PYWGN	SCEXAO	REDIS2AUXFITS	pywfs_gain	%16.3f	unitless	PYWFS main loop gain (0-1)		149	1	1	1	1	1						1						
+SCX.PYWFS.LEAK	X_PYWLK	SCEXAO	REDIS2AUXFITS	pywfs_leak	%16.3f	unitless	PYWFS leak term (0-1)		150	1	1	1	1	1						1						
+SCX.PYWFS.LOOP	X_PYWLP	SCEXAO	REDIS2AUXFITS	pywfs_loop	%-16.16s	NA	PYWFS loop status (OPEN, CLOSED)		146	1	1	1	1	1						1						
+SCX.PYWFS.PKO	X_PYWPKO	SCEXAO	REDIS2AUXFITS	pywfs_pickoff_st	%-16.16s	NA	PYWFS pickoff state		115	1	1	1	1	1						1						
+SCX.PYWFS.PKO.POS	X_PYWPKP	SCEXAO	REDIS2AUXFITS	pywfs_pickoff	%16.3f	deg	[deg] PYWFS pickoff position		116	1	1	1	1	1						1						
+SCX.PYWFS.PLOOP	X_PYWPLP	SCEXAO	REDIS2AUXFITS	pywfs_puploop	%-16.16s	NA	PYWFS pupil alignment loop status (OPEN, CLOSED)		152	1	1	1	1	1						1						
+SCX.PYWFS.PUPX	X_PYWPPX	SCEXAO	REDIS2AUXFITS	pywfs_pup_x	%16d	step	[step] PYWFS pupil lens x position		124	1	1	1	1	1						1						
+SCX.PYWFS.PUPY	X_PYWPPY	SCEXAO	REDIS2AUXFITS	pywfs_pup_y	%16d	step	[step] PYWFS pupil lens y position		125	1	1	1	1	1						1						
+SCX.PYWFS.RAD	X_PYWRAD	SCEXAO	REDIS2AUXFITS	pywfs_rad	%16.3f	mas	[mas] PYWFS modulation radius		151	1	1	1	1	1						1						
+SCX.REACH.FIB	X_RCHFIB	SCEXAO	REDIS2AUXFITS	reach_fib_st	%-16.16s	NA	REACH fiber status		90	1	0	0	0									1				
+SCX.REACH.FIB.F	X_RCHFIF	SCEXAO	REDIS2AUXFITS	reach_fib_f	%16.3f	mm	[mm] REACH fiber focus		93	1	0	0	0									1				
+SCX.REACH.FIB.THETA	X_RCHFIT	SCEXAO	REDIS2AUXFITS	reach_fib_theta	%16.3f	deg	[deg] REACH fiber rotation		94	1	0	0	0									1				
+SCX.REACH.FIB.X	X_RCHFIX	SCEXAO	REDIS2AUXFITS	reach_fib_x	%16d	step	[step] REACH fiber x position		91	1	0	0	0									1				
+SCX.REACH.FIB.Y	X_RCHFIY	SCEXAO	REDIS2AUXFITS	reach_fib_y	%16d	step	[step] REACH fiber y position		92	1	0	0	0									1				
+SCX.REACH.OAP	X_RCHOAP	SCEXAO	REDIS2AUXFITS	reach_oap_st	%-16.16s	NA	REACH OAP state		87	1	0	0	0									1				
+SCX.REACH.OAP.PHI	X_RCHOPH	SCEXAO	REDIS2AUXFITS	reach_oap_phi	%16.3f	deg	[deg] REACH OAP phi angle		89	1	0	0	0									1				
+SCX.REACH.OAP.THETA	X_RCHOTH	SCEXAO	REDIS2AUXFITS	reach_oap_theta	%16.3f	deg	[deg] REACH OAP theta angle		88	1	0	0	0									1				
+SCX.REACH.PKO	X_RCHPKO	SCEXAO	REDIS2AUXFITS	reach_pickoff_st	%-16.16s	NA	REACH pickoff state		85	1	1	1	0								1					
+SCX.REACH.PKO.POS	X_RCHPKP	SCEXAO	REDIS2AUXFITS	reach_pickoff	%16.3f	mm	[mm] REACH pickoff position		86	1	1	1	0								1					
+SCX.RHEA.PKO	X_RHEPKO	SCEXAO	REDIS2AUXFITS	rhea_pickoff_st	%-16.16s	NA	RHEA pickoff state (HOME, IN, OUT)		144	1	1	1	1	1						1						
+SCX.RHEA.PKO.POS	X_RHEPKP	SCEXAO	REDIS2AUXFITS	rhea_pickoff	%16.3f	mm	[mm] RHEA pickoff position		145	1	1	1	1	1						1						
+SCX.SAPHIRA.PKO	X_SAPPKO	SCEXAO		saphira_pickoff_st	%-16.16s	NA	SAPHIRA pickoff state (HOME, IN, OUT) (deprecated)		95	0	0	0	0													1
+SCX.SAPHIRA.PKO.POS	X_SAPPKP	SCEXAO		saphira_pickoff	%16.3f	mm	[mm] SAPHIRA pickoff position (deprecated)		96	0	0	0	0													1
+SCX.SAPHIRA.PUP	X_SAPPUP	SCEXAO		saphira_pup	%-16.16s	NA	SAPHIRA pupil lens state (IN, OUT) (deprecated)		101	0	0	0	0													1
+SCX.SPCT.FREQ	X_SPCFRQ	SCEXAO	REDIS2AUXFITS	sn_freq	%16d	Hz	[Hz] SPECKLE NULLING loop frequency		162	1	1	1	1	1						1						
+SCX.SPCT.GAIN	X_SPCGN	SCEXAO	REDIS2AUXFITS	sn_gain	%16.3f	unitless	SPECKLE NULLING loop gain (0-1)		163	1	1	1	1	1						1						
+SCX.SPCT.LOOP	X_SPCLP	SCEXAO	REDIS2AUXFITS	sn_loop	%-16.16s	NA	SPECKLE NULLING loop status (OPEN, CLOSED)		161	1	1	1	1	1						1						
+SCX.SRC.FLUX.FLT	X_SRCFFT	SCEXAO	REDIS2AUXFITS	src_flux_filter	%-16.16s	NA	internal source filter		8	1	1	1	1	1						1						
+SCX.SRC.FIB	X_SRCFIB	SCEXAO	REDIS2AUXFITS	src_fib_st	%-16.16s	NA	internal source fiber stage (PINHOLE, IN, OUT)		1	1	1	1	1	1						1						
+SCX.SRC.FIB.Y	X_SRCFIP	SCEXAO	REDIS2AUXFITS	src_fib_y	%16.3f	mm	[mm] internal source fiber y stage position		3	1	1	1	1	1						1						
+SCX.SRC.FLUX.IRND	X_SRCFIR	SCEXAO	REDIS2AUXFITS	src_flux_irnd	%-16.16s	NA	internal source ir nd		6	1	1	1	1	1						1						
+SCX.SRC.FIB.X	X_SRCFIX	SCEXAO	REDIS2AUXFITS	src_fib_x	%16.3f	mm	[mm] internal source fiber x stage position		2	1	1	1	1	1						1						
+SCX.SRC.FLUX.OPTND	X_SRCFOP	SCEXAO	REDIS2AUXFITS	src_flux_optnd	%-16.16s	NA	internal source opt nd		7	1	1	1	1	1						1						
+SCX.SRC.SEL	X_SRCSEL	SCEXAO	REDIS2AUXFITS	src_select_st	%-16.16s	NA	internal source type		4	1	1	1	1	1						1						
+SCX.SRC.SEL.POS	X_SRCSEP	SCEXAO	REDIS2AUXFITS	src_select	%16.3f	deg	[deg] internal source selection position		5	1	1	1	1	1						1						
+SCX.STEER	X_STR	SCEXAO	REDIS2AUXFITS	steering_st	%-16.16s	NA	Steering mirror state		53	1	1	1	0	1							1					
+SCX.STEER.PHI	X_STRPHI	SCEXAO	REDIS2AUXFITS	steering_phi	%16.3f	deg	[deg] steering mirror phi position		55	1	1	1	0	1							1					
+SCX.STEER.THETA	X_STRTHE	SCEXAO	REDIS2AUXFITS	steering_theta	%16.3f	deg	[deg] steering mirror theta position		54	1	1	1	0	1							1					
+SCX.VAMPIRES.FSTOP	X_VAMFST	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_st	%-16.16s	NA	VAMPIRES field stop state	duplicated to U_FLDSTP 2023/06/06	126	1	1	1	1							1						
+SCX.VAMPIRES.FSTOP.X	X_VAMFSX	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_x	%16.3f	mm	[mm] VAMPIRES field stop x position	duplicated to U_FLDSTX 2023/06/06	127	1	1	1	1							1						
+SCX.VAMPIRES.FSTOP.Y	X_VAMFSY	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_y	%16.3f	mm	[mm] VAMPIRES field stop y position	duplicated to U_FLDSTY 2023/06/06	128	1	1	1	1							1						
+SCX.ZAP.FREQ	X_ZAPFRQ	SCEXAO	REDIS2AUXFITS	zap_freq	%16d	Hz	[Hz] ZAP loop frequency		165	1	1	1	1	1						1						
+SCX.ZAP.GAIN	X_ZAPGN	SCEXAO	REDIS2AUXFITS	zap_gain	%16.3f	unitless	ZAP loop gain (0-1)		166	1	1	1	1	1						1						
+SCX.ZAP.LOOP	X_ZAPLP	SCEXAO	REDIS2AUXFITS	zap_loop	%-16.16s	NA	ZAP loop status (OPEN, CLOSED, RM, ...)		164	1	1	1	1	1						1						
+SCX.ZAP.MOT	X_ZAPMOT	SCEXAO	REDIS2AUXFITS	zap_mtype	%-16.16s	NA	ZAP mode types (ZERNIKE, LWE, COMBO, ...)		168	1	1	1	1	1						1						
+SCX.ZAP.NMO	X_ZAPNMO	SCEXAO	REDIS2AUXFITS	zap_nmodes	%16d	unitless	ZAP number of modes 		167	1	1	1	1	1						1						
+	Y_FLTNAM	CHARIS			%-16s	NA	current filter name		546	0	0		0						1							
+	Y_FLTSLT	CHARIS			%-16s	NA	current filter slot		547	0	0		0						1							
+	Y_GRISM	CHARIS			%-16s	NA	deprecated: grism position		544	0	0		0						1							
+	Y_LSRALM	CHARIS			%-16s	NA	laser alarms		551	0	0		0						1							
+	Y_LSRENB	CHARIS			%-16s	NA	is laserState enabled		549	0	0		0						1							
+	Y_LSRPWR	CHARIS			%16d	percent	[%] laser power		550	0	0		0						1							
+	Y_PRISM	CHARIS			%-16s	NA	prism position		545	0	0		0						1							
+	Y_SHUTTR	CHARIS			%-16s	NA	shutter position		548	0	0		0						1							
+	Y_TEMP00	CHARIS			%16d	K	[K] temperature sensor 0		552	0	0		0						1							
+	Y_TEMP01	CHARIS			%16d	K	[K] temperature sensor 1		553	0	0		0						1							
+	Y_TEMP02	CHARIS			%16d	K	[K] temperature sensor 2		554	0	0		0						1							
+	Y_TEMP03	CHARIS			%16d	K	[K] temperature sensor 3		555	0	0		0						1							
+	Y_TEMP04	CHARIS			%16d	K	[K] temperature sensor 4		556	0	0		0						1							
+	Y_TEMP05	CHARIS			%16d	K	[K] temperature sensor 5		557	0	0		0						1							
+	Y_TEMP06	CHARIS			%16d	K	[K] temperature sensor 6		558	0	0		0						1							
+	Y_TEMP07	CHARIS			%16d	K	[K] temperature sensor 7		559	0	0		0						1							
+	Y_TEMP08	CHARIS			%16d	K	[K] temperature sensor 8		560	0	0		0						1							
+	Y_TEMP09	CHARIS			%16d	K	[K] temperature sensor 9		561	0	0		0						1							
+FITS.SBR.ZD	ZD     	SUBARU	REDIS2AUXFITS		%20.5f	deg	[deg] Zenith distance at typical time		229	1	1		1	1		1										
