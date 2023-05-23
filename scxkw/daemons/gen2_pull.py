@@ -53,10 +53,6 @@ def gen2_pull(rdb, status_obj):
 
         pipe.hset('OBSERVAT', 'value', 'NAOJ    ')
         pipe.hset('INSTRUME', 'value', 'SCExAO  ')
-        if 'IN' in wollaston:
-            pipe.hset('OBS-MOD', 'value', 'IMAG-PDI')
-        else:
-            pipe.hset('OBS-MOD', 'value', 'Imaging')
 
         pipe.hset('RADESYS', 'value', 'FK5     ')
         pipe.hset('TIMESYS', 'value', 'UTC     ')
