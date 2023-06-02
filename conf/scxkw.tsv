@@ -1,4 +1,4 @@
-Use . to mean that it has to be filled by the FITS file writer and is not relevant to gen2. Fill in the blanks		Technical keyword type. Summary of what happens / when happens to the KW in the github documentation	If it has a SHM name, we need to forward the "set" execution to old scexaostatus. RED: old scexaostatus will not take it	VALID python %formatter OR "BOOLEAN". Nothing else.			Use this line and the "Comments" column ONLY for misc comments - the rest is automatically parsed.																			
+Use . to mean that it has to be filled by the FITS file writer and is not relevant to gen2. Fill in the blanks		Technical keyword type. Summary of what happens / when happens to the KW in the github documentation	TODO	If it has a SHM name, we need to forward the "set" execution to old scexaostatus. RED: old scexaostatus will not take it	VALID python %formatter OR "BOOLEAN". Nothing else.			Use this line and the "Comments" column ONLY for misc comments - the rest is automatically parsed.																		
 Gen2 Variable	FITS header 	Mgmt	Mgmt2	Name in SHM	Type	Unit	Description	Comments	Original ordering	fits:palila	fits:apapane	fits:charis	fits:pueo	fits:vampires	flag:vampires	flag:telescope	flag:waveplate	flag:ao188	flag:charis	flag:common	flag:ironly	flag:reach	flag:irfibinj	flag:first	flag:camera	flag:deprecated
 .	_FGSIZE1	SHM_TECHNICAL	FGRAB		%16d	pixel	[pixel] Size of frame grabber for the X axis			0	0		0	0											1	
 .	_FGSIZE2	SHM_TECHNICAL	FGRAB		%16d	pixel	[pixel] Size of frame grabber for the Y axis			0	0		0	0											1	
@@ -7,6 +7,7 @@ FITS.SBR.AIRMASS	AIRMASS	SUBARU	REDIS2AUXFITS		%20.3f	NA	Typical air mass during
 FITS.SBR.ALTITUDE	ALTITUDE	SUBARU	REDIS2AUXFITS		%20.5f	deg	[deg] Altitude of telescope pointing		231	1	1		1	1		1										
 FITS.SBR.AUTOGUID	AUTOGUID	SUBARU	REDIS2AUXFITS		%-8s	NA	Auto Guide ON/OFF 		233	1	1		1	1		1										
 FITS.SBR.AZIMUTH	AZIMUTH	SUBARU	REDIS2AUXFITS		%20.5f	deg	[deg] Azimuth of telescope pointing		230	1	1		1	1		1										
+	BIAS	SHM_CAMSTACK	CONTROLLED		%20.3f	adu	[adu] Bias offset							1											1	
 .	BIN-FCT1	SHM_CAMSTACK	CONTROLLED		%20d	pixel	[pixel] Binning factor of X axis			1	1		1	1											1	
 .	BIN-FCT2	SHM_CAMSTACK	CONTROLLED		%20d	pixel	[pixel] Binning factor of Y axis			1	1		1	1											1	
 .	BSCALE	LOGSHIM			%20.8f	NA	Real=fits-value*BSCALE+BZERO			1	1		1	1											1	
@@ -202,8 +203,8 @@ FITS.SBR.EQUINOX	EQUINOX	SUBARU	REDIS2AUXFITS		%20.3f	yr	[yr] Standard FK5		225	
 .	EXP-ID	APOSTERIORI	FRAMEID DAEMON		%-12s	NA	ID of the exposure this data was taken	copy of FRAMEID with E as 4th character		1	1		1	1											1	
 .	EXPTIME	SHM_CAMSTACK			%20.8f	s	[s] Total integration time of the frame		210	1	1		1	1											1	
 .	EXTTRIG	SHM_CAMSTACK			BOOLEAN	NA	Exposure of detector by an external trigger			1	1		1	1											1	
-.	FILTER01	SHM_CAMSTACK			%-30s	NA	Filter name			1	1		1	1											1	
-.	FILTER02	SHM_CAMSTACK			%-30s	NA	Filter name	Vampires merge 6/6/23		0	0		0	1											1	
+.	FILTER01	SHM_CAMSTACK			%-30s	NA	Primary filter name			1	1		1	1											1	
+.	FILTER02	SHM_CAMSTACK			%-30s	NA	Secondary filter name	Vampires merge 6/6/23		0	0		0	1											1	
 FITS.CRS.FOC-POS	FOC-POS	SUBARU	REDIS2AUXFITS		%-12s	NA	Focus where instrument is attached		232	1	1		1	1		1										
 FITS.SBR.FOC-VAL	FOC-VAL	SUBARU	REDIS2AUXFITS		%20.3f	mm	[mm] Encoder value of the focus unit		227	1	1		1	1		1										
 .	FRAMEID	APOSTERIORI	FRAMEID DAEMON		%-12s	NA	Image sequential number		209	1	1		1	1											1	
@@ -223,7 +224,7 @@ FITS.SBR.MJD	MJD    	LOGSHIM			%20.8f	J2000	Modified Julian Day at typical time	
 .	MJD-STR	LOGSHIM			%20.8f	J2000	Modified Julian Day at exposure start		207	1	1		1	1											1	
 FITS.CRS.OBJECT	OBJECT 	SUBARU	REDIS2AUXFITS		%-30s	NA	Object		199	1	1		1	1		1										
 FITS.AON.OBS-ALOC	OBS-ALOC	SUBARU	REDIS2AUXFITS		%-12s	NA	Observation or Standby		219	1	1		1	1		1										
-	OBS-MOD	G2PULL	REDIS2AUXFITS		%-16s	NA	Observation Mode		220	1	1		1	1		1										
+	OBS-MOD	SHM_CAMSTACK	BUT COULD ALSO BE SHM_FEED_IN		%-16s	NA	Observation Mode	CRED1: RDB poll in camstack aux thread. Vampires: ???	220	1	1		1	1		1										
 FITS.SBR.OBSERVAT	OBSERVAT	G2PULL	REDIS2AUXFITS		%-20s	NA	Observatory		213	1	1		1	1		1										
 FITS.AON.OBSERVER	OBSERVER	SUBARU	REDIS2AUXFITS		%-50s	NA	Observer		218	1	1		1	1		1										
 FITS.SBR.OUT-HUM	OUT-HUM	SUBARU	REDIS2AUXFITS		%20.1f	%	[%] Outside humidity		240	1	1		1	1		1										
@@ -259,6 +260,7 @@ FITS.SBR.TELFOCUS	TELFOCUS	SUBARU			%-16s	NA	Focus where a beam is reachable		22
 	U_AQNCYC	VAMPIRES			%20d	NA	Number of cycles in acquisition	VAMPIRES 2023 merge (6/6/23)							1											1
 	U_AQSDEL	VAMPIRES			%20d	us	[us] Acquisition start delay	VAMPIRES 2023 merge (6/6/23)							1											1
 	U_AQTINT	VAMPIRES			%20d	us	[us] Integration time used in acquisition mode	VAMPIRES 2023 merge (6/6/23)							1											1
+SCX.VAMPIRES.BENCH.TEMP	U_BENTMP	VAMPIRES	REDIS2AUXFITS	vampires_bench_temp	%16.3f	deg C	[deg C] VAMPIRES bench temperature	VAMPIRES 2023 merge (6/6/23)						1	1											
 SCX.VAMPIRES.BS	U_BS	VAMPIRES	REDIS2AUXFITS	vampires_bs	%-20s	NA	VAMPIRES beamsplitter	VAMPIRES 2023 merge (6/6/23)						1	1											
 SCX.VAMPIRES.BS.THETA	U_BSTH	VAMPIRES	REDIS2AUXFITS	vampires_bs_th	%16.3f	deg	[deg] VAMPIRES beamsplitter theta	VAMPIRES 2023 merge (6/6/23)						1	1											
 .	U_CAMERA	SHM_CAMSTACK	CONTROLLED		%16d	NA	VAMPIRES camera number (1 or 2)							1											1	
@@ -276,13 +278,10 @@ SCX.VAMPIRES.FCS.F	U_FCSF	VAMPIRES	REDIS2AUXFITS	vampires_focus_f	%16.3f	mm	[mm]
 SCX.VAMPIRES.FILTER	U_FILTER	VAMPIRES	REDIS2AUXFITS	vampires_filter	%-20s	NA	VAMPIRES filter							1	1											
 SCX.VAMPIRES.FILTER.THETA	U_FILTTH	VAMPIRES	REDIS2AUXFITS	vampires_filter_th	%16.3f	deg	[deg] VAMPIRES filter wheel theta	VAMPIRES 2023 merge (6/6/23)						1	1											
 	U_FLC	APOSTERIORI	DEINTERLEAVER		%-20s	NA	VAMPIRES FLC polarization state	VAMPIRES 2023 merge (6/6/23)						1												
-	U_FLCDL	SHM_FEED_IN	VAMP_SPV		%16d	us	[us] VAMPIRES FLC timing: FLC offset delay	Renamed from. U_FLCOFF 6/6/23						1	1											
 SCX.VAMPIRES.FLC	U_FLCEN	SHM_FEED_IN	VAMP_SPV	vampires_flc	%-20s	NA	VAMPIRES FLC enabled (ON/OFF)	VAMPIRES 2023 merge (6/6/23)						1	1											
-	U_FLCJT	SHM_FEED_IN	VAMP_SPV		%16d	us	[us] VAMPIRES FLC timing: on/off half-period jitter	VAMPIRES 2023 merge (6/6/23)						1	1											
-	U_FLCOFF	VAMPIRES			%20d	us	[us] FLC time offset	VAMPIRES 2023 merge (6/6/23)							1											1
+	U_FLCOFF	VAMPIRES			%16d	us	[us] FLC trigger time offset	VAMPIRES 2023 merge (6/6/23)							1											
 SCX.VAMPIRES.FLC.ST	U_FLCST	VAMPIRES	REDIS2AUXFITS	vampires_flc_st	%-20s	NA	VAMPIRES FLC stage status (IN/OUT)	VAMPIRES 2023 merge (6/6/23)						1	1											
 SCX.VAMPIRES.FLC.POS	U_FLCSTP	VAMPIRES	REDIS2AUXFITS	vampires_flc_pos	%16.3f	mm	[mm] VAMPIRES FLC stage position	VAMPIRES 2023 merge (6/6/23)						1	1											
-	U_FLCTM	SHM_FEED_IN	VAMP_SPV		%16d	us	[us] VAMPIRES FLC timing: FLC half-period	VAMPIRES 2023 merge (6/6/23)						1	1											
 SCX.VAMPIRES.FLC.TEMP	U_FLCTMP	VAMPIRES	REDIS2AUXFITS	vampires_flc_temp	%16.3f	deg C	[deg C] VAMPIRES FLC temperature	VAMPIRES 2023 merge (6/6/23)						1	1											
 SCX.VAMPIRES.FSTOP	U_FLDSTP	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_st	%-20s	NA	VAMPIRES field stop state	Renamed from. X_VAMFST 6/6/23	126	1	1	1	1	1						1						
 SCX.VAMPIRES.FSTOP.X	U_FLDSTX	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_x	%16.3f	mm	[mm] VAMPIRES field stop x position	Renamed from. X_VAMFSX 6/6/23	127	1	1	1	1	1						1						
@@ -308,6 +307,9 @@ SCX.VAMPIRES.QWP.1.THETA	U_QWP1TH	SHM_FEED_IN	VAMP_QWP_DAEMON	vampires_qwp1_th	%
 SCX.VAMPIRES.QWP.2.THETA	U_QWP2	SHM_FEED_IN	VAMP_QWP_DAEMON	vampires_qwp2	%16.3f 	deg	[deg] VAMPIRES QWP 2 angle	VAMPIRES 2023 merge (6/6/23)						1	1											
 SCX.VAMPIRES.QWP.2.THETA	U_QWP2TH	SHM_FEED_IN	VAMP_QWP_DAEMON	vampires_qwp2_th	%16.3f	deg	[deg] VAMPIRES QWP 2 wheel theta	VAMPIRES 2023 merge (6/6/23)						1	1											
 SCX.VAMPIRES.QWP.MOD	U_QWPMOD	VAMPIRES	REDIS2AUXFITS	vampires_qwp_mode	%-20s	NA	VAMPIRES QWP tracking mode	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_TRIGDL	SHM_FEED_IN	VAMP_SPV		%16d	us	[us] VAMPIRES trigger delay	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_TRIGOF	SHM_FEED_IN	VAMP_SPV		%16d	us	[us] VAMPIRES trigger FLC offset	VAMPIRES 2023 merge (6/6/23)						1	1											
+	U_TRIGPW	SHM_FEED_IN	VAMP_SPV		%16d	us	[us] VAMPIRES trigger pulse width	VAMPIRES 2023 merge (6/6/23)						1	1											
 	U_VLOG1	VAMPIRES	REDIS2AUXFITS	log_vcam1	%-20s	NA	Logging VAMPIRES cam 1	VAMPIRES 2023 merge (6/6/23)							1											
 	U_VLOG2	VAMPIRES	REDIS2AUXFITS	log_vcam2	%-20s	NA	Logging VAMPIRES cam 2	VAMPIRES 2023 merge (6/6/23)							1											
 	U_VLOGP	VAMPIRES	REDIS2AUXFITS	log_vcampup	%-20s	NA	Logging VAMPIRES pupil cam	VAMPIRES 2023 merge (6/6/23)							1											
@@ -547,9 +549,9 @@ SCX.SRC.SEL.POS	X_SRCSEP	SCEXAO	REDIS2AUXFITS	src_select	%16.3f	deg	[deg] intern
 SCX.STEER	X_STR	SCEXAO	REDIS2AUXFITS	steering_st	%-16.16s	NA	Steering mirror state		53	1	1	1	0	1							1					
 SCX.STEER.PHI	X_STRPHI	SCEXAO	REDIS2AUXFITS	steering_phi	%16.3f	deg	[deg] steering mirror phi position		55	1	1	1	0	1							1					
 SCX.STEER.THETA	X_STRTHE	SCEXAO	REDIS2AUXFITS	steering_theta	%16.3f	deg	[deg] steering mirror theta position		54	1	1	1	0	1							1					
-SCX.VAMPIRES.FSTOP	X_VAMFST	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_st	%-16.16s	NA	VAMPIRES field stop state	duplicated to U_FLDSTP 2023/06/06	126	1	1	1	1							1						
-SCX.VAMPIRES.FSTOP.X	X_VAMFSX	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_x	%16.3f	mm	[mm] VAMPIRES field stop x position	duplicated to U_FLDSTX 2023/06/06	127	1	1	1	1							1						
-SCX.VAMPIRES.FSTOP.Y	X_VAMFSY	SCEXAO	REDIS2AUXFITS	vampires_fieldstop_y	%16.3f	mm	[mm] VAMPIRES field stop y position	duplicated to U_FLDSTY 2023/06/06	128	1	1	1	1							1						
+SCX.VAMPIRES.FSTOP	X_VAMFST	SCEXAO	REDIS2AUXFITS		%-16.16s	NA	VAMPIRES field stop state	duplicated to U_FLDSTP 2023/06/06	126	1	1	1	1							1						
+SCX.VAMPIRES.FSTOP.X	X_VAMFSX	SCEXAO	REDIS2AUXFITS		%16.3f	mm	[mm] VAMPIRES field stop x position	duplicated to U_FLDSTX 2023/06/06	127	1	1	1	1							1						
+SCX.VAMPIRES.FSTOP.Y	X_VAMFSY	SCEXAO	REDIS2AUXFITS		%16.3f	mm	[mm] VAMPIRES field stop y position	duplicated to U_FLDSTY 2023/06/06	128	1	1	1	1							1						
 SCX.ZAP.FREQ	X_ZAPFRQ	SCEXAO	REDIS2AUXFITS	zap_freq	%16d	Hz	[Hz] ZAP loop frequency		165	1	1	1	1	1						1						
 SCX.ZAP.GAIN	X_ZAPGN	SCEXAO	REDIS2AUXFITS	zap_gain	%16.3f	unitless	ZAP loop gain (0-1)		166	1	1	1	1	1						1						
 SCX.ZAP.LOOP	X_ZAPLP	SCEXAO	REDIS2AUXFITS	zap_loop	%-16.16s	NA	ZAP loop status (OPEN, CLOSED, RM, ...)		164	1	1	1	1	1						1						
