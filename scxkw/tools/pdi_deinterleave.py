@@ -57,7 +57,7 @@ def deinterleave_file(file_name: str, *, ir_true_vis_false: bool = True, flc_jit
     header: fits.Header = fits.getheader(fullpath)
     data: np.ndarray = fits.getdata(fullpath) # type: ignore
 
-    key = ('', 'X_IFLCJT')[ir_true_vis_false]
+    key = ('???', 'X_IFLCJT')[ir_true_vis_false]
     if flc_jitter_us_hint is None:
         flc_jitter_us: int = header[key] # type: ignore
     else:
