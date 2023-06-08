@@ -49,18 +49,21 @@ if __name__ == '__main__':
 
     sanitized_lines = [[ll.strip() for ll in l.split('\t')] for l in all_lines]
     # Find key_col_index and com_col_index
+    ignore_columns = []
     for k, s in enumerate(headers):
         if 'FITS' in s:
             key_col_index = k
-        if 'Comments' in s:
-            com_col_index = k
+        if 'Comments' in s or 'Mgmt' in s:
+            ignore_columns += [k]
 
     # Extract the keys
     keys = [line[key_col_index] for line in sanitized_lines]
-    # Remove the comment column
-    headers.pop(com_col_index)
-    for line in sanitized_lines:
-        line.pop(com_col_index)
+    # Remove the comment-only columns - warning since popping, must go right-to-left.
+    ignore_columns.sort()
+    for kk in ignore_columns[::-1]:
+        headers.pop(kk)
+        for line in sanitized_lines:
+            line.pop(kk)
 
     dict_db = {
         key: {subkey.strip(): value
