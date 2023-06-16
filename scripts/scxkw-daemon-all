@@ -25,6 +25,7 @@
         --status        Update the scexaostatus legacy display from DB pulls
         --archiveid     Archiver (frameid requests for files in GEN2PATH_NODELETE)
         --fpack         Compress and migrate original fits files to GEN2PATH_OKDELETE
+        --deint         Apply PDI deinterleaving on files
 '''
 
 import os, sys
@@ -53,6 +54,7 @@ if __name__ == "__main__":
     G2PUSH = args["--push"] or not args["select"]
     G2ARCHIVE = args["--archiveid"] or not args["select"]
     COMPRESSFPACK = args["--fpack"] or not args["select"]
+    PDI_DEINTERLEAVE = args["--deint"] or not args["select"]
 
     if G2PULL or G2PUSH or G2ARCHIVE:
         # Gen2 util
@@ -94,6 +96,7 @@ if __name__ == "__main__":
     print(f'Fits writing:  {FITSWRITE}')
     print(f'Telescope csv write:  {CSVWRITE}')
     print(f'Updating scexaostatus display:  {STATUSUPDATE}')
+    print(f'PDI deinterleaver: {PDI_DEINTERLEAVE}')
 
     try:  # Catch a Ctrl+C
 
@@ -105,7 +108,8 @@ if __name__ == "__main__":
             if G2PUSH or G2PULL:
                 status_obj = ro.remoteObjectProxy('status')
             if G2ARCHIVE:
-                proxy_obj = ro.remoteObjectProxy('SCEXAO')
+                proxy_obj_scx = ro.remoteObjectProxy('SCEXAO')
+                proxy_obj_vmp = ro.remoteObjectProxy('VAMPIRES')
 
 
         if COMPRESSFPACK:
@@ -128,11 +132,14 @@ if __name__ == "__main__":
                 if G2PUSH and n % 10 == 1:
                     gen2_push(rdb, status_obj)
                 if G2ARCHIVE and n% 10 == 2:
-                    archive_monitor_get_ids(proxy_obj)
+                    archive_monitor_get_ids(proxy_obj_scx, proxy_obj_vmp)
                 if COMPRESSFPACK and n % 10 == 4:
                     archive_monitor_compression(job_manager=fpack_manager)
                 if COMPRESSFPACK and n % 10 == 5:
                     archive_migrate_compressed_files(time_allowed=(1020, 1050))
+                if PDI_DEINTERLEAVE and n % 10 == 6:
+                    pdi_deinterleave() # TODO
+
 
                 if FITSWRITE and n % 2 == 0:
                     write_headers(rdb, FITS_HEADER_PATH)

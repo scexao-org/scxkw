@@ -7,11 +7,13 @@
     Filename - ".fits" + ".txt" is expected to provide the logshim timing file.
     
     Usage:
-        scxkw-pdideinterleave <fits_filename> [--keep]
+        scxkw-pdideinterleave <fits_filename> [--keep] [--source=<source_tree>] [--dest=<dest_tree>]
 
     Options:
         -h --help        Show this
         --keep           Keep the original, interleaved file. Otherwise it's deleted.
+        --source=<source_tree>  root path to be replaced e.g. /mnt/tier1/PRE_ARCHIVE_DATA [default: /]
+        --dest=<dest_tree>      replacement root path e.g. /mnt/tier1/ARCHIVED_DATA [default: /]
 '''
 from __future__ import annotations
 
@@ -39,6 +41,12 @@ if __name__ == "__main__":
     from docopt import docopt
 
     args = docopt(__doc__)
+    
+    SOURCE_TREE = args['--source']
+    DEST_TREE = args['--dest']
+    assert os.path.isdir(SOURCE_TREE)
+    assert os.path.isdir(DEST_TREE)
+
 
     fits_filename: str = args['<fits_filename>']
 
@@ -47,6 +55,9 @@ if __name__ == "__main__":
         exit(RETCODE.NOT_DOTFITS)
 
     if not os.path.isfile(fits_filename):
+        exit(RETCODE.NO_FITS)
+
+    if not fits_filename.startswith(SOURCE_TREE):
         exit(RETCODE.NO_FITS)
 
     txt_filename = fits_filename[:-5] + '.txt'
@@ -66,9 +77,17 @@ if __name__ == "__main__":
             exttrig = header['EXTTRIG']
         except KeyError:
             exit(RETCODE.MISSING_KW)
-    elif header['DETECTOR'] in ['QUEST - VCAM0', 'QUEST - VCAM1']:
+    elif header['DETECTOR'] in ['VCAM1 - OrcaQ', 'VCAM2 - OrcaQ']:
         ir_true_vis_false = False
-        raise NotImplementedError
+        try:
+            flc_used = header['U_FLCEN'] == 'ON'
+            _ = int(header['U_TRIGDL'])
+            #flc_halfper = int(header['X_IFLCTM'])
+            flc_jitt = 30; #int(header['X_IFLCJT'])
+            flc_state = header['U_FLC']
+            exttrig = header['EXTTRIG']
+        except KeyError:
+            exit(RETCODE.MISSING_KW)
     else:
         exit(RETCODE.OOPS)
 
@@ -84,12 +103,15 @@ if __name__ == "__main__":
     # key for X_IFLCST / U_??????
     deinterleave_file(fits_filename,
                       ir_true_vis_false=ir_true_vis_false,
-                      flc_jitter_us_hint = flc_jitt)
+                      flc_jitter_us_hint = flc_jitt,
+                      source_tree=SOURCE_TREE,
+                      dest_tree=DEST_TREE)
+    
 
     # Be careful here... what happens if we had an error?
     # DO NOT catch errors from deinterleave!!!
     # Or catch and exit immediately?
     if not args['--keep']:
-        os.remove
+        os.remove(fits_filename)
 
     

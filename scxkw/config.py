@@ -39,19 +39,25 @@ KEYWORD_CSV_PATH='/home/scexao/src/scxkw/conf/scxkw.tsv'
 # actual summit
 GEN2HOST = 'g2ins1.sum.subaru.nao.ac.jp'
 
-GEN2PATH_NODELETE = "/mnt/tier1/ARCHIVED_DATA/"
-GEN2PATH_OKDELETE = "/mnt/tier1/2_ARCHIVED_DATA/"
+#GEN2PATH_PRELIM = "/tmp/ARCHIVE0"
+GEN2PATH_PRELIM = "/mnt/tier1/PRE_ARCHIVE_DATA/" # <- ARCHIVE in here
+#GEN2PATH_NODELETE = "/tmp/ARCHIVE1"
+GEN2PATH_NODELETE = "/mnt/tier1/ARCHIVED_DATA/" # <- after sync and deinterleave
+#GEN2PATH_OKDELETE = "/tmp/ARCHIVE2"
+GEN2PATH_OKDELETE = "/mnt/tier1/2_ARCHIVED_DATA/" # <- after frameIDs and fpack, etc.
 
 # streamname: archive letter mapping
 CAMIDS = {
-    "apapane": "B", # Buffy
-    "palila": "C", # Chuck
+    "apapane": "SCXB", # Buffy
+    "palila": "SCXC", # Chuck
     #"first": "F", # FIRST (andor and hamamatsu, careful)
     #"glint": "G", # GLINT
     #"ocam2d": "P", # Reno
     #"ircam1": "R", # Rajni
-    #"vcamim0": "V", # Vampires
-    #"vcamim1": "V", # Vampires
+    #"vcam0": "V", # Vampires
+    #"vcam1": "V", # Vampires
+    "vsync": "VMPA",
+    "vsolo": "VMPA",
 }
 
 

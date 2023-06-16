@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import typing as t
 
 import os, sys, glob, time, datetime, subprocess
 
-from scxkw.config import GEN2HOST, GEN2PATH_NODELETE, GEN2PATH_OKDELETE, CAMIDS
+from scxkw.config import GEN2PATH_NODELETE, GEN2PATH_OKDELETE, CAMIDS, GEN2PATH_PRELIM
 from scxkw.redisutil.typed_db import Redis
 from scxkw.tools.compression_job_manager import FPackJobCodeEnum, FpackJobManager
 
@@ -16,19 +16,25 @@ from astropy.io import fits
 import shutil
 
 
-def gen2_getframeids(g2proxy, camcode, nfrmids):
+def gen2_getframeids(g2proxy_scx, g2proxy_vmp, code: str, nfrmids: int) -> t.List[str]:
     '''
-        Utility function - get <nfrmids> frameIDs from gen2 for 1 given <camcode> ('B', 'C', etc)
+        Utility function - get <nfrmids> frameIDs from gen2 for 1 given <camcode> ('SCXB', 'SCXC', 'VMPA', etc)
     '''
 
     # want to allocate some frames.
-    g2proxy.executeCmd('SCEXAO', 'foo', 'get_frames', camcode,
+    assert len(code) == 4
+    inst_code = code[:3]
+    cam_code = code[3]
+    inst = {'SCX': 'SCEXAO', 'VMP': 'VAMPIRES'}[inst_code]
+    g2proxy = {'SCX': g2proxy_scx, 'VMP': g2proxy_vmp}[inst_code]
+
+    g2proxy.executeCmd(inst, 'foo', 'get_frames', cam_code,
                        {'num': nfrmids})
 
     # frames will be stored one per line in /tmp/frames.txt
     # We need to wait for gen2 to push the file
 
-    ids_filename = f"/tmp/frames_{camcode}.txt"
+    ids_filename = f"/tmp/frames_{cam_code}.txt"
     while True:
         time.sleep(0.01)
         try:
@@ -45,8 +51,9 @@ def gen2_getframeids(g2proxy, camcode, nfrmids):
     return frames
 
 
-def archive_monitor_process_filename(raw_file_list,
-                                     stream_name_from_folder=True):
+def archive_monitor_process_filename(raw_file_list: t.List[str],
+                                     stream_name_from_folder: bool=True,
+                                     sort_by_time: bool = True):
     '''
         Utility function - process a list of files
 
@@ -203,11 +210,11 @@ def archive_monitor_push_files(g2proxy_obj,
             break
 
 
-def archive_migrate_compressed_files(*, time_allowed=(1020, 1050)):
+def archive_migrate_compressed_files(*, time_allowed=(17*60, 17*60 + 30)):
     '''
         Macro function
 
-        Watches for SCX*.fits.fz files and moves the corresponding SCX*.fits from GEN2_NODELETE to GEN2_OKDELETE
+        Watches for SCX|VMP*.fits.fz files and moves the corresponding SCX|VMP*.fits from GEN2_NODELETE to GEN2_OKDELETE
 
         Is only allowed during certain times to avoid confusion during a night - default 7AM - 7:30AM = 17h UT - should be blazing fast.
     '''
@@ -225,8 +232,8 @@ def archive_migrate_compressed_files(*, time_allowed=(1020, 1050)):
         return
 
     # Process relevant file list: fz files exist and SCX file exists and no fpack job running
-    scx_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits')
-    fz_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits.fz')
+    scx_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits')
+    fz_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits.fz') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits.fz')
     # Remove the fz extension from the fz files
     fz_file_list = [filename[:-3] for filename in fz_file_list]
 
@@ -247,7 +254,7 @@ def archive_migrate_compressed_files(*, time_allowed=(1020, 1050)):
 
     n_files = len(file_list)
     print(
-        f'archive_migrate_compressed_files: found {n_files} SCX*.fits files to move...'
+        f'archive_migrate_compressed_files: found {n_files} (SCX|VMP)*.fits files to move...'
     )
 
     for ii in range(n_files):
@@ -296,13 +303,13 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
         Manages a cap of max_jobs compression jobs.
     '''
 
-    scx_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits')
-    fz_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits.fz')
+    fits_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits')
+    fz_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits.fz') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits.fz')
     # Remove the fz extension from the fz files
     fz_file_list = [filename[:-3] for filename in fz_file_list]
 
     # Note: for some of those files, the compression job may already be running!
-    file_list = list(set(scx_file_list) - set(fz_file_list))
+    file_list = list(set(fits_file_list) - set(fz_file_list))
     file_list.sort()
 
     # Cleanup:
@@ -317,21 +324,50 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
             break
 
     print(f'archive_monitor_compression: '
-          f'found {len(file_list)} SCX files to compress; '
+          f'found {len(file_list)} SCX/VMP files to compress; '
           f'started {n_jobs} fpacks.')
 
+from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIDeIntJobManager
+
+def archive_monitor_deinterleave_or_passthrough(job_manager: PDIDeIntJobManager):
+    PERMISSIBLE_STREAMS = ('apapane', 'vcamsync', 'vcamsolo')
+
+    file_list = glob.glob(GEN2PATH_PRELIM + '*/*/*.fits')
+    file_list.sort()
+
+    (file_list, file_list_shortname, stream_names,
+     dates) = archive_monitor_process_filename(file_list, True)
+    
+
+    needs_deinterleave = deinterleave_filechecker(file_list)
+
+    n_files = len(file_list)
+    for kk in range(n_files):
+        file_fullname = file_list[kk]
+        stream = stream_names[kk]
+        if not stream in PERMISSIBLE_STREAMS:
+            continue
+        if not needs_deinterleave:
+            txt_fullname = file_fullname[:-4] + '.txt'
+            new_fits_filename = file_fullname.replace(GEN2PATH_PRELIM, GEN2PATH_NODELETE, 1)
+            new_txt_filename = txt_fullname.replace(GEN2PATH_PRELIM, GEN2PATH_NODELETE, 1)
+            shutil.move(file_fullname, new_fits_filename)
+            shutil.move(txt_fullname, new_txt_filename)
+        else:
+            # Race condition on deinterleave already requested? Damnnnnn
+            # The job manager should deny anything that has already been requested
+            # Cleanup:
+            ret = job_manager.run_pdi_deinterleave_job(file_fullname)
+            if ret == PDIJobCodeEnum.STARTED:
+                n_jobs += 1
+            elif ret == PDIJobCodeEnum.TOOMANY:
+                break
+            # if PDIJobCodeEnum.ALREADY_RUNNING or DONE_BEFORE, we just keep going.
 
 
 
 
-
-
-
-def archive_monitor_deinterleave():
-    pass
-
-
-def archive_monitor_get_ids(g2proxy_obj):
+def archive_monitor_get_ids(scx_proxy, vmp_proxy):
     '''
         Macro function: watches for *.fits files in GEN2_NODELETE and get a frameID for them
     '''
@@ -340,8 +376,13 @@ def archive_monitor_get_ids(g2proxy_obj):
     # Set difference to exclude already renamed files
     # It is important not to hit the .tmp files
     file_list = list(
+        (
         set(glob.glob(GEN2PATH_NODELETE + '*/*/*.fits')) -
-        set(glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits')))
+        set(glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits'))
+        ).union(
+        set(glob.glob(GEN2PATH_NODELETE + '*/*/*.fits')) -
+        set(glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits'))
+        ))
     file_list.sort()
     # FORMAT: file_list contains FULL PATH filenames
 
@@ -366,7 +407,7 @@ def archive_monitor_get_ids(g2proxy_obj):
     # Request file_ids
     for id_letter in per_id_count:
         if per_id_count[id_letter] > 0:
-            frame_ids[id_letter] = gen2_getframeids(g2proxy_obj, id_letter,
+            frame_ids[id_letter] = gen2_getframeids(scx_proxy, vmp_proxy, id_letter,
                                                     per_id_count[id_letter])
 
     for ii in range(len(file_list)):
@@ -374,9 +415,9 @@ def archive_monitor_get_ids(g2proxy_obj):
         sname = stream_names[ii]
         fname = file_list[ii]  # full path
         fname_short = file_list_shortname[ii]  # just file name
-        letter = CAMIDS[stream_names[ii]]
+        frame_4lett_code = CAMIDS[stream_names[ii]]
 
-        frame_id = frame_ids[letter][id_current_count[letter]]
+        frame_id = frame_ids[frame_4lett_code][id_current_count[frame_4lett_code]]
 
         # Update the keyword with the FRAMEID
         # This could error?
@@ -396,37 +437,6 @@ def archive_monitor_get_ids(g2proxy_obj):
         os.rename('.'.join(fname.split('.')[:-1]) + '.txt',
                   GEN2PATH_NODELETE + f'/{date}/{sname}/{frame_id}.txt')
 
-        id_current_count[letter] += 1
+        id_current_count[frame_4lett_code] += 1
 
     # Done !
-
-def archive_monitor_check_STARS_and_delete():
-    '''
-        Macro function:
-        - list *.fits.fz files in GEN2_NODELETE
-        - find the list that are receved in STARS
-        - delete them
-        - find empty folders
-        - remove archive_requested.txt to leave folders actually empty
-    '''
-    pass
-
-
-if __name__ == "__main__":
-
-    # ------------------------------------------------------------------
-    #                Configure communication with Gen2
-    # ------------------------------------------------------------------
-
-    # Do this once, and once only on process startup
-    ro.init([GEN2HOST])
-
-    g2proxy_obj = ro.remoteObjectProxy('SCEXAO')
-
-    try:
-        while True:
-            archive_monitor_get_ids(g2proxy_obj)
-            archive_monitor_push_files(g2proxy_obj, skip_last_wait=False)
-            time.sleep(10.0)
-    except KeyboardInterrupt:
-        sys.exit(0)

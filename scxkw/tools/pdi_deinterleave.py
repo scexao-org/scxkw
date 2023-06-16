@@ -14,13 +14,11 @@ from .logshim_txt_parser import LogshimTxtParser
 
 def deinterleave_filechecker(file_list: List[str]) -> List[bool]:
     '''
-        Warning: confusing convention
-
-        return True for files that need NOT to be deinterleaved
-        return False for files that have to be deinterleaved
+        return False for files that need NOT to be deinterleaved
+        return True for files that have to be deinterleaved
     '''
 
-    statuses: List[bool] = [True] * len(file_list)
+    statuses: List[bool] = [False] * len(file_list)
 
     for kk, file in enumerate(file_list):
         header = fits.getheader(file)
@@ -30,23 +28,31 @@ def deinterleave_filechecker(file_list: List[str]) -> List[bool]:
         valid_fpdi_file = (detector in ['CRED1 - APAPANE', 'CRED2 - PALILA']
                            and header['X_IFLCST'] == 'ON' and header['EXTTRIG']
                            and header['X_IFLCST'] == 'NA')
-        valid_vpdi_file = (detector in ['QUEST - VCAM0', 'QUEST - VCAM1'])
+        valid_vpdi_file = (detector in ['VCAM1 - OrcaQ', 'VCAM2 - OrcaQ']
+                           and header['U_FLCEN'] == 'ON'
+                           and header['U_FLC'] == 'NA')
 
-        if valid_fpdi_file:
-            statuses[kk] = False
-        elif valid_vpdi_file:
-            raise NotImplementedError('Nopity Vampiresity.')
+        if valid_fpdi_file or valid_vpdi_file:
+            statuses[kk] = True
 
     return statuses
 
 
-def deinterleave_start_job_async(file_name: str, keep_original: bool = True) -> sproc.Popen:
-    cmd = f'scxkw-pdideinterleave {file_name}' + ('', ' --keep')[keep_original]
-    
+def deinterleave_start_job_async(file_name: str,
+                                 source_tree: str, dest_tree: str,
+                                 keep_original: bool = True,) -> sproc.Popen:
+    '''
+    source_tree and dest_tree are passed so that the subprocess
+    knows where to move the resulting files.
+    '''
+    cmd = f'scxkw-pdideinterleave {file_name}' + ('', ' --keep')[keep_original] +\
+            f'--source={source_tree} --dest={dest_tree}'
+
     return sproc.Popen(cmd.split(' '))
 
 
-def deinterleave_file(file_name: str, *, ir_true_vis_false: bool = True, flc_jitter_us_hint: Op[int] = True):
+def deinterleave_file(file_name: str, *, ir_true_vis_false: bool = True, flc_jitter_us_hint: Op[int] = True,
+                      source_tree: str = '/', dest_tree: str = '/'):
     '''
     This file will carry the header on to the split files.
     BUT it will not bother checking the header is sane.
@@ -57,7 +63,7 @@ def deinterleave_file(file_name: str, *, ir_true_vis_false: bool = True, flc_jit
     header: fits.Header = fits.getheader(fullpath)
     data: np.ndarray = fits.getdata(fullpath) # type: ignore
 
-    key = ('???', 'X_IFLCJT')[ir_true_vis_false]
+    key = ('U_FLCJT', 'X_IFLCJT')[ir_true_vis_false]
     if flc_jitter_us_hint is None:
         flc_jitter_us: int = header[key] # type: ignore
     else:
@@ -72,17 +78,20 @@ def deinterleave_file(file_name: str, *, ir_true_vis_false: bool = True, flc_jit
     path_to_folder = '/'.join(fullpath.split('/')[:-1])
 
     flc_st_type = ['%-16.16s' % s for s in ('ACTIVE', 'RELAXED', 'DUBIOUS')]
-    key_flc_state = ('', 'X_IFLCAB')[ir_true_vis_false]
+    key_flc_state = ('U_FLC', 'X_IFLCAB')[ir_true_vis_false]
     for kk in range(3):
         subdata, subparser = subfiles[kk]
         kw_value = flc_st_type[kk]
 
         if subparser is None:
             continue
+        subparser.name.replace(source_tree, dest_tree, 1)
         subparser.write_to_disk()
         
         name_disambiguated = path_to_folder + '/' + str(time.time()) + '.fits'
+        
         name_fits_final = subparser.name[:-4] + '.fits'
+        name_fits_final.replace(source_tree, dest_tree, 1)
 
         header[key_flc_state] = kw_value
         fits.writeto(name_disambiguated, subdata, header)
@@ -96,7 +105,7 @@ def deinterleave_file(file_name: str, *, ir_true_vis_false: bool = True, flc_jit
 DataOpTxt = Tuple[np.ndarray, Op[LogshimTxtParser]]
 def deinterleave_data(data: np.ndarray, dt_jitter_us: int, txt_parser: LogshimTxtParser) -> List[DataOpTxt]:
     '''
-        Deinterleave a data cube base of a logshim txt parser object.
+        Deinterleave a data cube based on a logshim txt parser object.
     '''
 
     flc_state, _ = deinterleave_compute(txt_parser.fgrab_dt_us, dt_jitter_us, True)

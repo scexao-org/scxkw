@@ -16,7 +16,8 @@ class FPackJobCodeEnum(IntEnum):
 
 class FpackJobManager:
     MAX_CONCURRENT_JOBS = 15
-    FPACK_OPTIONS = '-h -s 0 -q 20'
+    FPACK_OPTIONS_SCX = '-h -s 0 -q 20'
+    FPACK_OPTIONS_VMP = '-r'
 
     def __init__(self) -> None:
         self.pending_jobs: Dict[str, sproc.Popen] = {}
@@ -48,7 +49,12 @@ class FpackJobManager:
         if file_fullname in self.pending_jobs:
             return FPackJobCodeEnum.ALREADY_RUNNING
 
-        cmdline = f'fpack {self.FPACK_OPTIONS} -v {file_fullname}'
+        is_vampires = file_fullname.split('/')[-1].startswith('VMP')
+        if is_vampires:
+            cmdline = f'fpack {self.FPACK_OPTIONS_VMP} -v {file_fullname}'
+        else:
+            assert file_fullname.split('/')[-1].startswith('SCX')
+            cmdline = f'fpack {self.FPACK_OPTIONS_SCX} -v {file_fullname}'
 
         proc = sproc.Popen(cmdline.split(' '),
                            stdout=sproc.PIPE,
