@@ -1,9 +1,9 @@
+from __future__ import annotations
+import typing as typ
+
 import logging
 logg = logging.getLogger(__name__)
 
-import typing as typ
-
-import os
 
 from .file_obj import FitsFileObj
 

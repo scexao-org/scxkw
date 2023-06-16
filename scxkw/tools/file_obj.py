@@ -1,10 +1,11 @@
-import logging
-
-logg = logging.getLogger(__name__)
-
+from __future__ import annotations
 import typing as typ
 
-import os
+import logging
+logg = logging.getLogger(__name__)
+
+
+import os, shutil
 from datetime import datetime
 from pathlib import Path
 from astropy.io import fits
@@ -21,16 +22,25 @@ class FitsFileObj:
 
         self.full_filepath: Path = Path(fullname)
 
+        self._initial_existence_check()
+        self._initialize_members()
+    
+
+    def _initial_existence_check(self) -> None:
+
         if not (self.full_filepath.is_file()
                 and self.full_filepath.is_absolute()):
-            message = f"FitsFileObj::__init__: does not exist / not an absolute path - {fullname}"
+            message = f"FitsFileObj::__init__: does not exist / not an absolute path - {str(self.full_filepath)}"
             logg.critical(message)
             raise AssertionError(message)
 
         if not '.fits' in self.full_filepath.suffixes:
-            message = f"FitsFileObj::__init__: not .fits[.fz|.gz] - {fullname}"
+            message = f"FitsFileObj::__init__: not .fits[.fz|.gz] - {str(self.full_filepath)}"
             logg.critical(message)
             raise AssertionError(message)
+
+
+    def _initialize_members(self) -> None:
 
         self.file_name: str = self.full_filepath.name
 
@@ -41,8 +51,8 @@ class FitsFileObj:
         if self.is_archived:
             self.archive_key = self.file_name[:4] # SCXB, VMPA...
 
-        self.stream_name_folder: str = self.full_filepath.parent.name
-        self.date_folder: str = self.full_filepath.parent.parent.name
+        self.stream_from_foldername: str = self.full_filepath.parent.name
+        self.date_from_foldername: str = self.full_filepath.parent.parent.name
 
         self.fullroot_folder: Path = self.full_filepath.parent.parent.parent
 
@@ -55,7 +65,7 @@ class FitsFileObj:
                 self.full_filepath.stem.split('.')[:-1])
             frac_seconds = float('0.' + self.full_filepath.stem.split('.')[-1])
 
-            dt = datetime.strptime(self.date_folder + '/' + fname_no_decimal,
+            dt = datetime.strptime(self.date_from_foldername + '/' + fname_no_decimal,
                                    '%Y%m%d/apapane_%H:%M:%S')
 
             self.file_time_filename = dt.timestamp() + frac_seconds
@@ -86,3 +96,41 @@ class FitsFileObj:
 
     def __repr__(self) -> str:
         return str(self.full_filepath)
+    
+    def move_file_to_root(self, new_root_dir: typ.Union[str, Path], allow_makedirs: bool = True) -> None:
+
+        new_root = Path(new_root_dir)
+        new_folder = new_root / self.date_from_foldername / self.stream_from_foldername
+
+        self._move_to_new_folder(new_folder, allow_makedirs)
+
+    def move_file_to_streamname(self, stream_name: str, allow_makedirs: bool = True) -> None:
+        new_folder = self.fullroot_folder / self.date_from_foldername / stream_name
+
+        self._move_to_new_folder(new_folder, allow_makedirs)
+
+    def _move_to_new_folder(self, new_end_dir: Path, allow_makedirs: bool = True) -> None:
+
+        if not allow_makedirs and not new_end_dir.is_dir():
+            message = f"FitsFileObj::move_file_by_root: {new_end_dir} does not exist."
+            logg.critical(message)
+            raise AssertionError(message)
+        
+        if allow_makedirs:
+            os.makedirs(new_end_dir, exist_ok=True)
+
+        new_full_filepath = new_end_dir / self.file_name
+        new_txt_path = new_end_dir / self.full_filepath.stem / '.txt'
+
+        shutil.move(str(self.txt_file_path), new_txt_path)
+        shutil.move(str(self.full_filepath), new_full_filepath)
+
+        self.full_filepath = new_full_filepath
+
+        # Re-initialize internals.
+        self._initial_existence_check()
+        self._initialize_members()
+
+
+    def split_file(self, split_indices: typ.List[typ.Iterable[int]], resulting_suffixes: typ.List[str]) -> typ.List[FitsFileObj]:
+        pass
