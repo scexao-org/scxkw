@@ -1,11 +1,15 @@
-from typing import Dict
+import logging
+
+logg = logging.getLogger(__name__)
+
+import typing as typ
 
 import os
 import subprocess as sproc
 
 from enum import IntEnum
 
-import logging as logg
+from .file_obj import FitsFileObj
 
 class FPackJobCodeEnum(IntEnum):
     ALREADY_RUNNING = -3
@@ -20,7 +24,7 @@ class FpackJobManager:
     FPACK_OPTIONS_VMP = '-r'
 
     def __init__(self) -> None:
-        self.pending_jobs: Dict[str, sproc.Popen] = {}
+        self.pending_jobs: typ.Dict[str, sproc.Popen] = {}
 
         # Now check for active fpack jobs that this manager didn't launch.
         running_fpacks_str = sproc.run(
@@ -39,28 +43,28 @@ class FpackJobManager:
                 'It is bad juju to instantiate a FPackJobManager now.')
 
     def run_fpack_compression_job(self,
-                                  file_fullname: str) -> FPackJobCodeEnum:
-        if not os.path.isfile(file_fullname):
-            logg.error(f'Fpack job manager: file {file_fullname} does not exist.')
+                                  file_obj: FitsFileObj) -> FPackJobCodeEnum:
+        if not file_obj.check_existence():
+            logg.error(f'Fpack job manager: file {file_obj} does not exist.')
             return FPackJobCodeEnum.NOFILE
         if len(self.pending_jobs) == self.MAX_CONCURRENT_JOBS:
             logg.error(f'Fpack job manager: max allowed ({self.MAX_CONCURRENT_JOBS}) fpack jobs already running at the same time.')
             return FPackJobCodeEnum.TOOMANY
-        if file_fullname in self.pending_jobs:
+        if str(file_obj.full_filepath) in self.pending_jobs:
             return FPackJobCodeEnum.ALREADY_RUNNING
 
-        is_vampires = file_fullname.split('/')[-1].startswith('VMP')
-        if is_vampires:
-            cmdline = f'fpack {self.FPACK_OPTIONS_VMP} -v {file_fullname}'
+        assert file_obj.archive_key is not None
+        if file_obj.archive_key.startswith('VMPA'):
+            cmdline = f'fpack {self.FPACK_OPTIONS_VMP} -v {str(file_obj.full_filepath)}'
         else:
-            assert file_fullname.split('/')[-1].startswith('SCX')
-            cmdline = f'fpack {self.FPACK_OPTIONS_SCX} -v {file_fullname}'
+            assert file_obj.archive_key.startswith('SCXB')
+            cmdline = f'fpack {self.FPACK_OPTIONS_SCX} -v {str(file_obj.full_filepath)}'
 
         proc = sproc.Popen(cmdline.split(' '),
                            stdout=sproc.PIPE,
                            stderr=sproc.PIPE)
 
-        self.pending_jobs[file_fullname] = proc
+        self.pending_jobs[str(file_obj.full_filepath)] = proc
 
         return FPackJobCodeEnum.STARTED
 

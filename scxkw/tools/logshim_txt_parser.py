@@ -1,15 +1,29 @@
 from __future__ import annotations
 
+import logging
+logg = logging.getLogger(__name__)
+
+import typing as typ
+
+from pathlib import Path
+
 import numpy as np
 
 class LogshimTxtParser:
-    def __init__(self, filename_txt: str) -> None:
+
+    def __init__(self, filename_txt: typ.Union[str, Path]) -> None:
         '''
             Warning: check sub_parser_by_selection
                 this class has an alternate constructor.
         '''
+        path = Path(filename_txt)
+        if not (path.is_file() and
+            path.is_absolute()):
+            message = f"LogshimTxtParser::__init__: does not exist / not an absolute path - {path}"
+            logg.critical(message)
+            raise AssertionError(message)
 
-        self.name = filename_txt
+        self.name: str = str(path)
 
         with open(filename_txt, 'r') as f:
             raw_lines = f.readlines()
