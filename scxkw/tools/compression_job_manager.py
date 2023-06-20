@@ -44,7 +44,7 @@ class FpackJobManager:
 
     def run_fpack_compression_job(self,
                                   file_obj: FitsFileObj) -> FPackJobCodeEnum:
-        if not file_obj.check_existence():
+        if not file_obj.check_existence_on_disk():
             logg.error(f'Fpack job manager: file {file_obj} does not exist.')
             return FPackJobCodeEnum.NOFILE
         if len(self.pending_jobs) == self.MAX_CONCURRENT_JOBS:

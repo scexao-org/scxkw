@@ -9,6 +9,8 @@ from scxkw.config import GEN2PATH_NODELETE, GEN2PATH_OKDELETE, CAMIDS, GEN2PATH_
 from scxkw.redisutil.typed_db import Redis
 from scxkw.tools.compression_job_manager import FPackJobCodeEnum, FpackJobManager
 
+from ..tools import file_tools
+
 from g2base.remoteObjects import remoteObjects as ro
 
 from astropy.io import fits
@@ -52,8 +54,7 @@ def gen2_getframeids(g2proxy_scx, g2proxy_vmp, code: str, nfrmids: int) -> t.Lis
 
 
 def archive_monitor_process_filename(raw_file_list: t.List[str],
-                                     stream_name_from_folder: bool=True,
-                                     sort_by_time: bool = True):
+                                     stream_name_from_folder: bool=True):
     '''
         Utility function - process a list of files
 
@@ -293,6 +294,11 @@ def archive_migrate_compressed_files(*, time_allowed=(17*60, 17*60 + 30)):
             os.remove(GEN2PATH_NODELETE +
                       f'/{dates[ii]}/{stream_names[ii]}/name_changes.txt')
 
+def synchronize_vampires_files(*, queue_manager: VsyncManager):
+    v1_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_PRELIM + '*/vcam1/*.fits'], [])
+    v2_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_PRELIM + '*/vcam2/*.fits'], [])
+
+
 
 
 def archive_monitor_compression(*, job_manager: FpackJobManager):
@@ -302,29 +308,29 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
 
         Manages a cap of max_jobs compression jobs.
     '''
-
-    fits_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits')
-    fz_file_list = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits.fz') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits.fz')
-    # Remove the fz extension from the fz files
-    fz_file_list = [filename[:-3] for filename in fz_file_list]
+    all_fits = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits')
+    all_fzs = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits.fz') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits.fz')
+    
 
     # Note: for some of those files, the compression job may already be running!
-    file_list = list(set(fits_file_list) - set(fz_file_list))
-    file_list.sort()
+    only_fits, _ = file_tools.separate_compression_dups(all_fits, all_fzs)
+    file_objs = file_tools.make_fileobjs_from_filenames(only_fits)
+
 
     # Cleanup:
     job_manager.refresh_running_jobs()
     # Spawn and count
     n_jobs = 0
-    for file_fullname in file_list:
-        ret = job_manager.run_fpack_compression_job(file_fullname)
+    for file_obj in file_objs:
+        ret = job_manager.run_fpack_compression_job(file_obj)
         if ret == FPackJobCodeEnum.STARTED:
             n_jobs += 1
         elif ret == FPackJobCodeEnum.TOOMANY:
             break
+        # FPackJobCodeEnum.ALREADY_RUNNING continues silently
 
     print(f'archive_monitor_compression: '
-          f'found {len(file_list)} SCX/VMP files to compress; '
+          f'found {len(file_objs)} SCX/VMP files to compress; '
           f'started {n_jobs} fpacks.')
 
 from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIDeIntJobManager

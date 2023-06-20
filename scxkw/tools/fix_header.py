@@ -4,6 +4,7 @@
 
 from typing import Dict, Union, Set, List, Tuple, Any
 from astropy.io import fits
+from astropy.time import Time as AstroTime # astropy >= 5 to work with recent numpy.
 
 from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, FITS_HEADER_PATH
 from scxkw.redisutil.typed_db import Redis
@@ -11,7 +12,37 @@ from scxkw.redisutil.typed_db import Redis
 from scxkw.redisutil.type_cast import scalar_cast
 
 import glob
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+def fix_header_times(header: fits.Header,
+                     start_time_unix: float, end_time_unix: float) -> str:
+    '''
+    NB: returns the start time strftime
+    NB: not fixing MJD
+    '''
+
+    ut_start = datetime.fromtimestamp(start_time_unix).astimezone(timezone.utc)
+    ut_end = datetime.fromtimestamp(end_time_unix).astimezone(timezone.utc)
+    ut_mid = datetime.fromtimestamp((end_time_unix + start_time_unix) / 2.).astimezone(timezone.utc)
+    
+    hst_zone = timezone(timedelta(hours=-10))
+    hst_start = ut_start.astimezone(hst_zone)
+    hst_end = ut_end.astimezone(hst_zone)
+    hst_mid = ut_mid.astimezone(hst_zone)
+
+    header['UT-STR'] = ut_start.strftime('%H:%M:%S.%f')
+    header['UT-END'] = ut_end.strftime('%H:%M:%S.%f')
+    header['UT'] = ut_mid.strftime('%H:%M:%S.%f')
+
+    header['HST-STR'] = hst_start.strftime('%H:%M:%S.%f')
+    header['HST-END'] = hst_end.strftime('%H:%M:%S.%f')
+    header['HST'] = hst_mid.strftime('%H:%M:%S.%f')
+
+    header['MJD-STR'] = AstroTime(ut_start).mjd
+    header['MJD-END'] = AstroTime(ut_end).mjd    
+    header['MJD'] = AstroTime(ut_mid).mjd
+
+    return ut_start.strftime('%H:%M:%S.%f')
 
 
 class CSV_table_lookup:
