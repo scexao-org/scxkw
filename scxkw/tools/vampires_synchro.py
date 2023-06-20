@@ -73,7 +73,7 @@ class VampiresSynchronizer:
         if earliest_file is None: # Both queues empty.
             return False
         
-        v_other_idx = OTHER_INDEX(v_idx)
+        v_other_idx: int = OTHER_INDEX(v_idx)
 
         # We've already found the earlier file
         time_finish_file = earliest_file.get_finish_unixtime_secs()
@@ -108,6 +108,8 @@ class VampiresSynchronizer:
             else:
                 logg.warning(f'VampiresSynchronizer::process_queue_oneshot - '
                             f'{earliest_file.file_name} has no other stream file for now.')
+                # We need to re-queue
+                self.queue_dict_p[v_idx].insert(0, earliest_file)
                 return False
         
         '''

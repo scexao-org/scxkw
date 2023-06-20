@@ -10,6 +10,7 @@ from scxkw.redisutil.typed_db import Redis
 from scxkw.tools.compression_job_manager import FPackJobCodeEnum, FpackJobManager
 
 from ..tools import file_tools
+from ..tools.vampires_synchro import VampiresSynchronizer
 
 from g2base.remoteObjects import remoteObjects as ro
 
@@ -294,10 +295,18 @@ def archive_migrate_compressed_files(*, time_allowed=(17*60, 17*60 + 30)):
             os.remove(GEN2PATH_NODELETE +
                       f'/{dates[ii]}/{stream_names[ii]}/name_changes.txt')
 
-def synchronize_vampires_files(*, queue_manager: VsyncManager):
-    v1_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_PRELIM + '*/vcam1/*.fits'], [])
-    v2_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_PRELIM + '*/vcam2/*.fits'], [])
 
+
+def synchronize_vampires_files(*, sync_manager: VampiresSynchronizer):
+    v1_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + '*/vcam1/*.fits'], [])
+    v2_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + '*/vcam2/*.fits'], [])
+
+    sync_manager.feed_file_objs(v1_fileobjs)
+    sync_manager.feed_file_objs(v2_fileobjs)
+
+    status = True
+    while status:
+        status = sync_manager.process_queue_oneshot()
 
 
 
