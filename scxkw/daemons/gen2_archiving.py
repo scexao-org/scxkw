@@ -298,8 +298,8 @@ def archive_migrate_compressed_files(*, time_allowed=(17*60, 17*60 + 30)):
 
 
 def synchronize_vampires_files(*, sync_manager: VampiresSynchronizer):
-    v1_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + '*/vcam1/*.fits'], [])
-    v2_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + '*/vcam2/*.fits'], [])
+    v1_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + '/*/vcam1/*.fits'], [])
+    v2_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + '/*/vcam2/*.fits'], [])
 
     sync_manager.feed_file_objs(v1_fileobjs)
     sync_manager.feed_file_objs(v2_fileobjs)
@@ -342,7 +342,7 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
           f'found {len(file_objs)} SCX/VMP files to compress; '
           f'started {n_jobs} fpacks.')
 
-from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIDeIntJobManager
+#from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIDeIntJobManager
 
 def archive_monitor_deinterleave_or_passthrough(job_manager: PDIDeIntJobManager):
     PERMISSIBLE_STREAMS = ('apapane', 'vcamsync', 'vcamsolo')

@@ -54,7 +54,10 @@ class LogshimTxtParser:
 
     def _init_arrays_from_lines(self):
 
-        values = np.asarray([[float(v) for v in l.split()] for l in self.lines])
+        if len(self.lines) == 0: # Empty file case.
+            values = np.zeros((0,6), np.float64)
+        else:
+            values = np.asarray([[float(v) for v in l.split()] for l in self.lines])
 
         self.logshim_t_us = values[:, 3] * 1e6
         self.fgrab_t_us = values[:, 4] * 1e6

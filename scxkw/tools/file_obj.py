@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from astropy.io import fits
 import numpy as np
+import time
 
 from .logshim_txt_parser import LogshimTxtParser
 from .fix_header import fix_header_times
@@ -30,11 +31,12 @@ class FitsFileObj:
         self.is_on_disk = on_disk
         self.full_filepath: Path = Path(fullname)
 
+        self.data = None
+
         self._initial_name_check()
 
         if on_disk:
             self._initial_existence_check()
-            self.data = None
         else:
             if not (header is not None and data is not None
                     and txt_parser is not None):
@@ -87,24 +89,24 @@ class FitsFileObj:
         if not self.is_archived:
             self.stream_name_filename = self.file_name.split('_')[0]
             # remove ns (not supported by strptime %f)
-            fname_no_decimal = '.'.join(
-                self.full_filepath.stem.split('.')[:-1])
-            frac_seconds = float('0.' + self.full_filepath.stem.split('.')[-1])
+            fname_no_decimal = self.full_filepath.stem.split('.')[0]
+            frac_seconds = float('0' + self.full_filepath.suffixes[0])
 
             dt = datetime.strptime(
-                self.date_from_foldername + '/' + fname_no_decimal,
-                '%Y%m%d/apapane_%H:%M:%S')
+                self.date_from_foldername + 'T' + fname_no_decimal,
+                f'%Y%m%dT{self.stream_name_filename}_%H:%M:%S')
 
             self.file_time_filename = dt.timestamp() + frac_seconds
 
-        self.file_time_creation = os.path.getctime(self.full_filepath)
+        if self.is_on_disk:
+            self.file_time_creation: typ.Optional[float] = os.path.getctime(self.full_filepath)
 
         # File time. If archive-name file, best guess is creation time.
         self.file_time = self.file_time_filename if self.file_time_filename else self.file_time_creation
 
         self.fits_header: fits.Header = self._locate_fitsheader()
 
-        self.txt_file_path: Path = self.full_filepath.parent / self.full_filepath.stem / '.txt'
+        self.txt_file_path: Path = self.full_filepath.parent / (self.full_filepath.stem + '.txt')
 
         self.txt_exists, self.txt_file_parser = self._locate_txtparser()
 
@@ -120,7 +122,7 @@ class FitsFileObj:
         if self.is_on_disk:
             txt_exists = self.txt_file_path.is_file()
             txt_file_parser = None
-            if self.txt_exists:
+            if txt_exists:
                 txt_file_parser = LogshimTxtParser(self.txt_file_path)
             return txt_exists, txt_file_parser
         else:
@@ -136,7 +138,7 @@ class FitsFileObj:
         
         assert self.txt_file_parser is not None
 
-        logg.warning(f'FitsFileObj::write_to_disk - Writing {str(self.full_filepath)}.')
+        logg.warning(f'FitsFileObj::write_to_disk - Writing {str(self.full_filepath)}')
 
         os.makedirs(self.full_filepath.parent, exist_ok=True)
 
@@ -175,8 +177,13 @@ class FitsFileObj:
         return str(self.full_filepath)
 
     def add_suffix_to_filename(self, suffix: str) -> None:
-        
-        new_name = self.full_filepath.stem + suffix + ''.join(self.full_filepath.suffixes)
+        # Big problem here...
+        # If we have decimal seconds in the file name... it counts as a suffix.
+        # So we need to drop 1 suffix
+        assert len(self.full_filepath.suffixes) == 2
+
+        new_name = self.full_filepath.stem + suffix + ''.join(self.full_filepath.suffixes[-1:])
+        print(new_name)
         self._rename_in_folder(new_name)
 
     def _rename_in_folder(self, new_name: str) -> None:
@@ -197,10 +204,18 @@ class FitsFileObj:
 
     def move_file_to_streamname(self,
                                 stream_name: str,
-                                allow_makedirs: bool = True) -> None:
+                                allow_makedirs: bool = True,
+                                also_change_filename: bool = False) -> None:
+
         new_folder = self.fullroot_folder / self.date_from_foldername / stream_name
 
         self._move_to_new_folder(new_folder, allow_makedirs)
+
+        if also_change_filename:
+            _, rest = self.file_name.split('_')
+            new_filename = stream_name + '_' + rest
+            self._rename_in_folder(new_filename)
+
 
     def _move_to_new_folder(self,
                             new_end_dir: Path,
@@ -219,11 +234,11 @@ class FitsFileObj:
         if allow_makedirs and self.is_on_disk:
             os.makedirs(new_full_path.parent, exist_ok=True)
 
-        new_txt_path = new_full_path.parent / self.full_filepath.stem / '.txt'
+        new_txt_path = new_full_path.parent / (self.full_filepath.stem + '.txt')
 
         if self.is_on_disk:
             logg.warning(f'FitsFileObj::_move - moving {str(self.full_filepath)}'
-                         f'to {new_full_path}')
+                         f' to {new_full_path}')
             shutil.move(str(self.txt_file_path), new_txt_path)
             shutil.move(str(self.full_filepath), new_full_path)
 
@@ -235,7 +250,7 @@ class FitsFileObj:
         self._initialize_members()
 
     def get_nframes(self) -> int:
-        return self.header['NAXIS3']  # Assume logshim format...
+        return self.fits_header['NAXIS3']  # Assume logshim format...
 
     def sub_file_nodisk(
         self,
@@ -245,25 +260,26 @@ class FitsFileObj:
         assert split_selector.dtype == bool
         assert len(split_selector) == self.get_nframes()
 
-        if self.is_on_disk and self.data is None:
-            self.data = fits.getdata(self.full_filepath)
-        else:
-            self.data = self.constr_data
+        if self.data is None:
+            if self.is_on_disk:
+                self.data = fits.getdata(self.full_filepath)
+            else:
+                self.data = self.constr_data
 
         assert self.txt_file_parser
         txt_parser = self.txt_file_parser.sub_parser_by_selection(
             'x', split_selector)
 
         header = self.fits_header.copy()
+        header['NAXIS3'] = np.sum(split_selector)
 
-        tstr = fix_header_times(header, txt_parser.fgrab_dt_us[0],
-                                 txt_parser.fgrab_dt_us[-1])
+        tstr = fix_header_times(header, txt_parser.fgrab_t_us[0] / 1e6,
+                                 txt_parser.fgrab_t_us[-1] / 1e6)
 
-        assert self.data
-        subdata = self.data[~split_selector]
+        assert self.data is not None
+        subdata = self.data[split_selector]
 
-        full_path = (self.full_filepath.parent / self.stream_name_filename /
-                       '_' / tstr / '.fits')
+        full_path = (self.full_filepath.parent / (self.stream_name_filename + '_' + tstr + '.fits'))
         file_obj = FitsFileObj(full_path,
                                  on_disk=False,
                                  header=header,
@@ -321,3 +337,19 @@ class FitsFileObj:
                        f'no can do for {self.file_name}.')
             logg.critical(message)
             raise AssertionError(message)
+        
+    def delete_from_disk(self):
+        
+        assert self.is_on_disk
+
+        logg.warning(f'FitsFileObj::delete_from_disk - '
+                     f'{self.full_filepath}')
+        
+        # We move before deleting for atomicity
+        extension = str(time.time())
+        shutil.move(str(self.txt_file_path), str(self.txt_file_path) + extension)
+        shutil.move(str(self.full_filepath), str(self.full_filepath) + extension)
+        os.remove(str(self.txt_file_path) + extension)
+        os.remove(str(self.full_filepath) + extension)
+
+        self.is_on_disk = False # But we don't have self.const_data as in an originally virtual file.

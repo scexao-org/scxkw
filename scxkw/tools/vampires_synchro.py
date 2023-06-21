@@ -12,6 +12,7 @@ from scxkw.config import GEN2PATH_PRELIM
 
 from .file_obj import FitsFileObj
 T_FFO = FitsFileObj
+OpT_FFO = typ.Optional[FitsFileObj]
 
 OTHER_INDEX = lambda n: 3 - n # 2 -> 1, 1 -> 2
 
@@ -27,20 +28,32 @@ class VampiresSynchronizer:
         self.last_time_q1: float = 0.0
         self.last_time_q2: float = 0.0
 
+
+        self.seen_before: typ.Set[str] = set() # TODO sanitize from very old files to avoid growing indefinitely.
+
     def feed_file_objs(self, file_objs: typ.Iterable[T_FFO]):
+        # We make sets to avoid the queues growing forever with repeated calls that pushes the same file over and over.
+        qdict1 = {str(file.full_filepath): file for file in self.queue1}
+        qdict2 = {str(file.full_filepath): file for file in self.queue2}
+
         for file_obj in file_objs:
             logg.info(f'VampiresSynchronizer::feed_file_objs - file {file_obj.file_name}')
             if file_obj.stream_from_foldername == 'vcam1':
-                self.queue1.append(file_obj)
+                qdict1[str(file_obj.full_filepath)] = file_obj
             elif file_obj.stream_from_foldername == 'vcam2':
-                self.queue2.append(file_obj)
+                qdict2[str(file_obj.full_filepath)] = file_obj
             else:
                 message = (f'VampiresSynchronizer::feed_file_objs - '
                            f'invalid stream {file_obj.stream_from_foldername}')
                 logg.critical(message)
                 raise ValueError(message)
+            self.seen_before.add(str(file_obj))
         
         # Re-sort queues by time/name
+        self.queue1 = list([qdict1[fn] for fn in qdict1])
+        self.queue2 = list([qdict2[fn] for fn in qdict2])
+        self.queue_dict_p: typ.Dict[int, typ.List[T_FFO]] = {1: self.queue1,
+                                                             2: self.queue2}
         self.queue1.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
         self.queue2.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
 
@@ -57,9 +70,16 @@ class VampiresSynchronizer:
         time_q1 = self.queue1[0].get_start_unixtime_secs()
         time_q2 = self.queue2[0].get_start_unixtime_secs()
         if time_q1 < time_q2:
-            return self.queue1.pop(0), 1
+            file, idx = self.queue1.pop(0), 1
         else:
-            return self.queue2.pop(0), 2
+            file, idx = self.queue2.pop(0), 2
+
+        if not file.check_existence_on_disk():
+            logg.error(f'VampiresSynchronizer::find_pop_earliest_file - '
+                       f'{file} not on disk.')
+            return self.find_pop_earliest_file() # reCURSE.
+        
+        return file, idx
 
     def process_queue_oneshot(self) -> bool:
         '''
@@ -111,12 +131,19 @@ class VampiresSynchronizer:
                 # We need to re-queue
                 self.queue_dict_p[v_idx].insert(0, earliest_file)
                 return False
-        
         '''
         We now have a guaranteed temporal overlap between earliest_file and to_match_file.
         '''
         # We pop the to_merge_file for good, it's gonna be affected.
         _ = self.queue_dict_p[v_other_idx].pop(0)
+
+        # Could be that the to_match_file is a single frame OR has no EXTTRIG
+        if self.is_trivial_solo_vamp_file(to_match_file):
+            logg.info(f'VampiresSynchronizer::process_queue_oneshot - '
+                      f'{to_match_file.file_name} is trivial vsolo.')
+            to_match_file.move_file_to_streamname(f'vcamsolo{v_other_idx}')
+            self.queue_dict_p[v_idx].insert(0, earliest_file)
+            return True
 
         if v_idx == 1:
             file_v1, file_v2 = earliest_file, to_match_file
@@ -127,40 +154,61 @@ class VampiresSynchronizer:
             resync_two_files(file_v1, file_v2)
         # Put the remainders back in the queues, at the head.
 
-        fobj_merge_1.move_file_to_streamname('vsync')
-        fobj_merge_1.add_suffix_to_filename('.cam1')
-        fobj_merge_2.move_file_to_streamname('vsync')
-        fobj_merge_2.add_suffix_to_filename('.cam2')
-        
+        # I don't want to be bothered with files with very low dimensionality.
+        if fobj_merge_1 is not None and fobj_merge_1.get_nframes() >= 2:
+            fobj_merge_1.move_file_to_streamname('vsync', also_change_filename=True)
+            fobj_merge_1.add_suffix_to_filename('.cam1')
+            fobj_merge_1.write_to_disk()
+        if fobj_merge_2 is not None and fobj_merge_2.get_nframes() >= 2:            
+            fobj_merge_2.move_file_to_streamname('vsync', also_change_filename=True)
+            fobj_merge_2.add_suffix_to_filename('.cam2')
+            fobj_merge_2.write_to_disk()
 
-        if r1 < 0.95:
-            fobj_remainder_1.write_to_disk()
-            self.queue1.insert(0, fobj_remainder_1)
-        else:
-            logg.warning(f'VampiresSynchronizer::process_queue_oneshot - '
-                         f'ditching file {fobj_remainder_1.file_name} at '
-                         f'ratio {1-r1} of synced frames.')
-        if r2 < 0.95:
-            fobj_remainder_2.write_to_disk()
-            self.queue2.insert(0, fobj_remainder_2)
-        else:
-            logg.warning(f'VampiresSynchronizer::process_queue_oneshot - '
-                         f'ditching file {fobj_remainder_1.file_name} at '
-                         f'ratio {1-r2} of synced frames.')
+        # At this point there may be a name conflict between original files and remainder files.
+        file_v1.delete_from_disk()
+        file_v2.delete_from_disk()
 
-        # fobj_merges are not on disk yet.
-        fobj_merge_1.write_to_disk()
-        fobj_merge_2.write_to_disk()
+        # So, another problem is now that if files overlap but do not sync, and we requeue them,
+        # It causes an infinite loop...
+
+        if fobj_remainder_1 is not None and str(fobj_remainder_1) in self.seen_before:
+            fobj_remainder_1.move_file_to_streamname(f'vcamsolo1')
+            b = save_to_disk_if(fobj_remainder_1, 2, r1 < 0.95)
+            logg.debug(f'A branch: {r1} - {fobj_remainder_1} - {b}')
+        elif save_to_disk_if(fobj_remainder_1, 2, r1 < 0.95):
+            assert fobj_remainder_1 is not None # mypy
+            self.feed_file_objs([fobj_remainder_1])
+            logg.debug(f'B branch: {r2} - {fobj_remainder_2}')
+
+        if fobj_remainder_2 is not None and str(fobj_remainder_2) in self.seen_before:
+            fobj_remainder_2.move_file_to_streamname(f'vcamsolo2')
+            b = save_to_disk_if(fobj_remainder_2, 2, r2 < 0.95)
+            logg.debug(f'C branch: {r2} - {fobj_remainder_2} - {b}')
+        elif save_to_disk_if(fobj_remainder_2, 2, r2 < 0.95):
+            logg.debug(f'D branch: {r2} - {fobj_remainder_2}')
+            assert fobj_remainder_2 is not None # mypy
+            self.feed_file_objs([fobj_remainder_2])
 
         return True
 
     def is_trivial_solo_vamp_file(self, file: T_FFO):
         # We can only synchro if the cameras are in exttrig
-        return not file.fits_header['TRIGGER']
+        return (not file.fits_header['EXTTRIG'] or
+                file.get_nframes() <= 1)
 
+def save_to_disk_if(file_obj: OpT_FFO, min_frames: int = 2, misc_condition: bool = True):
+        if (file_obj is not None and misc_condition and file_obj.get_nframes() >= min_frames):
+            file_obj.write_to_disk()
+            return True
+        elif file_obj is not None:
+            logg.warning(f'save_to_disk_if - '
+                         f'ditching file {file_obj.file_name}')
+        else:
+            logg.warning(f'save_to_disk_if - file is None')
+        return False
 
 def resync_two_files(file_v1: T_FFO, file_v2: T_FFO) -> \
-        typ.Tuple[float, float, T_FFO, T_FFO, T_FFO, T_FFO]:
+        typ.Tuple[float, float, OpT_FFO, OpT_FFO, OpT_FFO, OpT_FFO]:
 
 
     assert (file_v1.txt_file_parser is not None and
@@ -174,10 +222,10 @@ def resync_two_files(file_v1: T_FFO, file_v2: T_FFO) -> \
     ratio1 = np.sum(common_arr_v1) / len(common_arr_v1)
     ratio2 = np.sum(common_arr_v2) / len(common_arr_v2)
 
-    file_solo_1 = file_v1.sub_file_nodisk(~common_arr_v1)
-    file_solo_2 = file_v2.sub_file_nodisk(~common_arr_v2)
-    file_common_1 = file_v1.sub_file_nodisk(common_arr_v1)
-    file_common_2 = file_v2.sub_file_nodisk(common_arr_v2)
+    file_solo_1 = file_v1.sub_file_nodisk(~common_arr_v1) if ratio1 < 1.0 else None
+    file_solo_2 = file_v2.sub_file_nodisk(~common_arr_v2) if ratio2 < 1.0 else None
+    file_common_1 = file_v1.sub_file_nodisk(common_arr_v1) if ratio1 > 0.0 else None
+    file_common_2 = file_v2.sub_file_nodisk(common_arr_v2) if ratio2 > 0.0 else None
 
     return (ratio1, ratio2, file_common_1, file_common_2, file_solo_1, file_solo_2)
 
@@ -187,7 +235,7 @@ def resync_two_files(file_v1: T_FFO, file_v2: T_FFO) -> \
 
 import numba
 @numba.jit # JIT is particularly efficient on that type of branch-loop code.
-def sync_timing_arrays(time_v1: np.ndarray, time_v2: np.ndarray, tolerance_s = 80e-6) -> \
+def sync_timing_arrays(time_v1: np.ndarray, time_v2: np.ndarray, tolerance_us = 80) -> \
         typ.Tuple[np.ndarray, np.ndarray]:
 
     n1, n2 = len(time_v1), len(time_v2)
@@ -204,7 +252,7 @@ def sync_timing_arrays(time_v1: np.ndarray, time_v2: np.ndarray, tolerance_s = 8
         time_1 = time_v1[k1]
         time_2 = time_v2[k2]
 
-        if abs(time_1 - time_2) < tolerance_s:
+        if abs(time_1 - time_2) < tolerance_us:
             common_array_v1[k1] = True
             common_array_v2[k2] = True
             k1 += 1
