@@ -182,7 +182,7 @@ class FitsFileObj:
         # So we need to drop 1 suffix
         assert len(self.full_filepath.suffixes) == 2
 
-        new_name = self.full_filepath.stem + suffix + ''.join(self.full_filepath.suffixes[-1:])
+        new_name = self.full_filepath.stem + suffix + ''.join(self.full_filepath.suffixes[1:])
         print(new_name)
         self._rename_in_folder(new_name)
 
@@ -252,6 +252,39 @@ class FitsFileObj:
     def get_nframes(self) -> int:
         return self.fits_header['NAXIS3']  # Assume logshim format...
 
+    def _ensure_data_loaded(self):
+        if self.data is None:
+            if self.is_on_disk:
+                self.data = fits.getdata(self.full_filepath)
+            else:
+                self.data = self.constr_data
+
+    def merge_with_file_after(self, other: FitsFileObj) -> FitsFileObj:
+
+        self._ensure_data_loaded()
+        other._ensure_data_loaded()
+
+        assert (self.txt_file_parser is not None and other.txt_file_parser is not None)
+        parser = self.txt_file_parser.clone_instance()
+        parser.lines += other.txt_file_parser.lines
+        parser._init_arrays_from_lines()
+        
+        header = self.fits_header.copy()
+        header['NAXIS3'] = self.get_nframes() + other.get_nframes()
+
+        tstr = fix_header_times(header, parser.fgrab_t_us[0] / 1e6,
+                                 parser.fgrab_t_us[-1] / 1e6)
+
+        merge_data = np.concatenate((self.data, other.data), axis=0)
+
+        file_obj = FitsFileObj(self.full_filepath,
+                                 on_disk=False,
+                                 header=header,
+                                 data=merge_data,
+                                 txt_parser=parser)
+        
+        return file_obj
+
     def sub_file_nodisk(
         self,
         split_selector: np.ndarray,
@@ -260,11 +293,7 @@ class FitsFileObj:
         assert split_selector.dtype == bool
         assert len(split_selector) == self.get_nframes()
 
-        if self.data is None:
-            if self.is_on_disk:
-                self.data = fits.getdata(self.full_filepath)
-            else:
-                self.data = self.constr_data
+        self._ensure_data_loaded()
 
         assert self.txt_file_parser
         txt_parser = self.txt_file_parser.sub_parser_by_selection(
@@ -279,7 +308,9 @@ class FitsFileObj:
         assert self.data is not None
         subdata = self.data[split_selector]
 
-        full_path = (self.full_filepath.parent / (self.stream_name_filename + '_' + tstr + '.fits'))
+        # Conserve ALL suffixes except the first one (frac seconds)
+
+        full_path = (self.full_filepath.parent / (self.stream_name_filename + '_' + tstr + ''.join(self.full_filepath.suffixes[1:])))
         file_obj = FitsFileObj(full_path,
                                  on_disk=False,
                                  header=header,

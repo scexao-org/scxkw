@@ -24,7 +24,6 @@ STRFMT_VSOLO = 'vsolo%d'
 
 class VampiresSynchronizer:
 
-
     def __init__(self) -> None:
         self.queue1: typ.List[T_FFO] = []
         self.queue2: typ.List[T_FFO] = []
@@ -38,6 +37,9 @@ class VampiresSynchronizer:
 
         self.seen_before: typ.Set[str] = set(
         )  # TODO sanitize from very old files to avoid growing indefinitely.
+
+        self.out_files: typ.Dict[int, OpT_FFO] = {1: None, 2: None}
+        self.out_queues: typ.Dict[int, typ.List[T_FFO]] = {1: [], 2: []}
 
     def feed_file_objs(self, file_objs: typ.Iterable[T_FFO]):
         # We make sets to avoid the queues growing forever with repeated calls that pushes the same file over and over.
@@ -68,6 +70,72 @@ class VampiresSynchronizer:
         }
         self.queue1.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
         self.queue2.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
+
+
+    def process_queues(self) -> None:
+        status = True
+        while status:
+            status = self.process_queue_oneshot()
+            status |= self.process_out_queue_oneshot(1)
+            status |= self.process_out_queue_oneshot(2)
+
+    def process_out_queue_oneshot(self, idx: int) -> bool:
+
+        # No files
+        file = self.out_files[idx]
+        if file is None:
+            if len(self.out_queues[idx]) == 0:
+                return False
+            else:
+                file = self.out_queues[idx].pop(0)
+                self.out_files[idx] = file
+        
+        # File is big enough by itself
+        assert file is not None
+        if (file.get_finish_unixtime_secs() -
+            file.get_start_unixtime_secs() > 5.0):
+            assert file.txt_file_parser is not None
+            selector = (file.txt_file_parser.fgrab_t_us / 1e6 - file.get_start_unixtime_secs()) < 5.0
+            file_0 = file.sub_file_nodisk(selector)
+            print('Path VV')
+            file_0.write_to_disk()
+            
+            file_1 = file.sub_file_nodisk(~selector)
+            self.out_files[idx] = file_1
+            
+            return True
+
+        now = time.time()
+
+        # There is no next file AND the input queues are empty AND we've waited 30 seconds
+        if (len(self.out_queues[idx]) == 0 and len(self.queue1) == 0 and len(self.queue2) == 0 and (now - file.get_finish_unixtime_secs()) > 30.0):
+            print('Path WW')
+            file.write_to_disk()
+            self.out_files[idx] = None
+        
+            return True
+        
+        # There is a next file
+
+        if len(self.out_queues[idx]) > 0:
+            next_file = self.out_queues[idx].pop(0)
+            
+            # and there's .9 second gap
+            if (next_file.get_start_unixtime_secs() - file.get_finish_unixtime_secs() > 0.9):
+                print('Path XX')
+                file.write_to_disk()
+                self.out_files[idx] = next_file
+                return True
+            
+            # and there's no big gap - FIXME TODO try if possible to split before merging.
+            self.out_files[idx] = file.merge_with_file_after(next_file)
+
+            return True
+        
+        # We have a file, it's not big enough, but the timeout has not elapsed,
+        # and we have no next file...
+        return False
+        
 
     def find_pop_earliest_file(self) -> typ.Tuple[typ.Optional[T_FFO], int]:
         if len(self.queue1) == 0 and len(self.queue2) == 0:
@@ -175,16 +243,27 @@ class VampiresSynchronizer:
         # Put the remainders back in the queues, at the head.
 
         # I don't want to be bothered with files with very low dimensionality.
-        if fobj_merge_1 is not None and fobj_merge_1.get_nframes() >= 2:
+        # Actually fobj_merge_1 and fobj_merge_2 exist both or None, and must have the same number of frames...
+
+        if (fobj_merge_1 is not None and fobj_merge_1.get_nframes() >= 2):
+            assert (fobj_merge_2 is not None and fobj_merge_2.get_nframes() >= 2)
+            assert (fobj_merge_1.txt_file_parser is not None and fobj_merge_2.txt_file_parser is not None)
+            # Force synced timings on merged files.
+            timings = 0.5 * (fobj_merge_1.txt_file_parser.fgrab_t_us + fobj_merge_2.txt_file_parser.fgrab_t_us)
+            fobj_merge_1.txt_file_parser.fgrab_t_us = timings
+            fobj_merge_2.txt_file_parser.fgrab_t_us = timings
+        
             fobj_merge_1.move_file_to_streamname(STR_VSYNC,
                                                  also_change_filename=True)
-            fobj_merge_1.add_suffix_to_filename('.cam1')
-            fobj_merge_1.write_to_disk()
-        if fobj_merge_2 is not None and fobj_merge_2.get_nframes() >= 2:
             fobj_merge_2.move_file_to_streamname(STR_VSYNC,
                                                  also_change_filename=True)
+
+            fobj_merge_1.add_suffix_to_filename('.cam1')
             fobj_merge_2.add_suffix_to_filename('.cam2')
-            fobj_merge_2.write_to_disk()
+            
+            self.out_queues[1].append(fobj_merge_1)
+            self.out_queues[2].append(fobj_merge_2)
+
 
         # At this point there may be a name conflict between original files and remainder files.
         file_v1.delete_from_disk()
@@ -294,3 +373,38 @@ def sync_timing_arrays(time_v1: np.ndarray, time_v2: np.ndarray, tolerance_us = 
                 k2 += 1
 
     return common_array_v1, common_array_v2
+
+
+'''
+TESTING
+
+
+from camstack.cams.simulatedcam import SimulatedCam
+cam = SimulatedCam('vcam1', 'vcam1', mode_id=(128, 128))
+cam._set_formatted_keyword('EXTTRIG', True)
+
+
+
+from pyMilk.interfacing.shm import SHM
+v1 = SHM('vcam1')
+v2 = SHM('vcam2', v1.get_data())
+while True:
+    d = v1.get_data(True)
+    k = v1.get_keywords()
+    v2.set_keywords(k)
+    v2.set_data(d)
+
+
+import time
+from scxkw.daemons.gen2_archiving import VampiresSynchronizer, synchronize_vampires_files
+syncer = VampiresSynchronizer()
+while True:
+    time.sleep(5.0)
+    synchronize_vampires_files(sync_manager=syncer)
+
+milk-logshim vcam1 200 /tmp/ARCHIVE1/20230620/vcam1/
+milk-logshim vcam2 250 /tmp/ARCHIVE1/20230620/vcam2/
+
+
+
+'''

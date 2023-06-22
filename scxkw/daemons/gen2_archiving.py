@@ -304,9 +304,7 @@ def synchronize_vampires_files(*, sync_manager: VampiresSynchronizer):
     sync_manager.feed_file_objs(v1_fileobjs)
     sync_manager.feed_file_objs(v2_fileobjs)
 
-    status = True
-    while status:
-        status = sync_manager.process_queue_oneshot()
+    sync_manager.process_queues()
 
 
 
