@@ -51,16 +51,16 @@ else:
 
 # streamname: archive letter mapping
 CAMIDS = {
-    "apapane": "SCXB", # Buffy
-    "palila": "SCXC", # Chuck
+    "a_gen2": "SCXB", # Apapane
+    "p_gen2": "SCXC", # Palila
     #"first": "F", # FIRST (andor and hamamatsu, careful)
     #"glint": "G", # GLINT
     #"ocam2d": "P", # Reno
     #"ircam1": "R", # Rajni
     #"vcam0": "V", # Vampires
     #"vcam1": "V", # Vampires
-    "vsync": "VMPA",
-    "vsolo": "VMPA",
+    "v_gen2": "VMPA",
+    "v_gen2": "VMPA",
 }
 
 

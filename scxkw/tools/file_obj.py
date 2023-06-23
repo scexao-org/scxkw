@@ -31,7 +31,7 @@ class FitsFileObj:
         self.is_on_disk = on_disk
         self.full_filepath: Path = Path(fullname)
 
-        self.data = None
+        self.data: typ.Optional[np.ndarray] = None
 
         self._initial_name_check()
 
@@ -183,9 +183,9 @@ class FitsFileObj:
 
         new_name = self.full_filepath.stem + suffix + ''.join(self.full_filepath.suffixes[1:])
         print(new_name)
-        self._rename_in_folder(new_name)
+        self.rename_in_folder(new_name)
 
-    def _rename_in_folder(self, new_name: str) -> None:
+    def rename_in_folder(self, new_name: str) -> None:
 
         assert not '/' in new_name
 
@@ -213,7 +213,7 @@ class FitsFileObj:
         if also_change_filename:
             _, rest = self.file_name.split('_')
             new_filename = stream_name + '_' + rest
-            self._rename_in_folder(new_filename)
+            self.rename_in_folder(new_filename)
 
 
     def _move_to_new_folder(self,
@@ -309,6 +309,7 @@ class FitsFileObj:
 
         # Conserve ALL suffixes except the first one (frac seconds)
 
+        assert self.stream_name_filename is not None
         full_path = (self.full_filepath.parent / (self.stream_name_filename + '_' + tstr + ''.join(self.full_filepath.suffixes[1:])))
         file_obj = FitsFileObj(full_path,
                                  on_disk=False,

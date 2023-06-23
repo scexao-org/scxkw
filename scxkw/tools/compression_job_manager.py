@@ -36,7 +36,7 @@ class FpackJobManager:
             running_fpacks = running_fpacks_str.split('\n')
 
         if len(running_fpacks) > 0:
-            logg.error('Running fpack jobs:')
+            logg.error('FpackJobManager::__init__ - Running fpack jobs:')
             logg.error(str(running_fpacks))
             raise AssertionError(
                 'There are running fpack jobs on the system. '

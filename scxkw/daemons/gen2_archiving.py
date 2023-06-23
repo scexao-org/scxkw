@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 from __future__ import annotations
+import typing as typ
 
-import typing as t
+import logging
+
+logg = logging.getLogger(__name__)
 
 import os, sys, glob, time, datetime, subprocess
 
@@ -10,6 +13,7 @@ from scxkw.redisutil.typed_db import Redis
 from scxkw.tools.compression_job_manager import FPackJobCodeEnum, FpackJobManager
 
 from ..tools import file_tools
+from ..tools.file_obj import FitsFileObj as FFO
 from ..tools.vampires_synchro import VampiresSynchronizer
 
 from g2base.remoteObjects import remoteObjects as ro
@@ -19,7 +23,7 @@ from astropy.io import fits
 import shutil
 
 
-def gen2_getframeids(g2proxy_scx, g2proxy_vmp, code: str, nfrmids: int) -> t.List[str]:
+def gen2_getframeids(g2proxy_scx, g2proxy_vmp, code: str, nfrmids: int) -> typ.List[str]:
     '''
         Utility function - get <nfrmids> frameIDs from gen2 for 1 given <camcode> ('SCXB', 'SCXC', 'VMPA', etc)
     '''
@@ -54,7 +58,7 @@ def gen2_getframeids(g2proxy_scx, g2proxy_vmp, code: str, nfrmids: int) -> t.Lis
     return frames
 
 
-def archive_monitor_process_filename(raw_file_list: t.List[str],
+def archive_monitor_process_filename(raw_file_list: typ.List[str],
                                      stream_name_from_folder: bool=True):
     '''
         Utility function - process a list of files
@@ -307,7 +311,6 @@ def synchronize_vampires_files(*, sync_manager: VampiresSynchronizer):
     sync_manager.process_queues()
 
 
-
 def archive_monitor_compression(*, job_manager: FpackJobManager):
     '''
         Macro function: watches for SCX*.fits files in GEN2_NODELETE and spawns
@@ -320,7 +323,7 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
     
 
     # Note: for some of those files, the compression job may already be running!
-    only_fits, _ = file_tools.separate_compression_dups(all_fits, all_fzs)
+    only_fits = file_tools.separate_compression_dups(all_fits, all_fzs)
     file_objs = file_tools.make_fileobjs_from_filenames(only_fits)
 
 
@@ -340,47 +343,45 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
           f'found {len(file_objs)} SCX/VMP files to compress; '
           f'started {n_jobs} fpacks.')
 
-#from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIDeIntJobManager
+from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIDeintJobManager, PDIJobCodeEnum
 
-def archive_monitor_deinterleave_or_passthrough(job_manager: PDIDeIntJobManager):
-    PERMISSIBLE_STREAMS = ('apapane', 'vcamsync', 'vcamsolo')
+def archive_monitor_deinterleave_or_passthrough(job_manager: PDIDeintJobManager):
+    # Allowed deinterleave streams and their target folder:
+    PERMISSIBLE_STREAMS = {
+        'apapane': 'a_gen2',
+        'vsolo1': 'v_gen2',
+        'vsolo2': 'v_gen2',
+        'vsync': 'v_gen2'
+        }
 
-    file_list = glob.glob(GEN2PATH_PRELIM + '*/*/*.fits')
-    file_list.sort()
+    fileobj_list = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + f'/*/{stream}/*.fits' for stream in PERMISSIBLE_STREAMS], [])
+    fileobj_list = [f for f in fileobj_list if f.stream_from_foldername in PERMISSIBLE_STREAMS]
 
-    (file_list, file_list_shortname, stream_names,
-     dates) = archive_monitor_process_filename(file_list, True)
-    
+    needs_deinterleave = deinterleave_filechecker(fileobj_list)
 
-    needs_deinterleave = deinterleave_filechecker(file_list)
+    fileobj_need_deint = [fobj for b, fobj in zip(needs_deinterleave, fileobj_list) if b]
+    fileobj_noneed_deint = [fobj for b, fobj in zip(needs_deinterleave, fileobj_list) if not b]
 
-    n_files = len(file_list)
-    for kk in range(n_files):
-        file_fullname = file_list[kk]
-        stream = stream_names[kk]
-        if not stream in PERMISSIBLE_STREAMS:
-            continue
-        if not needs_deinterleave:
-            txt_fullname = file_fullname[:-4] + '.txt'
-            new_fits_filename = file_fullname.replace(GEN2PATH_PRELIM, GEN2PATH_NODELETE, 1)
-            new_txt_filename = txt_fullname.replace(GEN2PATH_PRELIM, GEN2PATH_NODELETE, 1)
-            shutil.move(file_fullname, new_fits_filename)
-            shutil.move(txt_fullname, new_txt_filename)
-        else:
-            # Race condition on deinterleave already requested? Damnnnnn
-            # The job manager should deny anything that has already been requested
-            # Cleanup:
-            ret = job_manager.run_pdi_deinterleave_job(file_fullname)
-            if ret == PDIJobCodeEnum.STARTED:
-                n_jobs += 1
-            elif ret == PDIJobCodeEnum.TOOMANY:
-                break
-            # if PDIJobCodeEnum.ALREADY_RUNNING or DONE_BEFORE, we just keep going.
+    job_manager.refresh_running_jobs()
+    n_jobs = 0
 
+    for file in fileobj_noneed_deint:
+        stream = file.stream_from_foldername
+        file.move_file_to_streamname(PERMISSIBLE_STREAMS[stream])
+
+    for file in fileobj_need_deint:
+        stream = file.stream_from_foldername
+
+        ret = job_manager.run_pdi_deint_job(file, PERMISSIBLE_STREAMS[stream])
+        if ret == PDIJobCodeEnum.STARTED:
+            n_jobs += 1
+        elif ret == PDIJobCodeEnum.TOOMANY:
+            break
+        # We silently pass on ALREADY_RUNNING and on STARTED.
 
 
-
-def archive_monitor_get_ids(scx_proxy, vmp_proxy):
+def archive_monitor_get_ids(scx_proxy: ro.remoteObjectProxy,
+                            vmp_proxy: ro.remoteObjectProxy):
     '''
         Macro function: watches for *.fits files in GEN2_NODELETE and get a frameID for them
     '''
@@ -388,19 +389,12 @@ def archive_monitor_get_ids(scx_proxy, vmp_proxy):
     # List and sort relevant files - expect GEN2PATH/date/stream/*.fits
     # Set difference to exclude already renamed files
     # It is important not to hit the .tmp files
-    file_list = list(
-        (
-        set(glob.glob(GEN2PATH_NODELETE + '*/*/*.fits')) -
-        set(glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits'))
-        ).union(
-        set(glob.glob(GEN2PATH_NODELETE + '*/*/*.fits')) -
-        set(glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits'))
-        ))
-    file_list.sort()
-    # FORMAT: file_list contains FULL PATH filenames
-
-    (file_list, file_list_shortname, stream_names,
-     dates) = archive_monitor_process_filename(file_list, False)
+    fobj_list = file_tools.make_fileobjs_from_globs(
+        [GEN2PATH_NODELETE + '*/a_gen2/*.fits', GEN2PATH_NODELETE + '*/v_gen2/*.fits'],
+        [GEN2PATH_NODELETE + '*/a_gen2/SCX*.fits', GEN2PATH_NODELETE + '*/v_gen2/VMP*.fits']
+    )
+    assert all([not f.is_archived for f in fobj_list])
+    assert all([not f.is_compressed for f in fobj_list])
 
     # Dict to count how many IDs we need per "letter"
     per_id_count = {}
@@ -408,11 +402,12 @@ def archive_monitor_get_ids(scx_proxy, vmp_proxy):
     for stream_name in CAMIDS:
         per_id_count[CAMIDS[stream_name]] = 0
         id_current_count[CAMIDS[stream_name]] = 0
-    frame_ids = {}
+    frame_ids: typ.Dict[str, typ.List[str]] = {}
 
     # Count files
-    for sname in stream_names:
-        per_id_count[CAMIDS[sname]] += 1
+
+    for file in fobj_list:
+        per_id_count[CAMIDS[file.stream_from_foldername]] += 1
 
     if any(per_id_count.values()):
         print("archive_monitor_get_ids: frame ID requests: ", per_id_count)
@@ -423,33 +418,22 @@ def archive_monitor_get_ids(scx_proxy, vmp_proxy):
             frame_ids[id_letter] = gen2_getframeids(scx_proxy, vmp_proxy, id_letter,
                                                     per_id_count[id_letter])
 
-    for ii in range(len(file_list)):
-        date = dates[ii]
-        sname = stream_names[ii]
-        fname = file_list[ii]  # full path
-        fname_short = file_list_shortname[ii]  # just file name
-        frame_4lett_code = CAMIDS[stream_names[ii]]
-
-        frame_id = frame_ids[frame_4lett_code][id_current_count[frame_4lett_code]]
+    for file in fobj_list:
+        frame_id = frame_ids[CAMIDS[file.stream_from_foldername]].pop(0)
 
         # Update the keyword with the FRAMEID
         # This could error?
-        with fits.open(fname, "update") as hdul:
-            header = hdul[0].header # get primary header
+        with fits.open(file.full_filepath, "update") as hdul:
+            header: fits.Header = hdul[0].header # get primary header
             header["FRAMEID"] = frame_id
             header["EXP-ID"] = frame_id.replace(frame_id[3], "E", 1)
 
         # Maintain the file/id mapping text files (per date and stream)
-        with open(GEN2PATH_NODELETE + f'/{date}/{sname}/name_changes.txt',
+        with open(file.full_filepath.parent / 'name_changes.txt',
                   'a') as namelog:
-            namelog.write(f"{fname_short}\t{frame_id}.fits\n")
+            namelog.write(f"{file.file_name}\t{frame_id}.fits\n")
 
         # Rename the files
-        os.rename(fname,
-                  GEN2PATH_NODELETE + f'/{date}/{sname}/{frame_id}.fits')
-        os.rename('.'.join(fname.split('.')[:-1]) + '.txt',
-                  GEN2PATH_NODELETE + f'/{date}/{sname}/{frame_id}.txt')
-
-        id_current_count[frame_4lett_code] += 1
+        file.rename_in_folder(frame_id + '.fits')
 
     # Done !

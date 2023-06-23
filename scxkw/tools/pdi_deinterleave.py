@@ -1,24 +1,81 @@
-from typing import List, Any, Tuple, Optional as Op
+from __future__ import annotations
+import typing as typ
 
-import os
+import logging
 
-import time
-import subprocess as sproc
-
-from astropy.io import fits
+logg = logging.getLogger(__name__)
 
 import numpy as np
+import subprocess as sproc
+from astropy.io import fits
+from enum import IntEnum
 
 from .logshim_txt_parser import LogshimTxtParser
 
+from .file_obj import FitsFileObj as FFO
+OpT_FFO = typ.Optional[FFO]
 
-def deinterleave_filechecker(file_list: List[str]) -> List[bool]:
+class PDIJobCodeEnum(IntEnum):
+    ALREADY_RUNNING = -3
+    NOFILE = -2
+    TOOMANY = -1
+    STARTED = 0
+
+
+class PDIDeintJobManager:
+    MAX_CONCURRENT_JOBS = 15
+
+    def __init__(self) -> None:
+        self.pending_jobs: typ.Dict[str, sproc.Popen] = {}
+
+        # Now check for active fpack jobs that this manager didn't launch.
+        running_pdi_str = sproc.run(
+            'ps -eo args | grep scxkw-pdideint', shell=True,
+            capture_output=True).stdout.decode('utf8').strip()
+        if running_pdi_str == '':
+            running_pdi = []
+        else:
+            running_pdi = running_pdi_str.split('\n')
+
+        if len(running_pdi) > 0:
+            logg.error('PDIDeintJobManager::__init__ - Running PDI deint jobs:')
+            logg.error(str(running_pdi))
+            raise AssertionError(
+                'There are running scxkw-pdideinterleave jobs on the system. '
+                'It is bad juju to instantiate a PDIDeintJobManager now.')
+
+    def run_pdi_deint_job(self, file_obj: FFO, new_stream_name: str) -> PDIJobCodeEnum:
+        if not file_obj.check_existence_on_disk():
+            logg.error(f'PDIDeintJobManager: file {file_obj} does not exist.')
+            return PDIJobCodeEnum.NOFILE
+        if len(self.pending_jobs) == self.MAX_CONCURRENT_JOBS:
+            logg.error(f'PDIDeintJobManager: max allowed ({self.MAX_CONCURRENT_JOBS})'
+                       'fpack jobs already running at the same time.')
+            return PDIJobCodeEnum.TOOMANY
+        if str(file_obj.full_filepath) in self.pending_jobs:
+            return PDIJobCodeEnum.ALREADY_RUNNING
+
+        proc = deinterleave_start_job_async(str(file_obj.full_filepath), new_stream_name, keep_original=False)
+
+        self.pending_jobs[str(file_obj.full_filepath)] = proc
+
+        return PDIJobCodeEnum.STARTED
+
+    def refresh_running_jobs(self) -> None:
+        # job.poll() is None if process is still running.
+        self.pending_jobs = {
+            filename: self.pending_jobs[filename]
+            for filename in self.pending_jobs
+            if self.pending_jobs[filename].poll() is None
+        }
+
+def deinterleave_filechecker(file_list: typ.List[FFO]) -> typ.List[bool]:
     '''
         return False for files that need NOT to be deinterleaved
         return True for files that have to be deinterleaved
     '''
 
-    statuses: List[bool] = [False] * len(file_list)
+    statuses: typ.List[bool] = [False for n in range(len(file_list))]
 
     for kk, file in enumerate(file_list):
         header = fits.getheader(file)
@@ -39,71 +96,64 @@ def deinterleave_filechecker(file_list: List[str]) -> List[bool]:
 
 
 def deinterleave_start_job_async(file_name: str,
-                                 source_tree: str, dest_tree: str,
+                                 new_stream_name: str,
                                  keep_original: bool = True,) -> sproc.Popen:
-    '''
-    source_tree and dest_tree are passed so that the subprocess
-    knows where to move the resulting files.
-    '''
-    cmd = f'scxkw-pdideinterleave {file_name}' + ('', ' --keep')[keep_original] +\
-            f'--source={source_tree} --dest={dest_tree}'
+    cmd = f'scxkw-pdideinterleave {file_name}' + ('', ' --keep')[keep_original] + \
+            ('' if new_stream_name is None else f'--dstream={new_stream_name}')
 
     return sproc.Popen(cmd.split(' '))
 
 
-def deinterleave_file(file_name: str, *, ir_true_vis_false: bool = True, flc_jitter_us_hint: Op[int] = True,
-                      source_tree: str = '/', dest_tree: str = '/'):
+def deinterleave_file(file_obj: FFO, *, ir_true_vis_false: bool = True,
+                      flc_jitter_us_hint: typ.Optional[int] = True,
+                      write_to_disk: bool = False):
     '''
     This file will carry the header on to the split files.
     BUT it will not bother checking the header is sane.
     This should be done upstream and the relevant stuff is to be passed in the parameter.
     '''
-    fullpath = os.path.abspath(file_name)
 
-    header: fits.Header = fits.getheader(fullpath)
-    data: np.ndarray = fits.getdata(fullpath) # type: ignore
+    file_obj._ensure_data_loaded()
+    assert (file_obj.is_compressed is False and
+            file_obj.is_archived is False and
+            file_obj.txt_file_parser is not None)
 
     key = ('U_FLCJT', 'X_IFLCJT')[ir_true_vis_false]
     if flc_jitter_us_hint is None:
-        flc_jitter_us: int = header[key] # type: ignore
+        flc_jitter_us: int = file_obj.fits_header[key] # type: ignore
     else:
         flc_jitter_us = flc_jitter_us_hint
 
-    assert fullpath.endswith('.fits')
-    txtparser = LogshimTxtParser(fullpath[:-5] + '.txt')
+    flc_state, _ = deinterleave_compute(file_obj.txt_file_parser.fgrab_dt_us, flc_jitter_us, True)
 
-
-    subfiles = deinterleave_data(data, flc_jitter_us, txtparser)
-
-    path_to_folder = '/'.join(fullpath.split('/')[:-1])
-
-    flc_st_type = ['%-16.16s' % s for s in ('ACTIVE', 'RELAXED', 'DUBIOUS')]
     key_flc_state = ('U_FLC', 'X_IFLCAB')[ir_true_vis_false]
-    for kk in range(3):
-        subdata, subparser = subfiles[kk]
-        kw_value = flc_st_type[kk]
-
-        if subparser is None:
+    ret_files: typ.Dict[str, FFO] = {}
+    for flcval, key in zip([-1, 0, 1], ['A', 'D', 'B']):
+        
+        n = np.sum(flc_state == flcval)
+        if n < 2:
             continue
-        subparser.name.replace(source_tree, dest_tree, 1)
-        subparser.write_to_disk()
-        
-        name_disambiguated = path_to_folder + '/' + str(time.time()) + '.fits'
-        
-        name_fits_final = subparser.name[:-4] + '.fits'
-        name_fits_final.replace(source_tree, dest_tree, 1)
 
-        header[key_flc_state] = kw_value
-        fits.writeto(name_disambiguated, subdata, header)
-        import shutil
-        shutil.move(name_disambiguated, name_fits_final)
+        subfile = file_obj.sub_file_nodisk(flc_state == flcval)
+        subfile.add_suffix_to_filename('.' + key)
 
+        subfile.fits_header[key_flc_state] = '%-16.16s' % key
+
+        if write_to_disk:
+            logg.info(f'deinterleave_file: writing {subfile.full_filepath}')
+            subfile.write_to_disk()
+
+        ret_files[key] = subfile
+
+    return ret_files
+
+    
 
     
 
 
-DataOpTxt = Tuple[np.ndarray, Op[LogshimTxtParser]]
-def deinterleave_data(data: np.ndarray, dt_jitter_us: int, txt_parser: LogshimTxtParser) -> List[DataOpTxt]:
+DataOpTxt = typ.Tuple[np.ndarray, typ.Optional[LogshimTxtParser]]
+def deinterleave_data(data: np.ndarray, dt_jitter_us: int, txt_parser: LogshimTxtParser) -> typ.List[DataOpTxt]:
     '''
         Deinterleave a data cube based on a logshim txt parser object.
     '''
@@ -119,15 +169,15 @@ def deinterleave_data(data: np.ndarray, dt_jitter_us: int, txt_parser: LogshimTx
     n_g = len(data_garbage)
 
     if n_a > 0:
-        parser_a = txt_parser.sub_parser_by_selection('ACTIVE', flc_state == -1)
+        parser_a = txt_parser.sub_parser_by_selection('A', flc_state == -1)
     else:
         parser_a = None
     if n_b > 0:
-        parser_b = txt_parser.sub_parser_by_selection('RELAXED', flc_state == 1)
+        parser_b = txt_parser.sub_parser_by_selection('B', flc_state == 1)
     else:
         parser_b = None
     if n_g > 0:
-        parser_garbage = txt_parser.sub_parser_by_selection('DUBIOUS', flc_state == 0)
+        parser_garbage = txt_parser.sub_parser_by_selection('D', flc_state == 0)
     else:
         parser_garbage = None
 
@@ -140,7 +190,7 @@ def deinterleave_compute(dt_array: np.ndarray,
                          dt_jitter_us: int,
                          enforce_pairing: bool, *,
                          hamm_size: int = 30,
-                         corr_trust_margin: float = 0.75) -> Tuple[np.ndarray, np.ndarray]:
+                         corr_trust_margin: float = 0.75) -> typ.Tuple[np.ndarray, np.ndarray]:
     '''
         Validate the FLC state from an array of timing deltas
     '''
@@ -156,7 +206,7 @@ def deinterleave_compute(dt_array: np.ndarray,
     convolved = np.convolve(nyquist_hamming, dt_array, 'valid') / dt_jitter_us
     # len(convolved) == N_FRAMES + HAMM_N = len(dt_array) + 1 + HAMM_N
     
-    # We then apply a minimum filter - if there's a wonky glitch we want to blacklist all neighboring frames.
+    # We then apply a minimum filter - if there's a wonky glitch we want to blacktyp.List all neighboring frames.
     from scipy.ndimage import minimum_filter1d
     convolved = minimum_filter1d(np.abs(convolved), hamm_size // 2) * np.sign(convolved)
 
@@ -173,7 +223,8 @@ def deinterleave_compute(dt_array: np.ndarray,
     if np.all(flc_state[-hamm_size:-hamm_size // 2] != 0):
         flc_state[-hamm_size // 2:] = flc_state[-hamm_size:-hamm_size // 2] * flipper
 
-    # Return point without enfore_pairing
+    # Return point without enforce_pairing
+
     if enforce_pairing:
         # Find the first certain frame.
         first = 0

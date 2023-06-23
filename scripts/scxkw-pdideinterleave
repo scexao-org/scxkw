@@ -12,17 +12,22 @@
     Options:
         -h --help        Show this
         --keep           Keep the original, interleaved file. Otherwise it's deleted.
-        --source=<source_tree>  root path to be replaced e.g. /mnt/tier1/PRE_ARCHIVE_DATA [default: /]
-        --dest=<dest_tree>      replacement root path e.g. /mnt/tier1/ARCHIVED_DATA [default: /]
+        --dstream=<dstream>      replacement stream name
 '''
 from __future__ import annotations
+import typing as typ
+
+import logging
+
 
 import os
 
 from astropy.io import fits
 
-from scxkw.tools.logshim_txt_parser import LogshimTxtParser
+from scxkw.tools.file_obj import FitsFileObj
 from scxkw.tools.pdi_deinterleave import deinterleave_file
+
+
 
 class RETCODE:
     NOT_DOTFITS = 1
@@ -30,22 +35,23 @@ class RETCODE:
     NO_TXT = 3
     MISSING_KW = 4
     NO_DEINT_REQ = 5
-
     OOPS = 6
-    
     SUCCESS = 0
 
 
 if __name__ == "__main__":
-    
-    from docopt import docopt
 
+    from swmain.infra.logger import init_logger_autoname
+    init_logger_autoname()
+    logg = logging.getLogger(__name__)
+    
+
+
+    from docopt import docopt
     args = docopt(__doc__)
     
-    SOURCE_TREE = args['--source']
-    DEST_TREE = args['--dest']
-    assert os.path.isdir(SOURCE_TREE)
-    assert os.path.isdir(DEST_TREE)
+    NEW_STREAM = args['--dstream']
+    assert os.path.isdir(NEW_STREAM)
 
 
     fits_filename: str = args['<fits_filename>']
@@ -57,15 +63,14 @@ if __name__ == "__main__":
     if not os.path.isfile(fits_filename):
         exit(RETCODE.NO_FITS)
 
-    if not fits_filename.startswith(SOURCE_TREE):
-        exit(RETCODE.NO_FITS)
-
     txt_filename = fits_filename[:-5] + '.txt'
     if not os.path.isfile(txt_filename):
         exit(RETCODE.NO_TXT)
 
+    file_obj = FitsFileObj(fits_filename)
+
     # Validate header
-    header = fits.getheader(fits_filename)
+    header = file_obj.fits_header
     if header['DETECTOR'] in ['CRED1 - APAPANE', 'CRED2 - PALILA']:
         ir_true_vis_false = True
         try:
@@ -95,23 +100,27 @@ if __name__ == "__main__":
     if (not flc_used) or (flc_state != 'NA') or (not exttrig):
         exit(RETCODE.NO_DEINT_REQ)
 
-    # Load a timings parser
-    txtparser = LogshimTxtParser(txt_filename)
+    # Make a FitsFileObj
 
     # Call the deinterleave job
     # ir_true_vis_false should be directly replace by the appropriate FITS
     # key for X_IFLCST / U_??????
-    deinterleave_file(fits_filename,
-                      ir_true_vis_false=ir_true_vis_false,
-                      flc_jitter_us_hint = flc_jitt,
-                      source_tree=SOURCE_TREE,
-                      dest_tree=DEST_TREE)
+    deint_files = deinterleave_file(file_obj,
+                                    ir_true_vis_false=ir_true_vis_false,
+                                    flc_jitter_us_hint = flc_jitt,
+                                    write_to_disk=False)
+    
+    for fkey in deint_files:
+        deint_files[fkey].move_file_to_streamname(NEW_STREAM)
+        deint_files[fkey].write_to_disk()
     
 
     # Be careful here... what happens if we had an error?
     # DO NOT catch errors from deinterleave!!!
     # Or catch and exit immediately?
     if not args['--keep']:
-        os.remove(fits_filename)
+        file_obj.delete_from_disk()
+
+    exit(RETCODE.SUCCESS)
 
     

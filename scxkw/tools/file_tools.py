@@ -13,24 +13,14 @@ from .file_obj import FitsFileObj
 if typ.TYPE_CHECKING:
     StrPath = typ.Union[str, pathlib.Path]
 
-
-class FzGzAgnosticPath(pathlib.PosixPath):
-
-    def __eq__(self, other: pathlib.PosixPath) -> bool:
-        return ((other.suffix in ('.fz', '.gz')
-                 or self.suffix in ('.fz', '.gz'))
-                and (other.name.startswith(self.name)
-                     or self.name.startswith(other.name)))
-
-    def __hash__(self) -> int:
-        '''
-        To make .fz / .gz agnostic set/dict operations
-        '''
-        if self.suffix in ('.gz', '.fz'):
-            p = self.with_suffix('')
-        else:
-            p = self
-        return str(p.absolute()).__hash__()
+def get_name_no_compextension(strpath: StrPath) -> str:
+    path = pathlib.Path(strpath)
+    if path.suffix == '.fits':
+        return path.name
+    elif path.suffix in ['.fz', '.gz']:
+        return path.stem
+    
+    raise AssertionError('get_name_no_compextension - Need a fits, fits.fz, fits.gz file.')
 
 
 def make_fileobjs_from_globs(
@@ -54,22 +44,21 @@ def make_fileobjs_from_globs(
 def separate_compression_dups(
     filename_list: typ.Iterable[StrPath],
     filename_fzgz_list: typ.Iterable[StrPath]
-) -> typ.Tuple[typ.List[str], typ.List[str]]:
+) -> typ.List[str]:
 
     list_pairs: typ.List[typ.Tuple[str, str]] = []
 
-    set_uncomp_paths = {FzGzAgnosticPath(fname) for fname in filename_list}
-    set_comp_paths = {FzGzAgnosticPath(fname) for fname in filename_fzgz_list}
+    set_uncomp_paths = {str(fname) for fname in filename_list}
+    set_comp_paths = {get_name_no_compextension(fname) for fname in filename_fzgz_list}
     '''
-    This symmetric difference uses the magic of the FzGzAgnostic hash function
+    This symmetric difference uses the magic of the FzGzAgnostic hash function...
+    We could have made that WAY simpler.
     '''
-    comp_only = set_comp_paths.difference(set_uncomp_paths)
     not_comp_only = set_uncomp_paths.difference(set_comp_paths)
 
-    list_comp = [str(p) for p in comp_only]
     list_uncomp = [str(p) for p in not_comp_only]
 
-    return list_uncomp, list_comp
+    return list_uncomp
 
 
 def make_fileobjs_from_filenames(
