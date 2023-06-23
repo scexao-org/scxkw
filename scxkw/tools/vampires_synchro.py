@@ -10,10 +10,9 @@ import numpy as np
 
 from scxkw.config import GEN2PATH_PRELIM
 
-from .file_obj import FitsFileObj
+from .file_obj import FitsFileObj as FFO
 
-T_FFO = FitsFileObj
-OpT_FFO = typ.Optional[FitsFileObj]
+OpT_FFO = typ.Optional[FFO]
 
 OTHER_INDEX = lambda n: 3 - n  # 2 -> 1, 1 -> 2
 
@@ -25,9 +24,9 @@ STRFMT_VSOLO = 'vsolo%d'
 class VampiresSynchronizer:
 
     def __init__(self) -> None:
-        self.queue1: typ.List[T_FFO] = []
-        self.queue2: typ.List[T_FFO] = []
-        self.queue_dict_p: typ.Dict[int, typ.List[T_FFO]] = {
+        self.queue1: typ.List[FFO] = []
+        self.queue2: typ.List[FFO] = []
+        self.queue_dict_p: typ.Dict[int, typ.List[FFO]] = {
             1: self.queue1,
             2: self.queue2
         }
@@ -39,9 +38,9 @@ class VampiresSynchronizer:
         )  # TODO sanitize from very old files to avoid growing indefinitely.
 
         self.out_files: typ.Dict[int, OpT_FFO] = {1: None, 2: None}
-        self.out_queues: typ.Dict[int, typ.List[T_FFO]] = {1: [], 2: []}
+        self.out_queues: typ.Dict[int, typ.List[FFO]] = {1: [], 2: []}
 
-    def feed_file_objs(self, file_objs: typ.Iterable[T_FFO]):
+    def feed_file_objs(self, file_objs: typ.Iterable[FFO]):
         # We make sets to avoid the queues growing forever with repeated calls that pushes the same file over and over.
         qdict1 = {str(file.full_filepath): file for file in self.queue1}
         qdict2 = {str(file.full_filepath): file for file in self.queue2}
@@ -64,7 +63,7 @@ class VampiresSynchronizer:
         # Re-sort queues by time/name
         self.queue1 = list([qdict1[fn] for fn in qdict1])
         self.queue2 = list([qdict2[fn] for fn in qdict2])
-        self.queue_dict_p: typ.Dict[int, typ.List[T_FFO]] = {
+        self.queue_dict_p: typ.Dict[int, typ.List[FFO]] = {
             1: self.queue1,
             2: self.queue2
         }
@@ -141,7 +140,7 @@ class VampiresSynchronizer:
         return False
         
 
-    def find_pop_earliest_file(self) -> typ.Tuple[typ.Optional[T_FFO], int]:
+    def find_pop_earliest_file(self) -> typ.Tuple[typ.Optional[FFO], int]:
         if len(self.queue1) == 0 and len(self.queue2) == 0:
             return None, 0
 
@@ -298,7 +297,7 @@ class VampiresSynchronizer:
 
         return True
 
-    def is_trivial_solo_vamp_file(self, file: T_FFO):
+    def is_trivial_solo_vamp_file(self, file: FFO):
         # We can only synchro if the cameras are in exttrig
         return (not file.fits_header['EXTTRIG'] or file.get_nframes() <= 1)
 
@@ -317,7 +316,7 @@ def save_to_disk_if(file_obj: OpT_FFO,
         logg.warning(f'save_to_disk_if - file is None')
     return False
 
-def resync_two_files(file_v1: T_FFO, file_v2: T_FFO) -> \
+def resync_two_files(file_v1: FFO, file_v2: FFO) -> \
         typ.Tuple[float, float, OpT_FFO, OpT_FFO, OpT_FFO, OpT_FFO]:
 
     assert (file_v1.txt_file_parser is not None
