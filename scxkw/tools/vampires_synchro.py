@@ -98,6 +98,8 @@ class VampiresSynchronizer:
             selector = (file.txt_file_parser.fgrab_t_us / 1e6 - file.get_start_unixtime_secs()) < 5.0
             file_0 = file.sub_file_nodisk(selector)
             print('Path VV')
+
+            assert file_0.stream_from_foldername == 'vsync' and '.cam' in file_0.file_name # TODO remove once confident
             file_0.write_to_disk()
             
             file_1 = file.sub_file_nodisk(~selector)
@@ -110,6 +112,7 @@ class VampiresSynchronizer:
         # There is no next file AND the input queues are empty AND we've waited 30 seconds
         if (len(self.out_queues[idx]) == 0 and len(self.queue1) == 0 and len(self.queue2) == 0 and (now - file.get_finish_unixtime_secs()) > 30.0):
             print('Path WW')
+            assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name # TODO remove once confident
             file.write_to_disk()
             self.out_files[idx] = None
         
@@ -123,6 +126,7 @@ class VampiresSynchronizer:
             # and there's .9 second gap
             if (next_file.get_start_unixtime_secs() - file.get_finish_unixtime_secs() > 0.9):
                 print('Path XX')
+                assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name # TODO remove once confident
                 file.write_to_disk()
                 self.out_files[idx] = next_file
                 return True

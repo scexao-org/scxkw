@@ -137,7 +137,6 @@ class FitsFileObj:
             raise AssertionError(message)
         
         assert self.txt_file_parser is not None
-
         logg.warning(f'FitsFileObj::write_to_disk - Writing {str(self.full_filepath)}')
 
         os.makedirs(self.full_filepath.parent, exist_ok=True)
