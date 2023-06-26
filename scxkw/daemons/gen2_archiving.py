@@ -345,7 +345,7 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
 
 from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIDeintJobManager, PDIJobCodeEnum
 
-def archive_monitor_deinterleave_or_passthrough(job_manager: PDIDeintJobManager):
+def archive_monitor_deinterleave_or_passthrough(*, folder_root=GEN2PATH_NODELETE, job_manager: PDIDeintJobManager):
     # Allowed deinterleave streams and their target folder:
     PERMISSIBLE_STREAMS = {
         'apapane': 'a_gen2',
@@ -354,7 +354,7 @@ def archive_monitor_deinterleave_or_passthrough(job_manager: PDIDeintJobManager)
         'vsync': 'v_gen2'
         }
 
-    fileobj_list = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + f'/*/{stream}/*.fits' for stream in PERMISSIBLE_STREAMS], [])
+    fileobj_list = file_tools.make_fileobjs_from_globs([folder_root + f'/*/{stream}/*.fits' for stream in PERMISSIBLE_STREAMS], [])
     fileobj_list = [f for f in fileobj_list if f.stream_from_foldername in PERMISSIBLE_STREAMS]
 
     needs_deinterleave = deinterleave_filechecker(fileobj_list)

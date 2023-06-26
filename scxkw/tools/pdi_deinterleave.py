@@ -243,7 +243,7 @@ def deinterleave_compute(dt_array: np.ndarray,
 '''
 from scxkw.daemons.gen2_archiving import archive_monitor_deinterleave_or_passthrough, PDIDeintJobManager
 deinter = PDIDeintJobManager()
-archive_monitor_deinterleave_or_passthrough(deinter)
+archive_monitor_deinterleave_or_passthrough(folder_root='/mnt/tier0/', job_manager=deinter)
 '''
 
 
