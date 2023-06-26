@@ -30,7 +30,7 @@ class PDIDeintJobManager:
 
         # Now check for active fpack jobs that this manager didn't launch.
         running_pdi_str = sproc.run(
-            'ps -eo args | grep scxkw-pdideint', shell=True,
+            'ps -eo args | egrep ^scxkw-pdideint', shell=True,
             capture_output=True).stdout.decode('utf8').strip()
         if running_pdi_str == '':
             running_pdi = []
@@ -240,6 +240,11 @@ def deinterleave_compute(dt_array: np.ndarray,
     return flc_state, convolved
 
 
+'''
+from scxkw.daemons.gen2_archiving import archive_monitor_deinterleave_or_passthrough, PDIDeintJobManager
+deinter = PDIDeintJobManager()
+archive_monitor_deinterleave_or_passthrough(deinter)
+'''
 
 
         
