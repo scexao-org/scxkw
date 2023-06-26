@@ -301,9 +301,9 @@ def archive_migrate_compressed_files(*, time_allowed=(17*60, 17*60 + 30)):
 
 
 
-def synchronize_vampires_files(*, sync_manager: VampiresSynchronizer):
-    v1_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + '/*/vcam1/*.fits'], [])
-    v2_fileobjs = file_tools.make_fileobjs_from_globs([GEN2PATH_NODELETE + '/*/vcam2/*.fits'], [])
+def synchronize_vampires_files(*, folder_root=GEN2PATH_NODELETE, sync_manager: VampiresSynchronizer):
+    v1_fileobjs = file_tools.make_fileobjs_from_globs([folder_root + '/*/vcam1/*.fits'], [])
+    v2_fileobjs = file_tools.make_fileobjs_from_globs([folder_root + '/*/vcam2/*.fits'], [])
 
     sync_manager.feed_file_objs(v1_fileobjs)
     sync_manager.feed_file_objs(v2_fileobjs)
