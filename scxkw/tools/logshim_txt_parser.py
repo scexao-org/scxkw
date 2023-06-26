@@ -78,6 +78,8 @@ class LogshimTxtParser:
             lines += ['%10ld  %10lu  %15.9lf   %20.9lf  %17.6lf   %10ld   %10ld' %
                       (ii, self.cnt0[ii], self.logshim_t_us[ii] - self.logshim_t_us[0], self.logshim_t_us[ii],
                        self.fgrab_t_us[ii], self.cnt0[ii], self.cnt1[ii])]
+            
+        self.lines = lines
 
 
     def _init_arrays_from_lines(self):
