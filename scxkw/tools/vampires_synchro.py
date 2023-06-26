@@ -255,7 +255,13 @@ class VampiresSynchronizer:
             timings = 0.5 * (fobj_merge_1.txt_file_parser.fgrab_t_us + fobj_merge_2.txt_file_parser.fgrab_t_us)
             fobj_merge_1.txt_file_parser.fgrab_t_us = timings
             fobj_merge_2.txt_file_parser.fgrab_t_us = timings
-        
+            fobj_merge_1.txt_file_parser.logshim_t_us = timings
+            fobj_merge_2.txt_file_parser.logshim_t_us = timings
+            fobj_merge_1.txt_file_parser._regenerate_lines_from_arrays()
+            fobj_merge_2.txt_file_parser._regenerate_lines_from_arrays()
+            
+            fobj_merge_1.rename_from_first_frame()
+            fobj_merge_2.rename_from_first_frame()
             fobj_merge_1.move_file_to_streamname(STR_VSYNC,
                                                  also_change_filename=True)
             fobj_merge_2.move_file_to_streamname(STR_VSYNC,

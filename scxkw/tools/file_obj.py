@@ -284,6 +284,15 @@ class FitsFileObj:
         
         return file_obj
 
+    def rename_from_first_frame(self):
+        assert self.stream_name_filename is not None and self.txt_file_parser is not None
+        tstr = fix_header_times(self.fits_header, self.txt_file_parser.fgrab_t_us[0] / 1e6,
+                                self.txt_file_parser.fgrab_t_us[-1] / 1e6)
+        new_name = self.stream_name_filename + '_' + tstr + ''.join(self.full_filepath.suffixes[1:])
+
+        self.rename_in_folder(new_name)
+
+
     def sub_file_nodisk(
         self,
         split_selector: np.ndarray,
