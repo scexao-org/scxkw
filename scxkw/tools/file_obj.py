@@ -345,8 +345,8 @@ class FitsFileObj:
 
         if self.txt_exists:
             # Return acqtime from first frame - 1 exposure
-            exp_time = self.fits_header['EXPTIME'] * \
-                        self.fits_header['DET-NSMP']
+            ndr = 1 if not 'DET-NSMP' in self.fits_header else self.fits_header['DET-NSMP']
+            exp_time = self.fits_header['EXPTIME'] * ndr
             assert self.txt_file_parser is not None
             return self.txt_file_parser.fgrab_t_us[0] / 1e6 - exp_time
         elif 'DATE-OBS' in self.fits_header and 'UT-STR' in self.fits_header:
