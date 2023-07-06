@@ -78,7 +78,7 @@ def deinterleave_filechecker(file_list: typ.List[FFO]) -> typ.List[bool]:
     statuses: typ.List[bool] = [False for n in range(len(file_list))]
 
     for kk, file in enumerate(file_list):
-        header = fits.getheader(file)
+        header = fits.getheader(file.full_filepath)
 
         detector = header['DETECTOR']
 
@@ -128,14 +128,16 @@ def deinterleave_file(file_obj: FFO, *, ir_true_vis_false: bool = True,
 
     key_flc_state = ('U_FLC', 'X_IFLCAB')[ir_true_vis_false]
     ret_files: typ.Dict[str, FFO] = {}
+    # A is -1 and B is +1 and that MUST NOT CHANGE for VAMPIRES
+    # For FPDI, we can figure it out...
     for flcval, key in zip([-1, 0, 1], ['A', 'D', 'B']):
         
         n = np.sum(flc_state == flcval)
         if n < 2:
             continue
 
-        subfile = file_obj.sub_file_nodisk(flc_state == flcval)
-        subfile.add_suffix_to_filename('.' + key)
+        #keep_name_timestamp: in this case, the full_path is the same as the parent until you add a suffix!!
+        subfile = file_obj.sub_file_nodisk(flc_state == flcval, add_suffix = '.' + key, keep_name_timestamp=True)
 
         subfile.fits_header[key_flc_state] = '%-16.16s' % key
 
@@ -190,6 +192,7 @@ def deinterleave_compute(dt_array: np.ndarray,
                          dt_jitter_us: int,
                          enforce_pairing: bool, *,
                          hamm_size: int = 30,
+                         clip_vals: typ.Optional[typ.Tuple[float,float]] = None,
                          corr_trust_margin: float = 0.75) -> typ.Tuple[np.ndarray, np.ndarray]:
     '''
         Validate the FLC state from an array of timing deltas
@@ -203,7 +206,13 @@ def deinterleave_compute(dt_array: np.ndarray,
     # L1 normalized, sign-alternating hamming window
     nyquist_hamming = hamming * ((np.arange(hamm_size) % 2)*2 - 1) / np.sum(hamming)
 
-    convolved = np.convolve(nyquist_hamming, dt_array, 'valid') / dt_jitter_us
+    # Clip crazy outliers
+    if clip_vals is None:
+        med: float = np.median(dt_array)
+        clip_vals = (med - 4 * dt_jitter_us, med + 4 * dt_jitter_us)
+    clipped = np.clip(dt_array, *clip_vals)
+
+    convolved = np.convolve(nyquist_hamming, clipped, 'valid') / dt_jitter_us
     # len(convolved) == N_FRAMES + HAMM_N = len(dt_array) + 1 + HAMM_N
     
     # We then apply a minimum filter - if there's a wonky glitch we want to blacktyp.List all neighboring frames.

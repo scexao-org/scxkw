@@ -296,6 +296,8 @@ class FitsFileObj:
     def sub_file_nodisk(
         self,
         split_selector: np.ndarray,
+        add_suffix: typ.Optional[str] = None,
+        keep_name_timestamp: bool = False
     ) -> FitsFileObj:
 
         assert split_selector.dtype == bool
@@ -319,12 +321,20 @@ class FitsFileObj:
         # Conserve ALL suffixes except the first one (frac seconds)
 
         assert self.stream_name_filename is not None
-        full_path = (self.full_filepath.parent / (self.stream_name_filename + '_' + tstr + ''.join(self.full_filepath.suffixes[1:])))
+        if keep_name_timestamp:
+            # In this case, the full_path is the same as the parent until you add a suffix!!
+            full_path = str(self.full_filepath)
+        else:
+            full_path = (self.full_filepath.parent / (self.stream_name_filename + '_' + tstr + ''.join(self.full_filepath.suffixes[1:])))
+
         file_obj = FitsFileObj(full_path,
                                  on_disk=False,
                                  header=header,
                                  data=subdata,
                                  txt_parser=txt_parser)
+
+        if add_suffix is not None:
+            file_obj.add_suffix_to_filename(add_suffix)
         
         return file_obj
 
