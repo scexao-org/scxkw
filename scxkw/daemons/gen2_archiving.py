@@ -348,10 +348,10 @@ from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIDeintJobMa
 def archive_monitor_deinterleave_or_passthrough(*, folder_root=GEN2PATH_NODELETE, job_manager: PDIDeintJobManager):
     # Allowed deinterleave streams and their target folder:
     PERMISSIBLE_STREAMS = {
-        'apapane': 'a_gen2',
-        'vsolo1': 'v_gen2',
-        'vsolo2': 'v_gen2',
-        'vsync': 'v_gen2'
+        'apapane': 'agen2',
+        'vsolo1': 'vgen2',
+        'vsolo2': 'vgen2',
+        'vsync': 'vgen2'
         }
 
     fileobj_list = file_tools.make_fileobjs_from_globs([folder_root + f'/*/{stream}/*.fits' for stream in PERMISSIBLE_STREAMS], [])
@@ -390,8 +390,8 @@ def archive_monitor_get_ids(scx_proxy: ro.remoteObjectProxy,
     # Set difference to exclude already renamed files
     # It is important not to hit the .tmp files
     fobj_list = file_tools.make_fileobjs_from_globs(
-        [GEN2PATH_NODELETE + '*/a_gen2/*.fits', GEN2PATH_NODELETE + '*/v_gen2/*.fits'],
-        [GEN2PATH_NODELETE + '*/a_gen2/SCX*.fits', GEN2PATH_NODELETE + '*/v_gen2/VMP*.fits']
+        [GEN2PATH_NODELETE + '*/agen2/*.fits', GEN2PATH_NODELETE + '*/vgen2/*.fits'],
+        [GEN2PATH_NODELETE + '*/agen2/SCX*.fits', GEN2PATH_NODELETE + '*/vgen2/VMP*.fits']
     )
     assert all([not f.is_archived for f in fobj_list])
     assert all([not f.is_compressed for f in fobj_list])
