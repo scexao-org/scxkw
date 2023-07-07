@@ -176,12 +176,17 @@ class FitsFileObj:
         return str(self.full_filepath)
 
     def add_suffix_to_filename(self, suffix: str) -> None:
-        # Big problem here...
+        # Suffix must include the .
         # If we have decimal seconds in the file name... it counts as a suffix.
-        # So we need to drop 1 suffix
-        assert len(self.full_filepath.suffixes) == 2
 
-        new_name = self.full_filepath.stem + suffix + ''.join(self.full_filepath.suffixes[1:])
+        assert suffix.startswith('.')
+        assert self.is_compressed is False
+        assert self.is_archived is False
+
+        filename_no_suff = self.file_name.split('.')[0]
+        suffixes = self.full_filepath.suffixes
+
+        new_name = filename_no_suff + ''.join(suffixes[:-1]) + suffix + suffixes[-1]
         print(new_name)
         self.rename_in_folder(new_name)
 

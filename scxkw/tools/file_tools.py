@@ -33,7 +33,7 @@ def make_fileobjs_from_globs(
         filename_set = filename_set.union(set(glob.glob(pp)))
 
     for nn in neg_globs:
-        filename_set.intersection_update(set(glob.glob(nn)))
+        filename_set.difference_update(set(glob.glob(nn)))
 
     file_obj_list = make_fileobjs_from_filenames(list(filename_set),
                                                  sort_by_time)

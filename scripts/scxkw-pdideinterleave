@@ -7,7 +7,7 @@
     Filename - ".fits" + ".txt" is expected to provide the logshim timing file.
     
     Usage:
-        scxkw-pdideinterleave <fits_filename> [--keep] [--source=<source_tree>] [--dest=<dest_tree>]
+        scxkw-pdideinterleave <fits_filename> [--keep] [--dstream=<dstream>]
 
     Options:
         -h --help        Show this
@@ -25,7 +25,7 @@ import os
 from astropy.io import fits
 
 from scxkw.tools.file_obj import FitsFileObj
-from scxkw.tools.pdi_deinterleave import deinterleave_file
+from scxkw.tools.pdi_deinterleave import deinterleave_file, deinterleave_filechecker
 
 
 
@@ -46,25 +46,26 @@ if __name__ == "__main__":
     logg = logging.getLogger(__name__)
     
 
-
     from docopt import docopt
     args = docopt(__doc__)
     
     NEW_STREAM = args['--dstream']
-    assert os.path.isdir(NEW_STREAM)
 
 
     fits_filename: str = args['<fits_filename>']
 
     # Validate files.
     if not fits_filename.endswith('.fits'):
+        logg.warning(f'scxkw-pdideinterleave - {fits_filename} NOT DOTFITS')
         exit(RETCODE.NOT_DOTFITS)
 
     if not os.path.isfile(fits_filename):
+        logg.warning(f'scxkw-pdideinterleave - {fits_filename} NO FITS')
         exit(RETCODE.NO_FITS)
 
     txt_filename = fits_filename[:-5] + '.txt'
     if not os.path.isfile(txt_filename):
+        logg.warning(f'scxkw-pdideinterleave - {fits_filename} NO TXT')
         exit(RETCODE.NO_TXT)
 
     file_obj = FitsFileObj(fits_filename)
@@ -73,34 +74,20 @@ if __name__ == "__main__":
     header = file_obj.fits_header
     if header['DETECTOR'] in ['CRED1 - APAPANE', 'CRED2 - PALILA']:
         ir_true_vis_false = True
-        try:
-            flc_used = header['X_IFLCST'] == 'ON'
-            _ = int(header['X_IFLCDL'])
-            flc_halfper = int(header['X_IFLCTM'])
-            flc_jitt = int(header['X_IFLCJT'])
-            flc_state = header['X_IFLCAB']
-            exttrig = header['EXTTRIG']
-        except KeyError:
-            exit(RETCODE.MISSING_KW)
+        flc_jitt = int(header['X_IFLCJT'])
     elif header['DETECTOR'] in ['VCAM1 - OrcaQ', 'VCAM2 - OrcaQ']:
         ir_true_vis_false = False
-        try:
-            flc_used = header['U_FLCEN'] == 'ON'
-            _ = int(header['U_TRIGDL'])
-            #flc_halfper = int(header['X_IFLCTM'])
-            flc_jitt = 30; #int(header['X_IFLCJT'])
-            flc_state = header['U_FLC']
-            exttrig = header['EXTTRIG']
-        except KeyError:
-            exit(RETCODE.MISSING_KW)
+        flc_jitt = 30
     else:
+        logg.warning(f'scxkw-pdideinterleave - {fits_filename} OOPS.')
         exit(RETCODE.OOPS)
 
-    # Validate this is as expected:
-    if (not flc_used) or (flc_state != 'NA') or (not exttrig):
-        exit(RETCODE.NO_DEINT_REQ)
+    ok_deint = deinterleave_filechecker([file_obj])[0]
 
-    # Make a FitsFileObj
+    # Validate this is as expected:
+    if not ok_deint:
+        logg.warning(f'scxkw-pdideinterleave - {fits_filename} NO DEINT REQUIRED.')
+        exit(RETCODE.NO_DEINT_REQ)
 
     # Call the deinterleave job
     # ir_true_vis_false should be directly replace by the appropriate FITS

@@ -50,7 +50,7 @@ class PDIDeintJobManager:
             return PDIJobCodeEnum.NOFILE
         if len(self.pending_jobs) == self.MAX_CONCURRENT_JOBS:
             logg.error(f'PDIDeintJobManager: max allowed ({self.MAX_CONCURRENT_JOBS})'
-                       'fpack jobs already running at the same time.')
+                       'deint jobs already running at the same time.')
             return PDIJobCodeEnum.TOOMANY
         if str(file_obj.full_filepath) in self.pending_jobs:
             return PDIJobCodeEnum.ALREADY_RUNNING
@@ -84,13 +84,19 @@ def deinterleave_filechecker(file_list: typ.List[FFO]) -> typ.List[bool]:
 
         valid_fpdi_file = (detector in ['CRED1 - APAPANE', 'CRED2 - PALILA']
                            and header['X_IFLCST'] == 'ON' and header['EXTTRIG']
-                           and header['X_IFLCST'] == 'NA')
+                           and header['X_IFLCAB'] == 'NA')
         valid_vpdi_file = (detector in ['VCAM1 - OrcaQ', 'VCAM2 - OrcaQ']
-                           and header['U_FLCEN'] == 'ON'
-                           and header['U_FLC'] == 'NA')
+                           and header['EXTTRIG'] is True
+                           and header['U_FLCEN'] is True
+                           and header['U_FLCST'] == 'IN'
+                           and (header['U_FLC'] is None or header['U_FLC'] == 'NA'))
+        
+        #if valid_vpdi_file:
+        #    print(file.full_filepath)
 
         if valid_fpdi_file or valid_vpdi_file:
             statuses[kk] = True
+            logg.info(f'deinterleave_filechecker: valid {file.full_filepath}')
 
     return statuses
 
@@ -99,13 +105,14 @@ def deinterleave_start_job_async(file_name: str,
                                  new_stream_name: str,
                                  keep_original: bool = True,) -> sproc.Popen:
     cmd = f'scxkw-pdideinterleave {file_name}' + ('', ' --keep')[keep_original] + \
-            ('' if new_stream_name is None else f'--dstream={new_stream_name}')
+            ('' if new_stream_name is None else f' --dstream={new_stream_name}')
 
     return sproc.Popen(cmd.split(' '))
 
 
-def deinterleave_file(file_obj: FFO, *, ir_true_vis_false: bool = True,
-                      flc_jitter_us_hint: typ.Optional[int] = True,
+def deinterleave_file(file_obj: FFO, *,
+                      ir_true_vis_false: bool = True,
+                      flc_jitter_us_hint: typ.Optional[int] = None,
                       write_to_disk: bool = False):
     '''
     This file will carry the header on to the split files.
@@ -200,7 +207,9 @@ def deinterleave_compute(dt_array: np.ndarray,
 
     n_frames = len(dt_array) + 1
 
-    assert len(dt_array) > 2 * hamm_size # Arbitrary but we need a little bit of length.
+    if len(dt_array) <= 2 * hamm_size: # Arbitrary but we need a little bit of length.
+        return np.zeros(n_frames, np.int32), None # all frames dubious.
+
 
     hamming = np.hamming(hamm_size)
     # L1 normalized, sign-alternating hamming window
