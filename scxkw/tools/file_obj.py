@@ -317,8 +317,6 @@ class FitsFileObj:
         header = self.fits_header.copy()
         header['NAXIS3'] = np.sum(split_selector)
 
-        tstr = fix_header_times(header, txt_parser.fgrab_t_us[0] / 1e6,
-                                 txt_parser.fgrab_t_us[-1] / 1e6)
 
         assert self.data is not None
         subdata = self.data[split_selector]
@@ -330,6 +328,10 @@ class FitsFileObj:
             # In this case, the full_path is the same as the parent until you add a suffix!!
             full_path = str(self.full_filepath)
         else:
+            # We are NOT fixing header times if keep_name_timestamp!!
+            # By design so that PDI deinterleaving maintains identical MJDs.
+            tstr = fix_header_times(header, txt_parser.fgrab_t_us[0] / 1e6,
+                                    txt_parser.fgrab_t_us[-1] / 1e6)
             full_path = (self.full_filepath.parent / (self.stream_name_filename + '_' + tstr + ''.join(self.full_filepath.suffixes[1:])))
 
         file_obj = FitsFileObj(full_path,

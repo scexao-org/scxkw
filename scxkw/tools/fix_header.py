@@ -25,7 +25,7 @@ def fix_header_times(header: fits.Header,
     ut_end = datetime.fromtimestamp(end_time_unix).astimezone(timezone.utc)
     ut_mid = datetime.fromtimestamp((end_time_unix + start_time_unix) / 2.).astimezone(timezone.utc)
     
-    hst_zone = timezone(timedelta(hours=-10))
+    hst_zone = timezone(timedelta(hours=-10)) # FIXME hard set HST.
     hst_start = ut_start.astimezone(hst_zone)
     hst_end = ut_end.astimezone(hst_zone)
     hst_mid = ut_mid.astimezone(hst_zone)
