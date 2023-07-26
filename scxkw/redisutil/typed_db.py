@@ -25,9 +25,10 @@ def func_factory(method_name, superclass):
 class Pipeline(redis.client.Pipeline):
     
     def hset(self, name: str,
-             key: typ.Optional[str],
-             value: typ.Optional[ScxkwValueType],
-             mapping: typ.Optional[typ.Mapping[str, ScxkwValueType]]):
+             key: typ.Optional[str] = None,
+             value: typ.Optional[ScxkwValueType] = None,
+             mapping: typ.Optional[typ.Mapping[str, ScxkwValueType]] = None
+             ):
         '''
         Hack hset for the magic boolean
         '''
@@ -54,9 +55,10 @@ class Redis(redis.Redis):
             shard_hint)
     
     def hset(self, name: str,
-            key: typ.Optional[str],
-            value: typ.Optional[ScxkwValueType],
-            mapping: typ.Optional[typ.Mapping[str, ScxkwValueType]]):
+            key: typ.Optional[str] = None,
+            value: typ.Optional[ScxkwValueType] = None,
+            mapping: typ.Optional[typ.Mapping[str, ScxkwValueType]] = None
+            ):
         '''
         Hack hset for the magic boolean
         '''
