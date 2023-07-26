@@ -1,6 +1,12 @@
+from __future__ import annotations
+
 import redis
 
-from .type_cast import nested_cast
+import typing as typ
+
+
+from .type_cast import nested_cast, to_redis_scalar_cast, ScxkwValueType
+from ..config import MAGIC_BOOL_STR
 
 
 def func_factory(method_name, superclass):
@@ -16,9 +22,19 @@ def func_factory(method_name, superclass):
 
     return method
 
-
 class Pipeline(redis.client.Pipeline):
-    pass
+    
+    def hset(self, name: str,
+             key: typ.Optional[str],
+             value: typ.Optional[ScxkwValueType],
+             mapping: typ.Optional[typ.Mapping[str, ScxkwValueType]]):
+        '''
+        Hack hset for the magic boolean
+        '''
+        new_value = None if value is None else to_redis_scalar_cast(value)
+        new_mapping = None if mapping is None else {k: to_redis_scalar_cast(mapping[k]) for k in mapping}
+        
+        return redis.client.Pipeline.hset(self, name=name, key=key, value=new_value, mapping=new_mapping)
 
 
 class Redis(redis.Redis):
@@ -36,6 +52,18 @@ class Redis(redis.Redis):
             self.response_callbacks,
             transaction,
             shard_hint)
+    
+    def hset(self, name: str,
+            key: typ.Optional[str],
+            value: typ.Optional[ScxkwValueType],
+            mapping: typ.Optional[typ.Mapping[str, ScxkwValueType]]):
+        '''
+        Hack hset for the magic boolean
+        '''
+        new_value = None if value is None else to_redis_scalar_cast(value)
+        new_mapping = None if mapping is None else {k: to_redis_scalar_cast(mapping[k]) for k in mapping}
+        
+        return redis.Redis.hset(self, name=name, key=key, value=new_value, mapping=new_mapping)
 
 
 METHODS_TO_CAST = [
