@@ -3,7 +3,23 @@
 # Move pwd such that ${PWD}/cams/SCExAO.py
 cd ${HOME}/src/scxkw/conf
 
-# SIMULATOR
-#g2cam --cam=SCEXAO --loglevel=20 --log=g2cam.log --stderr --gen2host=g2sim1.subaru.nao.ac.jp --obcpnum=16
-# ACTUAL
-g2cam --cam=SCEXAO --loglevel=20 --log=g2cam.log --stderr --gen2host=g2ins1.sum.subaru.nao.ac.jp --obcpnum=16
+echo "Run with no arguments for SCEXAO, with '-v' for VAMPIRES."
+echo ""
+
+if [[ "$#" -eq 1 && "$1" == "-v" ]]; then
+    echo "RUNNING FOR VAMPIRES"
+    # VAMPIRES
+    # SIMULATOR
+    #g2cam --cam=SCEXAO --loglevel=20 --log=g2cam.log --stderr --gen2host=g2sim1.subaru.nao.ac.jp --obcpnum=16
+    # ACTUAL
+    g2cam --cam=VAMPIRES --loglevel=20 --log=g2cam.log --stderr \
+        --gen2host=g2ins1.sum.subaru.nao.ac.jp --obcpnum=31 --port 60123 --monport 60124
+else
+    echo "RUNNING FOR SCEXAO"
+    # SCEXAO
+    # SIMULATOR
+    #g2cam --cam=SCEXAO --loglevel=20 --log=g2cam.log --stderr --gen2host=g2sim1.subaru.nao.ac.jp --obcpnum=16
+    # ACTUAL
+    g2cam --cam=SCEXAO --loglevel=20 --log=g2cam.log --stderr \
+        --gen2host=g2ins1.sum.subaru.nao.ac.jp --obcpnum=16 --port 60133 --monport 60134
+fi
