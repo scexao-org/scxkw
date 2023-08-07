@@ -71,8 +71,6 @@ class VAMPIRES(BASECAM):
                           # add more here if you like
                           ]
 
-        self.framefile = "/tmp/frames.txt"
-
     #######################################
     # INITIALIZATION
     #######################################
@@ -241,7 +239,7 @@ class VAMPIRES(BASECAM):
         #framelist = [('VMPA%08d' % i) for i in range(num)]
 
         # write frame list to file
-        with open(self.framefile, 'w') as out_f:
+        with open("/tmp/frames_VMP%s.txt" % (frtype,), 'w') as out_f:
             out_f.write('\n'.join(framelist))
 
 

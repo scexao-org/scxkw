@@ -241,7 +241,7 @@ class SCEXAO(BASECAM):
         framelist = self.ocs.getFrames(num, frtype)
 
         # write frame list to file
-        with open("/tmp/frames_%s.txt" % (frtype,), 'w') as out_f:
+        with open("/tmp/frames_SCX%s.txt" % (frtype,), 'w') as out_f:
             out_f.write('\n'.join(framelist))
 
 
