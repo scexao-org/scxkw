@@ -4,6 +4,7 @@ import typing as typ
 import logging
 
 logg = logging.getLogger(__name__)
+logg.setLevel(logging.DEBUG)
 
 import time
 import numpy as np
@@ -19,10 +20,13 @@ OTHER_INDEX = lambda n: 3 - n  # 2 -> 1, 1 -> 2
 STR_VCAM1 = 'vcam1'
 STR_VCAM2 = 'vcam2'
 STR_VSYNC = 'vsync'
+STR_VBAD = 'vbad'
 STRFMT_VSOLO = 'vsolo%d'
 
-class VampiresSynchronizer:
+VAMPIRES_USEC_TOLERANCING = 400
 
+
+class VampiresSynchronizer:
     def __init__(self) -> None:
         self.queue1: typ.List[FFO] = []
         self.queue2: typ.List[FFO] = []
@@ -70,13 +74,19 @@ class VampiresSynchronizer:
         self.queue1.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
         self.queue2.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
 
-
-    def process_queues(self) -> None:
+    def process_queues(self, throtle_down: int = 30) -> None:
         status = True
-        while status:
+        for _ in range(throtle_down):
             status = self.process_queue_oneshot()
-            status |= self.process_out_queue_oneshot(1)
-            status |= self.process_out_queue_oneshot(2)
+            self.flush_out_queues()
+            if not status:
+                break
+
+    def flush_out_queues(self) -> None:
+        while self.process_out_queue_oneshot(1):
+            pass
+        while self.process_out_queue_oneshot(2):
+            pass
 
     def process_out_queue_oneshot(self, idx: int) -> bool:
 
@@ -88,57 +98,80 @@ class VampiresSynchronizer:
             else:
                 file = self.out_queues[idx].pop(0)
                 self.out_files[idx] = file
-        
+
         # File is big enough by itself
         assert file is not None
-        if (file.get_finish_unixtime_secs() -
-            file.get_start_unixtime_secs() > 5.0):
+        if (file.get_finish_unixtime_secs() - file.get_start_unixtime_secs() >
+                10.0):
             assert file.txt_file_parser is not None
-            selector = (file.txt_file_parser.fgrab_t_us / 1e6 - file.get_start_unixtime_secs()) < 5.0
-            file_0 = file.sub_file_nodisk(selector)
-            print('Path VV')
 
-            assert file_0.stream_from_foldername == 'vsync' and '.cam' in file_0.file_name # TODO remove once confident
-            file_0.write_to_disk()
-            
-            file_1 = file.sub_file_nodisk(~selector)
-            self.out_files[idx] = file_1
-            
+            # Offset by 1 EXPTIME, the same way as for get_start_unixtime
+            # This matters for exposures.... well, longer than 10 sec.
+            selector = (file.txt_file_parser.fgrab_t_us / 1e6 -
+                        file.fits_header['EXPTIME'] -
+                        file.get_start_unixtime_secs()) < 10.0
+            print('Path VV')
+            if sum(selector) > 0:
+                file_0 = file.sub_file_nodisk(selector)
+
+                assert file_0.stream_from_foldername == 'vsync' and '.cam' in file_0.file_name  # TODO remove once confident
+                file_0.write_to_disk(try_flush_ram = True)
+
+            if sum(~selector) > 0:
+                file_1 = file.sub_file_nodisk(~selector)
+                self.out_files[idx] = file_1
+                # Must return false if this file is ALL the frames. We've done nothing really.
+                # Otherwise this creates an infinite loop.
+                if sum(selector) == 0:
+                    return False
+            else:
+                self.out_files[idx] = None
+
             return True
 
         now = time.time()
 
         # There is no next file AND the input queues are empty AND we've waited 30 seconds
-        if (len(self.out_queues[idx]) == 0 and len(self.queue1) == 0 and len(self.queue2) == 0 and (now - file.get_finish_unixtime_secs()) > 30.0):
+        if (len(self.out_queues[idx]) == 0 and len(self.queue1) == 0
+                and len(self.queue2) == 0
+                and (now - file.get_finish_unixtime_secs()) > 30.0):
             print('Path WW')
-            assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name # TODO remove once confident
-            file.write_to_disk()
+            assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name  # TODO remove once confident
+            file.write_to_disk(try_flush_ram = True)
             self.out_files[idx] = None
-        
+
             return True
-        
+
         # There is a next file
 
         if len(self.out_queues[idx]) > 0:
             next_file = self.out_queues[idx].pop(0)
-            
-            # and there's .9 second gap
-            if (next_file.get_start_unixtime_secs() - file.get_finish_unixtime_secs() > 0.9):
+
+            # and some critical parameters have changed OR
+            # and there's 3 second gap
+            if (next_file.fits_header['EXPTIME'] != file.fits_header['EXPTIME']
+                    or next_file.fits_header['NAXIS1'] !=
+                    file.fits_header['NAXIS1']
+                    or next_file.fits_header['NAXIS2'] !=
+                    file.fits_header['NAXIS2']
+                    or next_file.fits_header['RET-ANG1'] !=
+                    file.fits_header['RET-ANG1']
+                    or next_file.get_start_unixtime_secs() -
+                    file.get_finish_unixtime_secs() > 3.0):
                 print('Path XX')
-                assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name # TODO remove once confident
-                file.write_to_disk()
+                assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name  # TODO remove once confident
+                file.write_to_disk(try_flush_ram = True)
                 self.out_files[idx] = next_file
                 return True
-            
+
             # and there's no big gap - FIXME TODO try if possible to split before merging.
             self.out_files[idx] = file.merge_with_file_after(next_file)
 
             return True
-        
+
         # We have a file, it's not big enough, but the timeout has not elapsed,
         # and we have no next file...
         return False
-        
 
     def find_pop_earliest_file(self) -> typ.Tuple[typ.Optional[FFO], int]:
         if len(self.queue1) == 0 and len(self.queue2) == 0:
@@ -184,6 +217,12 @@ class VampiresSynchronizer:
         )  # It's the time now, but we assume really that we've
         # just rescanned the drive for files.
 
+        if self.is_bad_file(earliest_file):
+            logg.error(
+                f'VampiresSynchronizer::process_queue_oneshot - BAD FILE')
+            earliest_file.move_file_to_streamname(STR_VBAD)
+            return True
+
         if self.is_trivial_solo_vamp_file(earliest_file):
             logg.info(f'VampiresSynchronizer::process_queue_oneshot - '
                       f'{earliest_file.file_name} is trivial vsolo.')
@@ -228,12 +267,19 @@ class VampiresSynchronizer:
         # We pop the to_merge_file for good, it's gonna be affected.
         _ = self.queue_dict_p[v_other_idx].pop(0)
 
+        # Could be a badfile
+        if self.is_bad_file(to_match_file):
+            logg.error(
+                f'VampiresSynchronizer::process_queue_oneshot - BAD FILE')
+            to_match_file.move_file_to_streamname(STR_VBAD)
+            self.queue_dict_p[v_idx].insert(0, earliest_file)  # Re-enqueue
+            return True
         # Could be that the to_match_file is a single frame OR has no EXTTRIG
         if self.is_trivial_solo_vamp_file(to_match_file):
             logg.info(f'VampiresSynchronizer::process_queue_oneshot - '
                       f'{to_match_file.file_name} is trivial vsolo.')
             to_match_file.move_file_to_streamname(STRFMT_VSOLO % v_other_idx)
-            self.queue_dict_p[v_idx].insert(0, earliest_file)
+            self.queue_dict_p[v_idx].insert(0, earliest_file)  # Re-enqueue
             return True
 
         if v_idx == 1:
@@ -248,18 +294,20 @@ class VampiresSynchronizer:
         # I don't want to be bothered with files with very low dimensionality.
         # Actually fobj_merge_1 and fobj_merge_2 exist both or None, and must have the same number of frames...
 
-        if (fobj_merge_1 is not None and fobj_merge_1.get_nframes() >= 2):
-            assert (fobj_merge_2 is not None and fobj_merge_2.get_nframes() >= 2)
-            assert (fobj_merge_1.txt_file_parser is not None and fobj_merge_2.txt_file_parser is not None)
+        if fobj_merge_1 is not None:
+            assert fobj_merge_2 is not None
+            assert (fobj_merge_1.txt_file_parser is not None
+                    and fobj_merge_2.txt_file_parser is not None)
             # Force synced timings on merged files.
-            timings = 0.5 * (fobj_merge_1.txt_file_parser.fgrab_t_us + fobj_merge_2.txt_file_parser.fgrab_t_us)
+            timings = 0.5 * (fobj_merge_1.txt_file_parser.fgrab_t_us +
+                             fobj_merge_2.txt_file_parser.fgrab_t_us)
             fobj_merge_1.txt_file_parser.fgrab_t_us = timings
             fobj_merge_2.txt_file_parser.fgrab_t_us = timings
             fobj_merge_1.txt_file_parser.logshim_t_us = timings
             fobj_merge_2.txt_file_parser.logshim_t_us = timings
             fobj_merge_1.txt_file_parser._regenerate_lines_from_arrays()
             fobj_merge_2.txt_file_parser._regenerate_lines_from_arrays()
-            
+
             fobj_merge_1.rename_from_first_frame()
             fobj_merge_2.rename_from_first_frame()
             fobj_merge_1.move_file_to_streamname(STR_VSYNC,
@@ -269,14 +317,13 @@ class VampiresSynchronizer:
 
             fobj_merge_1.add_suffix_to_filename('.cam1')
             fobj_merge_2.add_suffix_to_filename('.cam2')
-            
+
             self.out_queues[1].append(fobj_merge_1)
             self.out_queues[2].append(fobj_merge_2)
 
-
         # At this point there may be a name conflict between original files and remainder files.
-        file_v1.delete_from_disk()
-        file_v2.delete_from_disk()
+        file_v1.delete_from_disk(try_purge_ram=True)
+        file_v2.delete_from_disk(try_purge_ram=True)
 
         # So, another problem is now that if files overlap but do not sync, and we requeue them,
         # It causes an infinite loop...
@@ -284,40 +331,51 @@ class VampiresSynchronizer:
         if fobj_remainder_1 is not None and str(
                 fobj_remainder_1) in self.seen_before:
             fobj_remainder_1.move_file_to_streamname(STRFMT_VSOLO % 1)
-            b = save_to_disk_if(fobj_remainder_1, 2, r1 < 0.95)
+            b = save_to_disk_if(fobj_remainder_1, 1, r1 < 0.95)
             logg.debug(f'A branch: {r1} - {fobj_remainder_1} - {b}')
-        elif save_to_disk_if(fobj_remainder_1, 2, r1 < 0.95):
+        elif save_to_disk_if(fobj_remainder_1, 1, r1 < 0.95):
             assert fobj_remainder_1 is not None  # mypy
             self.feed_file_objs([fobj_remainder_1])
-            logg.debug(f'B branch: {r2} - {fobj_remainder_2}')
+            logg.debug(f'B branch: {r1} - {fobj_remainder_1}')
 
         if fobj_remainder_2 is not None and str(
                 fobj_remainder_2) in self.seen_before:
             fobj_remainder_2.move_file_to_streamname(STRFMT_VSOLO % 2)
-            b = save_to_disk_if(fobj_remainder_2, 2, r2 < 0.95)
+            b = save_to_disk_if(fobj_remainder_2, 1, r2 < 0.95)
             logg.debug(f'C branch: {r2} - {fobj_remainder_2} - {b}')
-        elif save_to_disk_if(fobj_remainder_2, 2, r2 < 0.95):
-            logg.debug(f'D branch: {r2} - {fobj_remainder_2}')
+        elif save_to_disk_if(fobj_remainder_2, 1, r2 < 0.95):
             assert fobj_remainder_2 is not None  # mypy
             self.feed_file_objs([fobj_remainder_2])
+            logg.debug(f'D branch: {r2} - {fobj_remainder_2}')
 
         return True
 
-    def is_trivial_solo_vamp_file(self, file: FFO):
+    def is_trivial_solo_vamp_file(self, file: FFO) -> bool:
         # We can only synchro if the cameras are in exttrig
-        return (not file.fits_header['EXTTRIG'] or file.get_nframes() <= 1)
+        return file.fits_header['EXTTRIG'] is False
+
+    def is_bad_file(self, file: FFO) -> bool:
+        # We need EXPTIME and DET-NSMP because they allow to calculate the start and end
+        # of a single frame file properly and give it some temporal "thickness"
+        return  (file.txt_file_parser is None or
+                file.get_nframes() != len(file.txt_file_parser.fgrab_t_us)
+                or file.fits_header is None
+                or not 'EXPTIME' in file.fits_header
+                or file.fits_header['EXPTIME'] is None)
 
 
 def save_to_disk_if(file_obj: OpT_FFO,
-                    min_frames: int = 2,
+                    min_frames: int = 1,
                     misc_condition: bool = True):
     if (file_obj is not None and misc_condition
             and file_obj.get_nframes() >= min_frames):
         file_obj.write_to_disk()
         return True
     elif file_obj is not None:
-        logg.warning(f'save_to_disk_if - '
-                     f'ditching file {file_obj.file_name}')
+        logg.warning(
+            f'save_to_disk_if - '
+            f'ditching file {file_obj.file_name} ({file_obj.get_nframes()} frames @ EXPTIME {file_obj.fits_header["EXPTIME"]})'
+        )
     else:
         logg.warning(f'save_to_disk_if - file is None')
     return False
@@ -330,7 +388,8 @@ def resync_two_files(file_v1: FFO, file_v2: FFO) -> \
     timings_v1 = file_v1.txt_file_parser.fgrab_t_us
     timings_v2 = file_v2.txt_file_parser.fgrab_t_us
 
-    common_arr_v1, common_arr_v2 = sync_timing_arrays(timings_v1, timings_v2)
+    common_arr_v1, common_arr_v2 = sync_timing_arrays(
+        timings_v1, timings_v2, tolerance_us=VAMPIRES_USEC_TOLERANCING)
 
     # Fraction of successfully synced up frames
     ratio1 = np.sum(common_arr_v1) / len(common_arr_v1)
@@ -353,7 +412,9 @@ import numba
 
 
 @numba.jit  # JIT is particularly efficient on that type of branch-loop code.
-def sync_timing_arrays(time_v1: np.ndarray, time_v2: np.ndarray, tolerance_us = 80) -> \
+def sync_timing_arrays(time_v1: np.ndarray, time_v2: np.ndarray,
+                       tolerance_us = VAMPIRES_USEC_TOLERANCING,
+                       strict=False) -> \
         typ.Tuple[np.ndarray, np.ndarray]:
 
     n1, n2 = len(time_v1), len(time_v2)
@@ -362,6 +423,8 @@ def sync_timing_arrays(time_v1: np.ndarray, time_v2: np.ndarray, tolerance_us = 
 
     # Alright... double ladder loop to find pairs.
     k1, k2 = 0, 0
+
+    current_tolerance_us = tolerance_us
 
     while k1 < n1 and k2 < n2:
         earliest = 1 if time_v1[k1] < time_v2[k2] else 2
@@ -374,12 +437,24 @@ def sync_timing_arrays(time_v1: np.ndarray, time_v2: np.ndarray, tolerance_us = 
             common_array_v2[k2] = True
             k1 += 1
             k2 += 1
+            if not strict:
+                current_tolerance_us = min(2.5 * tolerance_us,
+                                           1.1 * current_tolerance_us)
         else:
-            # Contender time is more than tolerance_s too late:
-            if earliest == 1:
+            if not strict and abs(time_1 - time_2) < current_tolerance_us:
+                common_array_v1[k1] = True
+                common_array_v2[k2] = True
                 k1 += 1
-            else:
                 k2 += 1
+                current_tolerance_us = max(tolerance_us,
+                                           0.9 * current_tolerance_us)
+            else:
+                # Contender time is more than tolerance_s too late:
+                if earliest == 1:
+                    k1 += 1
+                else:
+                    k2 += 1
+                current_tolerance_us = tolerance_us
 
     return common_array_v1, common_array_v2
 
@@ -416,4 +491,30 @@ milk-logshim vcam2 250 /tmp/ARCHIVE1/20230620/vcam2/
 
 
 
+
+MORE TESTING
+import os
+from scxkw.tools import file_tools
+v1_fobjs = file_tools.make_fileobjs_from_globs([os.path.abspath('./vcam1/*.fits')], [])
+v2_fobjs = file_tools.make_fileobjs_from_globs([os.path.abspath('./vcam2/*.fits')], [])
+from scxkw.tools.vampires_synchro import VampiresSynchronizer
+syncer = VampiresSynchronizer()
+syncer.feed_file_objs(v1_fobjs)
+syncer.feed_file_objs(v2_fobjs)
+'''
+
+
+'''
+import os, psutil
+from scxkw.tools import file_tools
+v1_fobjs = file_tools.make_fileobjs_from_globs(['/mnt/tier1/ARCHIVED_DATA/20230712/vcam1/*.fits'], [])
+for fo in v1_fobjs:
+    fo.ut_sanitize()
+v2_fobjs = file_tools.make_fileobjs_from_globs(['/mnt/tier1/ARCHIVED_DATA/20230712/vcam2/*.fits'], [])
+for fo in v2_fobjs:
+    fo.ut_sanitize()
+from scxkw.tools.vampires_synchro import VampiresSynchronizer
+syncer = VampiresSynchronizer()
+syncer.feed_file_objs(v1_fobjs)
+syncer.feed_file_objs(v2_fobjs)
 '''

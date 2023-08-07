@@ -13,14 +13,16 @@ from .file_obj import FitsFileObj
 if typ.TYPE_CHECKING:
     StrPath = typ.Union[str, pathlib.Path]
 
-def get_name_no_compextension(strpath: StrPath) -> str:
+
+def get_fullpath_no_compextension(strpath: StrPath) -> str:
     path = pathlib.Path(strpath)
     if path.suffix == '.fits':
-        return path.name
+        return str(path.parent / path.name)
     elif path.suffix in ['.fz', '.gz']:
-        return path.stem
-    
-    raise AssertionError('get_name_no_compextension - Need a fits, fits.fz, fits.gz file.')
+        return str(path.parent / path.stem)
+
+    raise AssertionError(
+        'get_name_no_compextension - Need a fits, fits.fz, fits.gz file.')
 
 
 def make_fileobjs_from_globs(
@@ -42,14 +44,14 @@ def make_fileobjs_from_globs(
 
 
 def separate_compression_dups(
-    filename_list: typ.Iterable[StrPath],
-    filename_fzgz_list: typ.Iterable[StrPath]
-) -> typ.List[str]:
-
-    list_pairs: typ.List[typ.Tuple[str, str]] = []
+        filename_list: typ.Iterable[StrPath],
+        filename_fzgz_list: typ.Iterable[StrPath]) -> typ.List[str]:
 
     set_uncomp_paths = {str(fname) for fname in filename_list}
-    set_comp_paths = {get_name_no_compextension(fname) for fname in filename_fzgz_list}
+    set_comp_paths = {
+        get_fullpath_no_compextension(fname)
+        for fname in filename_fzgz_list
+    }
     '''
     This symmetric difference uses the magic of the FzGzAgnostic hash function...
     We could have made that WAY simpler.
@@ -71,7 +73,8 @@ def make_fileobjs_from_filenames(
             from scxkw.daemons.g2archiving
     '''
 
-    file_obj_list = [FitsFileObj(filename) for filename in filename_list]
+    from tqdm import tqdm
+    file_obj_list = [FitsFileObj(filename) for filename in tqdm(filename_list)]
 
     if sort_by_time:
         file_obj_list.sort(key=lambda fobj: fobj.file_time)
@@ -79,3 +82,42 @@ def make_fileobjs_from_filenames(
         file_obj_list.sort(key=lambda fobj: fobj.full_filepath)
 
     return file_obj_list
+
+
+def dump_headers_to_tsv(file_list: typ.Iterable[FitsFileObj],
+                        tsv_path: StrPath):
+    all_keys: typ.Set[str] = set()
+
+    for fobj in file_list:
+        all_keys.update(fobj.fits_header.keys())
+
+    all_keys.remove('COMMENT')
+
+    all_keys_list = list(all_keys)
+    all_keys_list.sort()  # alphabetical
+
+    path_save = pathlib.Path(tsv_path)
+    assert (path_save.parent.exists() and not path_save.exists()
+            and path_save.suffix == '.tsv')
+
+
+
+    line = 'FNAME\tFULLPATH\t'
+    line += '\t'.join(all_keys_list)
+    line += '\n'
+
+    file_lines = [line]
+
+    for fobj in file_list:
+        line = f'{fobj.file_name}\t{fobj.full_filepath}'
+
+        for key in all_keys_list:
+            line += '\t' + str(fobj.fits_header.get(key, 'NULL'))
+
+        line += '\n'
+        file_lines += [line]
+        
+    with open(path_save, 'w') as tsvfile:
+        # Header row.
+        tsvfile.writelines(file_lines)
+        

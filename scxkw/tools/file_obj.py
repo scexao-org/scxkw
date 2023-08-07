@@ -37,6 +37,9 @@ class FitsFileObj:
 
         if on_disk:
             self._initial_existence_check()
+            self.constr_header = header
+            self.constr_data = data
+            self.constr_txt = txt_parser
         else:
             if not (header is not None and data is not None
                     and txt_parser is not None):
@@ -105,6 +108,9 @@ class FitsFileObj:
         self.file_time = self.file_time_filename if self.file_time_filename else self.file_time_creation
 
         self.fits_header: fits.Header = self._locate_fitsheader()
+        self.file_time_header: float = datetime.strptime(
+                self.fits_header['DATE'], '%Y-%m-%dT%H:%M:%S'
+            ).timestamp()
 
         self.txt_file_path: Path = self.full_filepath.parent / (self.full_filepath.stem + '.txt')
 
@@ -130,14 +136,14 @@ class FitsFileObj:
             self.constr_txt.name = str(self.txt_file_path)
             return True, self.constr_txt
 
-    def write_to_disk(self):
+    def write_to_disk(self, try_flush_ram: bool = False) -> None:
         if self.is_on_disk:
             message = f"FitsFileObj::write_to_disk: already exists - {str(self.full_filepath)}"
             logg.critical(message)
             raise AssertionError(message)
         
         assert self.txt_file_parser is not None
-        logg.warning(f'FitsFileObj::write_to_disk - Writing {str(self.full_filepath)}')
+        logg.warning(f'FitsFileObj::write_to_disk - Writing {str(self.full_filepath)} ({self.get_nframes()}x[{self.fits_header["NAXIS1"]}x{self.fits_header["NAXIS2"]}])')
 
         os.makedirs(self.full_filepath.parent, exist_ok=True)
 
@@ -148,16 +154,16 @@ class FitsFileObj:
 
         tmped_name = self.full_filepath.parent / 'tmp' / self.full_filepath.name
         fits.writeto(tmped_name,
-                     self.constr_data, self.fits_header)
+                        self.constr_data, self.fits_header)
+            
         shutil.move(str(tmped_name), self.full_filepath)
 
-        # Remove the tmp dir if empty
-        try:
-            os.rmdir(self.full_filepath.parent / 'tmp')
-        except OSError: # Not empty
-            pass
+        # DO NOT delete the /tmp folder... race condition with other processes!
 
         self.is_on_disk = True
+
+        if try_flush_ram:
+            self._flush_from_ram()
 
     def check_existence_on_disk(self) -> bool:
         if not self.is_on_disk:
@@ -189,6 +195,26 @@ class FitsFileObj:
         new_name = filename_no_suff + ''.join(suffixes[:-1]) + suffix + suffixes[-1]
         print(new_name)
         self.rename_in_folder(new_name)
+
+    def ut_sanitize(self) -> None:
+        
+        assert self.stream_name_filename is not None
+        assert self.file_time_filename is not None
+
+        if not abs((self.file_time_header - self.file_time_filename) % 86400 - 36000) < 2000:
+            return
+
+        # Prefer to add back 10 hours to HST to conserve the logic of when
+        # the filename is taken relative to the file.
+        new_filename = self.stream_name_filename + '_' +\
+              datetime.fromtimestamp(self.file_time_filename + 36000).strftime('%H:%M:%S') +\
+              ''.join(self.full_filepath.suffixes)
+
+        message = f"FitsFileObj::ut_sanitize: {self.file_name} -> {new_filename}"
+        logg.warning(message)
+
+        self.rename_in_folder(new_filename)
+
 
     def rename_in_folder(self, new_name: str) -> None:
 
@@ -238,12 +264,13 @@ class FitsFileObj:
         if allow_makedirs and self.is_on_disk:
             os.makedirs(new_full_path.parent, exist_ok=True)
 
-        new_txt_path = new_full_path.parent / (self.full_filepath.stem + '.txt')
+        new_txt_path = new_full_path.parent / (new_full_path.stem + '.txt')
 
         if self.is_on_disk:
             logg.warning(f'FitsFileObj::_move - moving {str(self.full_filepath)}'
                          f' to {new_full_path}')
-            shutil.move(str(self.txt_file_path), new_txt_path)
+            if self.txt_exists:
+                shutil.move(str(self.txt_file_path), new_txt_path)
             shutil.move(str(self.full_filepath), new_full_path)
 
         self.full_filepath = new_full_path
@@ -259,9 +286,20 @@ class FitsFileObj:
     def _ensure_data_loaded(self):
         if self.data is None:
             if self.is_on_disk:
-                self.data = fits.getdata(self.full_filepath)
+                self.data = fits.getdata(self.full_filepath, memmap=False)
             else:
                 self.data = self.constr_data
+
+    def _flush_from_ram(self) -> None:
+        '''
+        This is basically reversing _ensure_data_loaded.
+        '''
+        if self.data is not None and self.is_on_disk:
+            del self.data
+            self.data = None
+            if self.constr_data:
+                del self.constr_data
+                self.constr_data = None
 
     def merge_with_file_after(self, other: FitsFileObj) -> FitsFileObj:
 
@@ -345,6 +383,34 @@ class FitsFileObj:
         
         return file_obj
 
+    def get_start_unixtime_secs(self) -> float:
+
+        if self.txt_exists:
+            assert self.txt_file_parser is not None
+            if ('EXPTIME' in self.fits_header and self.fits_header['EXPTIME'] is not None):
+                return (self.txt_file_parser.fgrab_t_us[0] / 1e6 - self.fits_header['EXPTIME'])
+            else:
+                return self.txt_file_parser.fgrab_t_us[0] / 1e6
+        elif 'DATE-OBS' in self.fits_header and 'UT-STR' in self.fits_header:
+            # Return timestamp from UT-START - one exposure
+            full_tstr = (self.fits_header['DATE-OBS'] + 'T' +
+                         self.fits_header['UT-STR'])
+            message = ('FitsFileObj::get_start_unixtime_secs - '
+                       f'Falling back to header for {self.file_name}.')
+            logg.warning(message)
+            return datetime.strptime(full_tstr,
+                                     '%Y-%m-%dT%H:%M:%S.%f').timestamp()
+        elif self.file_time_filename is not None:  # Return filename
+            message = ('FitsFileObj::get_start_unixtime_secs - '
+                       f'falling back to filename for {self.file_name}.')
+            logg.error(message)
+            return self.file_time_filename
+        else:
+            message = ('FitsFileObj::get_start_unixtime_secs - '
+                       f'no can do for {self.file_name}.')
+            logg.critical(message)
+            raise AssertionError(message)
+        
     def get_finish_unixtime_secs(self) -> float:
         if self.txt_exists:
             # Return acqtime from last frame
@@ -366,41 +432,13 @@ class FitsFileObj:
                 f'falling back to file creation time for {self.file_name}.')
             logg.error(message)
             return self.file_time_creation
-
-    def get_start_unixtime_secs(self) -> float:
-
-        if self.txt_exists:
-            # Return acqtime from first frame - 1 exposure
-            ndr = 1 if not 'DET-NSMP' in self.fits_header else self.fits_header['DET-NSMP']
-            exp_time = self.fits_header['EXPTIME'] * ndr
-            assert self.txt_file_parser is not None
-            return self.txt_file_parser.fgrab_t_us[0] / 1e6 - exp_time
-        elif 'DATE-OBS' in self.fits_header and 'UT-STR' in self.fits_header:
-            # Return timestamp from UT-START - one exposure
-            full_tstr = (self.fits_header['DATE-OBS'] + 'T' +
-                         self.fits_header['UT-STR'])
-            message = ('FitsFileObj::get_start_unixtime_secs - '
-                       f'Falling back to header for {self.file_name}.')
-            logg.warning(message)
-            return datetime.strptime(full_tstr,
-                                     '%Y-%m-%dT%H:%M:%S.%f').timestamp()
-        elif self.file_time_filename is not None:  # Return filename
-            message = ('FitsFileObj::get_start_unixtime_secs - '
-                       f'falling back to filename for {self.file_name}.')
-            logg.error(message)
-            return self.file_time_filename
-        else:
-            message = ('FitsFileObj::get_start_unixtime_secs - '
-                       f'no can do for {self.file_name}.')
-            logg.critical(message)
-            raise AssertionError(message)
         
-    def delete_from_disk(self):
+    def delete_from_disk(self, try_purge_ram: bool):
         
         assert self.is_on_disk
 
         logg.warning(f'FitsFileObj::delete_from_disk - '
-                     f'{self.full_filepath}')
+                     f'{self.full_filepath} ({self.get_nframes()}x[{self.fits_header["NAXIS1"]}x{self.fits_header["NAXIS2"]}])')
         
         # We move before deleting for atomicity
         extension = str(time.time())
@@ -410,3 +448,7 @@ class FitsFileObj:
         os.remove(str(self.full_filepath) + extension)
 
         self.is_on_disk = False # But we don't have self.const_data as in an originally virtual file.
+
+        if try_purge_ram:
+            # This fobj is now dead
+            self._flush_from_ram()

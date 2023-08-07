@@ -125,7 +125,7 @@ def deinterleave_file(file_obj: FFO, *,
             file_obj.is_archived is False and
             file_obj.txt_file_parser is not None)
 
-    key = ('U_FLCJT', 'X_IFLCJT')[ir_true_vis_false]
+    key = ('U_TRIGJT', 'X_IFLCJT')[ir_true_vis_false]
     if flc_jitter_us_hint is None:
         flc_jitter_us: int = file_obj.fits_header[key] # type: ignore
     else:
@@ -166,8 +166,16 @@ def deinterleave_data(data: np.ndarray, dt_jitter_us: int, txt_parser: LogshimTx
     '''
         Deinterleave a data cube based on a logshim txt parser object.
     '''
+    
+    n_frames = data.shape[0] + 1
+    default_hamming_size = 30
 
-    flc_state, _ = deinterleave_compute(txt_parser.fgrab_dt_us, dt_jitter_us, True)
+    if n_frames <= 2: # Can't deinterleave with only one or two frames
+        flc_state = flc_state = np.zeros(n_frames, np.int32)
+    elif n_frames <= 2 * default_hamming_size + 1:
+        flc_state, _ = deinterleave_compute_small(txt_parser.fgrab_dt_us, dt_jitter_us)
+    else:
+        flc_state, _ = deinterleave_compute(txt_parser.fgrab_dt_us, dt_jitter_us, True)
 
     data_a = data[flc_state == -1]
     data_b = data[flc_state == 1]
@@ -192,6 +200,21 @@ def deinterleave_data(data: np.ndarray, dt_jitter_us: int, txt_parser: LogshimTx
 
     return [(data_a, parser_a), (data_b, parser_b), (data_garbage, parser_garbage)]
     
+
+
+def deinterleave_compute_small(dt_array: np.ndarray,
+                               dt_jitter_us: int) -> np.ndarray:
+    mean_odd_frames = np.mean(dt_array[::2])
+    mean_even_frames = np.mean(dt_array[1::2])
+    std_odd_frames = np.std(dt_array[::2])
+    std_even_frames = np.std(dt_array[1::2])
+
+    split = abs(mean_even_frames - mean_odd_frames) # Should be equal to 2*dt_jitter_us
+
+
+    n_frames = len(dt_array) + 1
+    flc_state = np.zeros(n_frames, np.int32)
+
 
 
 
