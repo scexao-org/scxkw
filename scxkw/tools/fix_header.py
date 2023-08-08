@@ -116,7 +116,7 @@ def format_value(value: Any, fmt: str):
     if value is not None:
         try:
             if fmt == 'BOOLEAN':
-                value = bool(value)
+                value = bool(value) # is this right? what about the magic?
             elif fmt[-1] == 'd':
                 value = int(fmt % value)
             elif fmt[-1] == 'f':
