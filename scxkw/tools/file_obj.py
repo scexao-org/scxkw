@@ -458,7 +458,12 @@ class MotherOfFileObj(abc.ABC):
             assert self.file_time_creation is not None
             return self.file_time_creation
 
-    def delete_from_disk(self, try_purge_ram: bool):
+    def delete_from_disk(self,
+                         try_purge_ram: bool,
+                         silent_fail: bool = False):
+        
+        if silent_fail and not self.is_on_disk:
+            return
 
         assert self.is_on_disk
 

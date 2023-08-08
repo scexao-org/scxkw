@@ -8,11 +8,31 @@ logg = logging.getLogger(__name__)
 import glob
 import pathlib
 
-from .file_obj import FitsFileObj
+from .fits_file_obj import FitsFileObj
+from .framelist_file_obj import FrameListFitsFileObj
+
 
 if typ.TYPE_CHECKING:
     StrPath = typ.Union[str, pathlib.Path]
 
+
+def convert_to_filelist_obj(fobj: FitsFileObj) -> FrameListFitsFileObj:
+    # replace the last occurence of '.fits' with '.fitsframes'
+    flist_path = '.fitsframes'.join(str(fobj.full_filepath).rsplit('.fits', 1))
+
+    n_frames = fobj.get_nframes()
+
+    import numpy as np
+    flist_data = np.zeros((n_frames, 2), dtype=object)
+    flist_data[:, 0] = str(fobj.full_filepath)
+    flist_data[:, 1] = np.arange(n_frames).astype(np.uint64)
+
+    flist_fobj = FrameListFitsFileObj(flist_path, on_disk=False,
+                                      header=fobj.fits_header,
+                                      data=flist_data,
+                                      txt_parser=fobj.txt_file_parser)
+    
+    return flist_fobj
 
 def get_fullpath_no_compextension(strpath: StrPath) -> str:
     path = pathlib.Path(strpath)

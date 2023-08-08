@@ -11,7 +11,7 @@ import numpy as np
 
 from scxkw.config import GEN2PATH_PRELIM
 
-from .file_obj import FitsFileObj as FFO
+from .fits_file_obj import FitsFileObj as FFO
 
 OpT_FFO = typ.Optional[FFO]
 
@@ -322,8 +322,8 @@ class VampiresSynchronizer:
             self.out_queues[2].append(fobj_merge_2)
 
         # At this point there may be a name conflict between original files and remainder files.
-        file_v1.delete_from_disk(try_purge_ram=True)
-        file_v2.delete_from_disk(try_purge_ram=True)
+        file_v1.delete_from_disk(try_purge_ram=True, silent_fail=True)
+        file_v2.delete_from_disk(try_purge_ram=True, silent_fail=True)
 
         # So, another problem is now that if files overlap but do not sync, and we requeue them,
         # It causes an infinite loop...
@@ -513,6 +513,8 @@ for fo in v1_fobjs:
 v2_fobjs = file_tools.make_fileobjs_from_globs(['/mnt/tier1/ARCHIVED_DATA/20230712/vcam2/*.fits'], [])
 for fo in v2_fobjs:
     fo.ut_sanitize()
+v1_fobjs = [file_tools.convert_to_filelist(fo) for fo in v1_fobjs]
+v2_fobjs = [file_tools.convert_to_filelist(fo) for fo in v2_fobjs]
 from scxkw.tools.vampires_synchro import VampiresSynchronizer
 syncer = VampiresSynchronizer()
 syncer.feed_file_objs(v1_fobjs)

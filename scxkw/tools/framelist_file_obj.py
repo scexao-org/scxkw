@@ -56,12 +56,12 @@ class FrameListFitsFileObj(MotherOfFileObj):
     
     def _initial_name_check(self) -> None:
         if not self.full_filepath.is_absolute():
-            message = f"MotherOfFileObj::_initial_name_check: not an absolute path - {str(self.full_filepath)}"
+            message = f"FrameListFitsFileObj::_initial_name_check: not an absolute path - {str(self.full_filepath)}"
             logg.critical(message)
             raise AssertionError(message)
 
         if not '.fitsframes' in self.full_filepath.suffixes:
-            message = f"MotherOfFileObj::_initial_name_check: not .fitsframes[.fz|.gz] - {str(self.full_filepath)}"
+            message = f"FrameListFitsFileObj::_initial_name_check: not .fitsframes[.fz|.gz] - {str(self.full_filepath)}"
             logg.critical(message)
             raise AssertionError(message)
         
