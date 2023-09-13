@@ -151,7 +151,9 @@ if __name__ == "__main__":
                     scexaostatus_legacy_update(rdb)
 
 
-            except (ConnectionError, redis.exceptions.TimeoutError) as e:
+            except (ConnectionError, ConnectionRefusedError, 
+                    redis.exceptions.TimeoutError,
+                    redis.exceptions.ConnectionError) as e:
                 print(
                     f'Error at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}'
                 )
