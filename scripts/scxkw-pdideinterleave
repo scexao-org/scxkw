@@ -77,7 +77,7 @@ if __name__ == "__main__":
         flc_jitt = int(header['X_IFLCJT'])
     elif header['DETECTOR'] in ['VCAM1 - OrcaQ', 'VCAM2 - OrcaQ']:
         ir_true_vis_false = False
-        flc_jitt = 30
+        flc_jitt = header['U_TRIGJT'] if 'U_TRIGJT' in header else 30
     else:
         logg.warning(f'scxkw-pdideinterleave - {fits_filename} OOPS.')
         exit(RETCODE.OOPS)

@@ -26,6 +26,7 @@
         --archiveid     Archiver (frameid requests for files in GEN2PATH_NODELETE)
         --fpack         Compress and migrate original fits files to GEN2PATH_OKDELETE
         --deint         Apply PDI deinterleaving on files
+        --blast         Reduce the 1 sec loop clocking to 0.01
 '''
 
 import os, sys
@@ -85,6 +86,8 @@ if __name__ == "__main__":
     FITSWRITE = args["--fits"] or not args["select"]
     CSVWRITE = args["--csvwr"] or not args["select"]
     STATUSUPDATE = args["--status"] or not args["select"]
+
+    BLAST = args['--blast']
 
     print(
         f'Starting daemon loop at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}'
@@ -171,7 +174,10 @@ if __name__ == "__main__":
 
             # Except in case of socket timeout... print message, then re-init RDB ?
 
-            time.sleep(1.)
+            if not BLAST:
+                time.sleep(1.)
+            else:
+                time.sleep(.01)
             n += 1
 
     except KeyboardInterrupt:

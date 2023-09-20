@@ -18,8 +18,9 @@ import time
 from .logshim_txt_parser import LogshimTxtParser
 from .fix_header import fix_header_times
 
-
 class MotherOfFileObj(abc.ABC):
+
+    HDU_POS = 0
 
     def __init__(self,
                  fullname: typ.Union[Path, str],
@@ -47,9 +48,8 @@ class MotherOfFileObj(abc.ABC):
             self.constr_data = data
             self.constr_txt = txt_parser
         else:
-            if not (header is not None and data is not None
-                    and txt_parser is not None):
-                message = f"MotherOfFileObj::__init__: not an absolute path - {str(self.full_filepath)}"
+            if not (header is not None and data is not None):
+                message = f"MotherOfFileObj::__init__: header | data | txt_parser is None - {str(self.full_filepath)}"
                 logg.critical(message)
                 raise AssertionError(message)
 
@@ -123,7 +123,7 @@ class MotherOfFileObj(abc.ABC):
 
     def _locate_fitsheader(self) -> fits.Header:
         if self.is_on_disk:
-            return fits.getheader(self.full_filepath)
+            return fits.getheader(self.full_filepath, self.HDU_POS)
         else:
             assert self.constr_header is not None
             return self.constr_header
@@ -136,9 +136,15 @@ class MotherOfFileObj(abc.ABC):
                 txt_file_parser = LogshimTxtParser(self.txt_file_path)
             return txt_exists, txt_file_parser
         else:
-            assert self.constr_txt is not None
-            self.constr_txt.name = str(self.txt_file_path)
-            return True, self.constr_txt
+            if self.constr_txt is not None:
+                self.constr_txt.name = str(self.txt_file_path)
+                return True, self.constr_txt
+            else:
+                return False, None
+        
+    def disown_txt_file(self) -> None:
+        self.txt_exists = False
+        self.txt_file_parser = None
 
     def write_to_disk(self, try_flush_ram: bool = False) -> None:
         if self.is_on_disk:
@@ -146,14 +152,11 @@ class MotherOfFileObj(abc.ABC):
             logg.critical(message)
             raise AssertionError(message)
 
-        assert self.txt_file_parser is not None
-        logg.warning(
-            f'MotherOfFileObj::write_to_disk - Writing {str(self.full_filepath)} ({self.get_nframes()}x[{self.fits_header["NAXIS1"]}x{self.fits_header["NAXIS2"]}])'
-        )
-
         os.makedirs(self.full_filepath.parent, exist_ok=True)
 
-        self.txt_file_parser.write_to_disk()
+        if self.txt_exists:
+            assert self.txt_file_parser is not None
+            self.txt_file_parser.write_to_disk()
 
         # Attempt an atomic write that will avoid the typical globs *.fits that we use.
         os.makedirs(self.full_filepath.parent / 'tmp', exist_ok=True)
@@ -204,7 +207,7 @@ class MotherOfFileObj(abc.ABC):
 
         new_name = filename_no_suff + ''.join(
             suffixes[:-1]) + suffix + suffixes[-1]
-        print(new_name)
+        
         self.rename_in_folder(new_name)
 
     def ut_sanitize(self) -> None:
@@ -457,9 +460,19 @@ class MotherOfFileObj(abc.ABC):
             logg.error(message)
             assert self.file_time_creation is not None
             return self.file_time_creation
+        
+    def edit_header(self, key: str, value):
+        '''
+        Don't use this for multiple updates... gun' be slow.
+        '''
+        self.fits_header[key] = value
+        if self.is_on_disk:
+            with fits.open(self.full_filepath, 'update') as fptr:
+                fptr[self.HDU_POS].header[key] = value
+
 
     def delete_from_disk(self,
-                         try_purge_ram: bool,
+                         try_purge_ram: bool = False,
                          silent_fail: bool = False):
         
         if silent_fail and not self.is_on_disk:
@@ -474,11 +487,13 @@ class MotherOfFileObj(abc.ABC):
 
         # We move before deleting for atomicity
         extension = str(time.time())
-        shutil.move(str(self.txt_file_path),
-                    str(self.txt_file_path) + extension)
+        if self.txt_exists:
+            shutil.move(str(self.txt_file_path),
+                        str(self.txt_file_path) + extension)
         shutil.move(str(self.full_filepath),
                     str(self.full_filepath) + extension)
-        os.remove(str(self.txt_file_path) + extension)
+        if self.txt_exists:
+            os.remove(str(self.txt_file_path) + extension)
         os.remove(str(self.full_filepath) + extension)
 
         self.is_on_disk = False  # But we don't have self.const_data as in an originally virtual file.

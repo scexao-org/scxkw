@@ -11,7 +11,6 @@ import pathlib
 from .fits_file_obj import FitsFileObj
 from .framelist_file_obj import FrameListFitsFileObj
 
-
 if typ.TYPE_CHECKING:
     StrPath = typ.Union[str, pathlib.Path]
 
@@ -27,12 +26,54 @@ def convert_to_filelist_obj(fobj: FitsFileObj) -> FrameListFitsFileObj:
     flist_data[:, 0] = str(fobj.full_filepath)
     flist_data[:, 1] = np.arange(n_frames).astype(np.uint64)
 
-    flist_fobj = FrameListFitsFileObj(flist_path, on_disk=False,
+    flist_fobj = FrameListFitsFileObj(flist_path,
+                                      on_disk=False,
                                       header=fobj.fits_header,
                                       data=flist_data,
                                       txt_parser=fobj.txt_file_parser)
-    
+
     return flist_fobj
+
+
+def consolidate_framelist_to_fits(
+        fobj: FrameListFitsFileObj,
+        seek_dict: typ.Optional[typ.Dict[str, FitsFileObj]] = None) -> FitsFileObj:
+
+    fobj._ensure_data_loaded()
+    
+    import numpy as np
+
+    assert (fobj.data is not None and isinstance(fobj.data, np.ndarray)
+            and fobj.data.dtype == object)
+    
+    required_fits_files = set(fobj.data[:, 0])
+
+    useful_dict: typ.Dict[str, FitsFileObj] = {}
+
+    for req_ffo_str in required_fits_files:
+        if seek_dict is not None and req_ffo_str in seek_dict:
+            useful_dict[req_ffo_str] = seek_dict[req_ffo_str]
+        else:
+            useful_dict[req_ffo_str] = FitsFileObj(req_ffo_str)
+        useful_dict[req_ffo_str]._ensure_data_loaded()
+
+    fits_path = '.fits'.join(str(fobj.full_filepath).rsplit('.fitsframes', 1))
+
+    # The fact that data is a list an not a single block ndarray might help with speed.
+    # Astropy tolerates it (because fits.writeto is called with header != None)
+    data = [useful_dict[filename].data[kk] for filename, kk in fobj.data]
+
+    real_fits_obj = FitsFileObj(fits_path,
+                                on_disk=False,
+                                header=fobj.fits_header,
+                                data=data,
+                                txt_parser=fobj.txt_file_parser)
+    
+    return real_fits_obj
+
+    # WARNING! As soon as you write FITS files in vgen2,
+    # The patrol daemon is gonna get frameids for them.
+
 
 def get_fullpath_no_compextension(strpath: StrPath) -> str:
     path = pathlib.Path(strpath)
@@ -48,7 +89,8 @@ def get_fullpath_no_compextension(strpath: StrPath) -> str:
 def make_fileobjs_from_globs(
         pos_globs: typ.List[str],
         neg_globs: typ.List[str],
-        sort_by_time: bool = True) -> typ.List[FitsFileObj]:
+        sort_by_time: bool = True,
+        type_to_use: type = FitsFileObj) -> typ.List[FitsFileObj]:
 
     filename_set: typ.Set[str] = set()
     for pp in pos_globs:
@@ -58,7 +100,8 @@ def make_fileobjs_from_globs(
         filename_set.difference_update(set(glob.glob(nn)))
 
     file_obj_list = make_fileobjs_from_filenames(list(filename_set),
-                                                 sort_by_time)
+                                                 sort_by_time,
+                                                 type_to_use=type_to_use)
 
     return file_obj_list
 
@@ -85,7 +128,8 @@ def separate_compression_dups(
 
 def make_fileobjs_from_filenames(
         filename_list: typ.List[str],
-        sort_by_time: bool = True) -> typ.List[FitsFileObj]:
+        sort_by_time: bool = True,
+        type_to_use: type = FitsFileObj) -> typ.List[FitsFileObj]:
     '''
         Turn a list of raw file names into a list of fileobjects
         
@@ -94,7 +138,7 @@ def make_fileobjs_from_filenames(
     '''
 
     from tqdm import tqdm
-    file_obj_list = [FitsFileObj(filename) for filename in tqdm(filename_list)]
+    file_obj_list = [type_to_use(filename) for filename in tqdm(filename_list)]
 
     if sort_by_time:
         file_obj_list.sort(key=lambda fobj: fobj.file_time)
@@ -120,8 +164,6 @@ def dump_headers_to_tsv(file_list: typ.Iterable[FitsFileObj],
     assert (path_save.parent.exists() and not path_save.exists()
             and path_save.suffix == '.tsv')
 
-
-
     line = 'FNAME\tFULLPATH\t'
     line += '\t'.join(all_keys_list)
     line += '\n'
@@ -136,8 +178,7 @@ def dump_headers_to_tsv(file_list: typ.Iterable[FitsFileObj],
 
         line += '\n'
         file_lines += [line]
-        
+
     with open(path_save, 'w') as tsvfile:
         # Header row.
         tsvfile.writelines(file_lines)
-        

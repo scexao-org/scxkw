@@ -11,9 +11,9 @@ import numpy as np
 
 from scxkw.config import GEN2PATH_PRELIM
 
-from .fits_file_obj import FitsFileObj as FFO
+from .file_obj import MotherOfFileObj as MFFO
 
-OpT_FFO = typ.Optional[FFO]
+OpT_MFFO = typ.Optional[MFFO]
 
 OTHER_INDEX = lambda n: 3 - n  # 2 -> 1, 1 -> 2
 
@@ -23,14 +23,18 @@ STR_VSYNC = 'vsync'
 STR_VBAD = 'vbad'
 STRFMT_VSOLO = 'vsolo%d'
 
+U_SYNC_KEY = 'U_SYNC'
+
 VAMPIRES_USEC_TOLERANCING = 400
 
 
 class VampiresSynchronizer:
-    def __init__(self) -> None:
-        self.queue1: typ.List[FFO] = []
-        self.queue2: typ.List[FFO] = []
-        self.queue_dict_p: typ.Dict[int, typ.List[FFO]] = {
+
+    def __init__(self, tolerancing_us: int = VAMPIRES_USEC_TOLERANCING, auto_tolerancing: bool = False) -> None:
+
+        self.queue1: typ.List[MFFO] = []
+        self.queue2: typ.List[MFFO] = []
+        self.queue_dict_p: typ.Dict[int, typ.List[MFFO]] = {
             1: self.queue1,
             2: self.queue2
         }
@@ -38,13 +42,16 @@ class VampiresSynchronizer:
         self.last_time_q1: float = 0.0
         self.last_time_q2: float = 0.0
 
+        self.tolerance_usec = tolerancing_us
+        self.auto_tol = auto_tolerancing
+
         self.seen_before: typ.Set[str] = set(
         )  # TODO sanitize from very old files to avoid growing indefinitely.
 
-        self.out_files: typ.Dict[int, OpT_FFO] = {1: None, 2: None}
-        self.out_queues: typ.Dict[int, typ.List[FFO]] = {1: [], 2: []}
+        self.out_files: typ.Dict[int, OpT_MFFO] = {1: None, 2: None}
+        self.out_queues: typ.Dict[int, typ.List[MFFO]] = {1: [], 2: []}
 
-    def feed_file_objs(self, file_objs: typ.Iterable[FFO]):
+    def feed_file_objs(self, file_objs: typ.Iterable[MFFO]):
         # We make sets to avoid the queues growing forever with repeated calls that pushes the same file over and over.
         qdict1 = {str(file.full_filepath): file for file in self.queue1}
         qdict2 = {str(file.full_filepath): file for file in self.queue2}
@@ -67,20 +74,22 @@ class VampiresSynchronizer:
         # Re-sort queues by time/name
         self.queue1 = list([qdict1[fn] for fn in qdict1])
         self.queue2 = list([qdict2[fn] for fn in qdict2])
-        self.queue_dict_p: typ.Dict[int, typ.List[FFO]] = {
+        self.queue_dict_p: typ.Dict[int, typ.List[MFFO]] = {
             1: self.queue1,
             2: self.queue2
         }
         self.queue1.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
         self.queue2.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
 
-    def process_queues(self, throtle_down: int = 30) -> None:
+    def process_queues(self, throtle_down: int = 30) -> bool:
         status = True
         for _ in range(throtle_down):
             status = self.process_queue_oneshot()
             self.flush_out_queues()
             if not status:
-                break
+                return False
+            
+        return True
 
     def flush_out_queues(self) -> None:
         while self.process_out_queue_oneshot(1):
@@ -110,7 +119,6 @@ class VampiresSynchronizer:
             selector = (file.txt_file_parser.fgrab_t_us / 1e6 -
                         file.fits_header['EXPTIME'] -
                         file.get_start_unixtime_secs()) < 10.0
-            print('Path VV')
             if sum(selector) > 0:
                 file_0 = file.sub_file_nodisk(selector)
 
@@ -135,7 +143,6 @@ class VampiresSynchronizer:
         if (len(self.out_queues[idx]) == 0 and len(self.queue1) == 0
                 and len(self.queue2) == 0
                 and (now - file.get_finish_unixtime_secs()) > 30.0):
-            print('Path WW')
             assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name  # TODO remove once confident
             file.write_to_disk(try_flush_ram = True)
             self.out_files[idx] = None
@@ -158,7 +165,6 @@ class VampiresSynchronizer:
                     file.fits_header['RET-ANG1']
                     or next_file.get_start_unixtime_secs() -
                     file.get_finish_unixtime_secs() > 3.0):
-                print('Path XX')
                 assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name  # TODO remove once confident
                 file.write_to_disk(try_flush_ram = True)
                 self.out_files[idx] = next_file
@@ -173,7 +179,7 @@ class VampiresSynchronizer:
         # and we have no next file...
         return False
 
-    def find_pop_earliest_file(self) -> typ.Tuple[typ.Optional[FFO], int]:
+    def find_pop_earliest_file(self) -> typ.Tuple[typ.Optional[MFFO], int]:
         if len(self.queue1) == 0 and len(self.queue2) == 0:
             return None, 0
 
@@ -226,6 +232,7 @@ class VampiresSynchronizer:
         if self.is_trivial_solo_vamp_file(earliest_file):
             logg.info(f'VampiresSynchronizer::process_queue_oneshot - '
                       f'{earliest_file.file_name} is trivial vsolo.')
+            earliest_file.edit_header(U_SYNC_KEY, False)
             earliest_file.move_file_to_streamname(STRFMT_VSOLO % v_idx)
             return True
 
@@ -241,6 +248,7 @@ class VampiresSynchronizer:
                 f'VampiresSynchronizer::process_queue_oneshot - '
                 f'{earliest_file.file_name} has no temporally overlapping file.'
             )
+            earliest_file.edit_header(U_SYNC_KEY, False)
             earliest_file.move_file_to_streamname(STRFMT_VSOLO % v_idx)
             return True
 
@@ -251,6 +259,7 @@ class VampiresSynchronizer:
                     f'VampiresSynchronizer::process_queue_oneshot - '
                     f'{earliest_file.file_name} has no other stream file for 1 minute.'
                 )
+                earliest_file.edit_header(U_SYNC_KEY, False)
                 earliest_file.move_file_to_streamname(STRFMT_VSOLO % v_idx)
                 return True
             else:
@@ -278,6 +287,7 @@ class VampiresSynchronizer:
         if self.is_trivial_solo_vamp_file(to_match_file):
             logg.info(f'VampiresSynchronizer::process_queue_oneshot - '
                       f'{to_match_file.file_name} is trivial vsolo.')
+            to_match_file.edit_header(U_SYNC_KEY, False)
             to_match_file.move_file_to_streamname(STRFMT_VSOLO % v_other_idx)
             self.queue_dict_p[v_idx].insert(0, earliest_file)  # Re-enqueue
             return True
@@ -288,7 +298,7 @@ class VampiresSynchronizer:
             file_v1, file_v2 = to_match_file, earliest_file
 
         (r1, r2, fobj_merge_1, fobj_merge_2, fobj_remainder_1, fobj_remainder_2) = \
-            resync_two_files(file_v1, file_v2)
+            resync_two_files(file_v1, file_v2, self.tolerance_usec, self.auto_tol)
         # Put the remainders back in the queues, at the head.
 
         # I don't want to be bothered with files with very low dimensionality.
@@ -314,7 +324,8 @@ class VampiresSynchronizer:
                                                  also_change_filename=True)
             fobj_merge_2.move_file_to_streamname(STR_VSYNC,
                                                  also_change_filename=True)
-
+            fobj_merge_1.edit_header(U_SYNC_KEY, True)
+            fobj_merge_2.edit_header(U_SYNC_KEY, True)
             fobj_merge_1.add_suffix_to_filename('.cam1')
             fobj_merge_2.add_suffix_to_filename('.cam2')
 
@@ -330,6 +341,7 @@ class VampiresSynchronizer:
 
         if fobj_remainder_1 is not None and str(
                 fobj_remainder_1) in self.seen_before:
+            fobj_remainder_1.edit_header(U_SYNC_KEY, False)
             fobj_remainder_1.move_file_to_streamname(STRFMT_VSOLO % 1)
             b = save_to_disk_if(fobj_remainder_1, 1, r1 < 0.95)
             logg.debug(f'A branch: {r1} - {fobj_remainder_1} - {b}')
@@ -340,6 +352,7 @@ class VampiresSynchronizer:
 
         if fobj_remainder_2 is not None and str(
                 fobj_remainder_2) in self.seen_before:
+            fobj_remainder_2.edit_header(U_SYNC_KEY, False)
             fobj_remainder_2.move_file_to_streamname(STRFMT_VSOLO % 2)
             b = save_to_disk_if(fobj_remainder_2, 1, r2 < 0.95)
             logg.debug(f'C branch: {r2} - {fobj_remainder_2} - {b}')
@@ -350,11 +363,11 @@ class VampiresSynchronizer:
 
         return True
 
-    def is_trivial_solo_vamp_file(self, file: FFO) -> bool:
+    def is_trivial_solo_vamp_file(self, file: MFFO) -> bool:
         # We can only synchro if the cameras are in exttrig
         return file.fits_header['EXTTRIG'] is False
 
-    def is_bad_file(self, file: FFO) -> bool:
+    def is_bad_file(self, file: MFFO) -> bool:
         # We need EXPTIME and DET-NSMP because they allow to calculate the start and end
         # of a single frame file properly and give it some temporal "thickness"
         return  (file.txt_file_parser is None or
@@ -364,7 +377,7 @@ class VampiresSynchronizer:
                 or file.fits_header['EXPTIME'] is None)
 
 
-def save_to_disk_if(file_obj: OpT_FFO,
+def save_to_disk_if(file_obj: OpT_MFFO,
                     min_frames: int = 1,
                     misc_condition: bool = True):
     if (file_obj is not None and misc_condition
@@ -380,16 +393,34 @@ def save_to_disk_if(file_obj: OpT_FFO,
         logg.warning(f'save_to_disk_if - file is None')
     return False
 
-def resync_two_files(file_v1: FFO, file_v2: FFO) -> \
-        typ.Tuple[float, float, OpT_FFO, OpT_FFO, OpT_FFO, OpT_FFO]:
+def find_sync_tol_for_vamp(file: MFFO) -> int:
+    # Don't assume NAXIS1 and NAXIS2 haven't been messed up by the
+    # fitsframes files etc...
+    size_rows = file.fits_header['PRD-RNG2']
+    readout_mode_slow = file.fits_header['U_DETMOD'].strip().lower() == 'slow'
+    slow_factor = (1.0, 2.5)[readout_mode_slow]
+    
+    prow_allowed = 0.434 # 434 nsec per row.
+
+    return int(slow_factor * size_rows * prow_allowed)
+
+
+
+def resync_two_files(file_v1: MFFO, file_v2: MFFO,
+                     tolerance_usec: int = VAMPIRES_USEC_TOLERANCING,
+                       auto_tolerance_us: bool = False) -> \
+        typ.Tuple[float, float, OpT_MFFO, OpT_MFFO, OpT_MFFO, OpT_MFFO]:
 
     assert (file_v1.txt_file_parser is not None
             and file_v2.txt_file_parser is not None)
     timings_v1 = file_v1.txt_file_parser.fgrab_t_us
     timings_v2 = file_v2.txt_file_parser.fgrab_t_us
 
+    
+    usec_tol = min(find_sync_tol_for_vamp(file_v1), find_sync_tol_for_vamp(file_v2)) if auto_tolerance_us else tolerance_usec
+
     common_arr_v1, common_arr_v2 = sync_timing_arrays(
-        timings_v1, timings_v2, tolerance_us=VAMPIRES_USEC_TOLERANCING)
+        timings_v1, timings_v2, tolerance_us=usec_tol)
 
     # Fraction of successfully synced up frames
     ratio1 = np.sum(common_arr_v1) / len(common_arr_v1)
@@ -413,7 +444,7 @@ import numba
 
 @numba.jit  # JIT is particularly efficient on that type of branch-loop code.
 def sync_timing_arrays(time_v1: np.ndarray, time_v2: np.ndarray,
-                       tolerance_us = VAMPIRES_USEC_TOLERANCING,
+                       tolerance_us: int = VAMPIRES_USEC_TOLERANCING,
                        strict=False) -> \
         typ.Tuple[np.ndarray, np.ndarray]:
 
@@ -504,17 +535,23 @@ syncer.feed_file_objs(v2_fobjs)
 '''
 
 
-'''
+'''s
+# FIXME this poses issue per deleting the txt files maybe too early?
 import os, psutil
 from scxkw.tools import file_tools
-v1_fobjs = file_tools.make_fileobjs_from_globs(['/mnt/tier1/ARCHIVED_DATA/20230712/vcam1/*.fits'], [])
+from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
+v1_fobjs = file_tools.make_fileobjs_from_globs(['/mnt/tier1/ARCHIVED_DATA/20230730/vcam1/*.fits'], [])
 for fo in v1_fobjs:
     fo.ut_sanitize()
-v2_fobjs = file_tools.make_fileobjs_from_globs(['/mnt/tier1/ARCHIVED_DATA/20230712/vcam2/*.fits'], [])
+v2_fobjs = file_tools.make_fileobjs_from_globs(['/mnt/tier1/ARCHIVED_DATA/20230730/vcam2/*.fits'], [])
 for fo in v2_fobjs:
     fo.ut_sanitize()
-v1_fobjs = [file_tools.convert_to_filelist(fo) for fo in v1_fobjs]
-v2_fobjs = [file_tools.convert_to_filelist(fo) for fo in v2_fobjs]
+FrameListFitsFileObj.DEBUG = False
+v1_fobjs = [file_tools.convert_to_filelist_obj(fo) for fo in v1_fobjs if fo.txt_exists] # txtbak copy before doing this?
+v2_fobjs = [file_tools.convert_to_filelist_obj(fo) for fo in v2_fobjs if fo.txt_exists]
+#FrameListFitsFileObj.DEBUG = True
+[fo.write_to_disk() for fo in v1_fobjs]
+[fo.write_to_disk() for fo in v2_fobjs]
 from scxkw.tools.vampires_synchro import VampiresSynchronizer
 syncer = VampiresSynchronizer()
 syncer.feed_file_objs(v1_fobjs)

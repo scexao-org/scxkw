@@ -20,6 +20,7 @@ if __name__ == "__main__":
     args = docopt(__doc__)
 
     file_list = glob.glob(args['<fname_reg>'])
+    file_list.sort()
 
     for file_name in file_list:
         if len(file_list) > 1:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import typing as typ
+from typing import Optional as t_Op
 
 import logging
 
@@ -12,17 +13,46 @@ from enum import IntEnum
 
 from .logshim_txt_parser import LogshimTxtParser
 
-from .file_obj import FitsFileObj as FFO
-OpT_FFO = typ.Optional[FFO]
+from .file_obj import MotherOfFileObj as MFFO
+OpT_FFO = t_Op[MFFO]
 
 class PDIJobCodeEnum(IntEnum):
     ALREADY_RUNNING = -3
     NOFILE = -2
     TOOMANY = -1
     STARTED = 0
+    SUCCESS = 1
+    NOTHING = 2
 
 
-class PDIDeintJobManager:
+class SyncPDIDeintManager:
+    def __init__(self) -> None:
+        pass
+
+    def run_pdi_deint_job(self, file_obj: MFFO, new_stream_name: str) -> PDIJobCodeEnum:
+        do_deint = deinterleave_filechecker([file_obj])[0]
+
+        if not do_deint:
+            return PDIJobCodeEnum.NOTHING
+        
+        _DETECTOR: str = file_obj.fits_header['DETECTOR'] # type: ignore
+        ir_true_vis_false = _DETECTOR in ['CRED1 - APAPANE', 'CRED2 - PALILA']
+
+        deint_files = deinterleave_file(file_obj,
+                                        ir_true_vis_false=ir_true_vis_false,
+                                        flc_jitter_us_hint = None,
+                                        write_to_disk=False)
+    
+        for fkey in deint_files:
+            deint_files[fkey].move_file_to_streamname(new_stream_name)
+            deint_files[fkey].write_to_disk()
+
+        file_obj.delete_from_disk()
+
+        return PDIJobCodeEnum.SUCCESS
+
+
+class AsyncPDIDeintJobManager:
     MAX_CONCURRENT_JOBS = 15
 
     def __init__(self) -> None:
@@ -44,7 +74,7 @@ class PDIDeintJobManager:
                 'There are running scxkw-pdideinterleave jobs on the system. '
                 'It is bad juju to instantiate a PDIDeintJobManager now.')
 
-    def run_pdi_deint_job(self, file_obj: FFO, new_stream_name: str) -> PDIJobCodeEnum:
+    def run_pdi_deint_job(self, file_obj: MFFO, new_stream_name: str) -> PDIJobCodeEnum:
         if not file_obj.check_existence_on_disk():
             logg.error(f'PDIDeintJobManager: file {file_obj} does not exist.')
             return PDIJobCodeEnum.NOFILE
@@ -69,7 +99,7 @@ class PDIDeintJobManager:
             if self.pending_jobs[filename].poll() is None
         }
 
-def deinterleave_filechecker(file_list: typ.List[FFO]) -> typ.List[bool]:
+def deinterleave_filechecker(file_list: typ.List[MFFO]) -> typ.List[bool]:
     '''
         return False for files that need NOT to be deinterleaved
         return True for files that have to be deinterleaved
@@ -110,9 +140,9 @@ def deinterleave_start_job_async(file_name: str,
     return sproc.Popen(cmd.split(' '))
 
 
-def deinterleave_file(file_obj: FFO, *,
+def deinterleave_file(file_obj: MFFO, *,
                       ir_true_vis_false: bool = True,
-                      flc_jitter_us_hint: typ.Optional[int] = None,
+                      flc_jitter_us_hint: t_Op[int] = None,
                       write_to_disk: bool = False):
     '''
     This file will carry the header on to the split files.
@@ -134,7 +164,7 @@ def deinterleave_file(file_obj: FFO, *,
     flc_state, _ = deinterleave_compute(file_obj.txt_file_parser.fgrab_dt_us, flc_jitter_us, True)
 
     key_flc_state = ('U_FLC', 'X_IFLCAB')[ir_true_vis_false]
-    ret_files: typ.Dict[str, FFO] = {}
+    ret_files: typ.Dict[str, MFFO] = {}
     # A is -1 and B is +1 and that MUST NOT CHANGE for VAMPIRES
     # For FPDI, we can figure it out...
     for flcval, key in zip([-1, 0, 1], ['A', 'D', 'B']):
@@ -161,10 +191,12 @@ def deinterleave_file(file_obj: FFO, *,
     
 
 
-DataOpTxt = typ.Tuple[np.ndarray, typ.Optional[LogshimTxtParser]]
+DataOpTxt = typ.Tuple[np.ndarray, t_Op[LogshimTxtParser]]
 def deinterleave_data(data: np.ndarray, dt_jitter_us: int, txt_parser: LogshimTxtParser) -> typ.List[DataOpTxt]:
     '''
         Deinterleave a data cube based on a logshim txt parser object.
+
+        THIS NEVER GETS CALLED IN THE PIPELINE (SEPT 2023)
     '''
     
     n_frames = data.shape[0] + 1
@@ -173,6 +205,7 @@ def deinterleave_data(data: np.ndarray, dt_jitter_us: int, txt_parser: LogshimTx
     if n_frames <= 2: # Can't deinterleave with only one or two frames
         flc_state = flc_state = np.zeros(n_frames, np.int32)
     elif n_frames <= 2 * default_hamming_size + 1:
+        raise NotImplementedError('deinterleave_compute_small not impl.')
         flc_state, _ = deinterleave_compute_small(txt_parser.fgrab_dt_us, dt_jitter_us)
     else:
         flc_state, _ = deinterleave_compute(txt_parser.fgrab_dt_us, dt_jitter_us, True)
@@ -199,42 +232,50 @@ def deinterleave_data(data: np.ndarray, dt_jitter_us: int, txt_parser: LogshimTx
         parser_garbage = None
 
     return [(data_a, parser_a), (data_b, parser_b), (data_garbage, parser_garbage)]
-    
-
-
-def deinterleave_compute_small(dt_array: np.ndarray,
-                               dt_jitter_us: int) -> np.ndarray:
-    mean_odd_frames = np.mean(dt_array[::2])
-    mean_even_frames = np.mean(dt_array[1::2])
-    std_odd_frames = np.std(dt_array[::2])
-    std_even_frames = np.std(dt_array[1::2])
-
-    split = abs(mean_even_frames - mean_odd_frames) # Should be equal to 2*dt_jitter_us
-
-
-    n_frames = len(dt_array) + 1
-    flc_state = np.zeros(n_frames, np.int32)
-
 
 
 
 def deinterleave_compute(dt_array: np.ndarray,
                          dt_jitter_us: int,
                          enforce_pairing: bool, *,
-                         hamm_size: int = 30,
-                         clip_vals: typ.Optional[typ.Tuple[float,float]] = None,
-                         corr_trust_margin: float = 0.75) -> typ.Tuple[np.ndarray, np.ndarray]:
+                         hamm_size: t_Op[int] = None,
+                         clip_vals: t_Op[typ.Tuple[float,float]] = None,
+                         corr_trust_margin: float = 0.4
+                         ) -> typ.Tuple[np.ndarray, np.ndarray]:
     '''
         Validate the FLC state from an array of timing deltas
+
+        if hamm_size is None, auto hamming
+        if hamm_size is int and the buffer is too small, it will crash
     '''
+
+    if hamm_size is not None and len(dt_array) <= 2 * hamm_size:
+        raise ValueError(f'deinterleave_compute:: hamm_size = {hamm_size} and len(dt) = {len(dt_array)} <= 2*hamm_size.')
 
     n_frames = len(dt_array) + 1
 
-    if len(dt_array) <= 2 * hamm_size: # Arbitrary but we need a little bit of length.
-        return np.zeros(n_frames, np.int32), None # all frames dubious.
+    if hamm_size is None:
+        hamm_size = min(12, max(2, len(dt_array) // 2))
 
+    # Too short!
+    if len(dt_array) < 2: # No can do.
+        return np.zeros(n_frames, np.int32), None
+
+    if len(dt_array) <= 2 * hamm_size: # Trivial deint mode...
+        mean_odd = np.mean(dt_array[::2]) # even indices of dt but odd frames of the file!
+        mean_even = np.mean(dt_array[1::2])
+        result = np.arange(n_frames, dtype=np.int32) % 2 * 2 - 1
+        print(f'Odd/Even: {mean_odd:.1f} {mean_even:.1f} [{n_frames} frames]')
+        if mean_odd > mean_even: # first dt of the file is a slow one. Image 0 is A == -1
+            return result, None
+        else: # first dt of the file is a fast one. Image 0 is B == 1
+            return -result, None
+
+
+    # Actual hamming deinterleaving.
 
     hamming = np.hamming(hamm_size)
+
     # L1 normalized, sign-alternating hamming window
     nyquist_hamming = hamming * ((np.arange(hamm_size) % 2)*2 - 1) / np.sum(hamming)
 
@@ -247,15 +288,16 @@ def deinterleave_compute(dt_array: np.ndarray,
     convolved = np.convolve(nyquist_hamming, clipped, 'valid') / dt_jitter_us
     # len(convolved) == N_FRAMES + HAMM_N = len(dt_array) + 1 + HAMM_N
     
-    # We then apply a minimum filter - if there's a wonky glitch we want to blacktyp.List all neighboring frames.
+    # We then apply a minimum filter - if there's a wonky glitch we want to blacklist some neighboring frames.
     from scipy.ndimage import minimum_filter1d
-    convolved = minimum_filter1d(np.abs(convolved), hamm_size // 2) * np.sign(convolved)
+    #convolved = minimum_filter1d(np.abs(convolved), hamm_size // 4) * np.sign(convolved)
 
     flc_state = np.zeros(n_frames, np.int32)
 
     # Write good states - mind the convolution reducing the array size
     flc_state[hamm_size // 2:-hamm_size//2][convolved > corr_trust_margin] = 1
     flc_state[hamm_size // 2:-hamm_size//2][convolved < -corr_trust_margin] = -1
+
 
     # Propagate trust to buffer edges - careful to handle signs if HAM_LENGTH // 2 is odd.
     flipper = (1, -1)[(hamm_size // 2) % 2] # (even = noflip, odd=flip)
@@ -265,8 +307,7 @@ def deinterleave_compute(dt_array: np.ndarray,
         flc_state[-hamm_size // 2:] = flc_state[-hamm_size:-hamm_size // 2] * flipper
 
     # Return point without enforce_pairing
-
-    if enforce_pairing:
+    if enforce_pairing and not np.all(flc_state == 0):
         # Find the first certain frame.
         first = 0
         while flc_state[first] == 0:
@@ -287,6 +328,19 @@ deinter = PDIDeintJobManager()
 archive_monitor_deinterleave_or_passthrough(folder_root='/mnt/tier0/', job_manager=deinter)
 '''
 
-
-        
+'''
+from scxkw.tools import file_tools
+from scxkw.tools import pdi_deinterleave as pdi
+from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
+DATE = '20230711'
+all_fobjs = file_tools.make_fileobjs_from_globs([f'/mnt/tier1/ARCHIVED_DATA/{DATE}/vsolo1/*.fitsframes',
+                                                 f'/mnt/tier1/ARCHIVED_DATA/{DATE}/vsolo2/*.fitsframes',
+                                                 f'/mnt/tier1/ARCHIVED_DATA/{DATE}/vsync/*.fitsframes'], [],
+                                                 type_to_use=FrameListFitsFileObj)
+deinterleaver = pdi.SyncPDIDeintManager()
+for fobj in all_fobjs:
+    ret = deinterleaver.run_pdi_deint_job(fobj, 'vgen2')
+    if ret == pdi.PDIJobCodeEnum.NOTHING:
+        fobj.move_file_to_streamname('vgen2')
+'''
     

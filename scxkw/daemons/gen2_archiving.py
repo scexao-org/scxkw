@@ -13,8 +13,8 @@ from scxkw.redisutil.typed_db import Redis
 from scxkw.tools.compression_job_manager import FPackJobCodeEnum, FpackJobManager
 
 from ..tools import file_tools
-from ..tools.file_obj import FitsFileObj as FFO
 from ..tools.vampires_synchro import VampiresSynchronizer
+from ..tools.fits_file_obj import FitsFileObj
 
 from g2base.remoteObjects import remoteObjects as ro
 
@@ -41,7 +41,7 @@ def gen2_getframeids(g2proxy_scx, g2proxy_vmp, code: str, nfrmids: int) -> typ.L
     # frames will be stored one per line in /tmp/frames.txt
     # We need to wait for gen2 to push the file
 
-    ids_filename = f"/tmp/frames_{cam_code}.txt"
+    ids_filename = f"/tmp/frames_{inst_code}{cam_code}.txt"
     while True:
         time.sleep(0.01)
         try:
@@ -294,7 +294,10 @@ def archive_migrate_compressed_files(*, time_allowed=(17*60, 17*60 + 30)):
         # If no more fits in <date>/<stream>/ ?
         # Delete archive_requested.txt and name_changes.txt
         local_sublist = glob.glob(GEN2PATH_NODELETE +
-                                  f'{dates[ii]}/{stream_names[ii]}/SCX*.fits')
+                                  f'{dates[ii]}/{stream_names[ii]}/SCX*.fits') + \
+                        glob.glob(GEN2PATH_NODELETE +
+                                  f'{dates[ii]}/{stream_names[ii]}/VMP*.fits')
+        
         if len(local_sublist) == 0:
             os.remove(GEN2PATH_NODELETE +
                       f'/{dates[ii]}/{stream_names[ii]}/name_changes.txt')
@@ -320,12 +323,13 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
     '''
     all_fits = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits')
     all_fzs = glob.glob(GEN2PATH_NODELETE + '*/*/SCX*.fits.fz') + glob.glob(GEN2PATH_NODELETE + '*/*/VMP*.fits.fz')
-    
 
     # Note: for some of those files, the compression job may already be running!
     only_fits = file_tools.separate_compression_dups(all_fits, all_fzs)
-    file_objs = file_tools.make_fileobjs_from_filenames(only_fits)
-
+    # No need for looping on all files, since we're gonna compress ~15-20 at the same time
+    # tops
+    file_objs = file_tools.make_fileobjs_from_filenames(only_fits[:100])
+    
 
     # Cleanup:
     job_manager.refresh_running_jobs()
@@ -343,9 +347,9 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
           f'found {len(file_objs)} SCX/VMP files to compress; '
           f'started {n_jobs} fpacks.')
 
-from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIDeintJobManager, PDIJobCodeEnum
+from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIJobCodeEnum, AsyncPDIDeintJobManager
 
-def archive_monitor_deinterleave_or_passthrough(*, folder_root=GEN2PATH_NODELETE, job_manager: PDIDeintJobManager):
+def archive_monitor_deinterleave_or_passthrough(*, folder_root=GEN2PATH_NODELETE, job_manager: AsyncPDIDeintJobManager):
     # Allowed deinterleave streams and their target folder:
     PERMISSIBLE_STREAMS = {
         'apapane': 'agen2',
@@ -379,6 +383,19 @@ def archive_monitor_deinterleave_or_passthrough(*, folder_root=GEN2PATH_NODELETE
             break
         # We silently pass on ALREADY_RUNNING and on STARTED.
 
+def get_ids_count_files(fobj_list: typ.List[FitsFileObj]) -> typ.Dict[str, int]:
+    # Dict to count how many IDs we need per "letter"
+    per_id_count = {}
+    id_current_count = {}  # See later - to assign to file
+    for stream_name in CAMIDS:
+        per_id_count[CAMIDS[stream_name]] = 0
+        id_current_count[CAMIDS[stream_name]] = 0
+
+    # Count files
+    for file in fobj_list:
+        per_id_count[CAMIDS[file.stream_from_foldername]] += 1
+
+    return per_id_count
 
 def archive_monitor_get_ids(scx_proxy: ro.remoteObjectProxy,
                             vmp_proxy: ro.remoteObjectProxy):
@@ -396,18 +413,18 @@ def archive_monitor_get_ids(scx_proxy: ro.remoteObjectProxy,
     assert all([not f.is_archived for f in fobj_list])
     assert all([not f.is_compressed for f in fobj_list])
 
-    # Dict to count how many IDs we need per "letter"
-    per_id_count = {}
-    id_current_count = {}  # See later - to assign to file
-    for stream_name in CAMIDS:
-        per_id_count[CAMIDS[stream_name]] = 0
-        id_current_count[CAMIDS[stream_name]] = 0
+    batch_assign_ids_and_rename(scx_proxy, vmp_proxy, fobj_list)
+
+
+def batch_assign_ids_and_rename(scx_proxy: ro.remoteObjectProxy,
+                                vmp_proxy: ro.remoteObjectProxy,
+                                fobj_list: typ.List[FitsFileObj]) -> None:
+    
+    assert all([not f.is_archived for f in fobj_list])
+    assert all([not f.is_compressed for f in fobj_list])
+
+    per_id_count = get_ids_count_files(fobj_list)
     frame_ids: typ.Dict[str, typ.List[str]] = {}
-
-    # Count files
-
-    for file in fobj_list:
-        per_id_count[CAMIDS[file.stream_from_foldername]] += 1
 
     if any(per_id_count.values()):
         print("archive_monitor_get_ids: frame ID requests: ", per_id_count)

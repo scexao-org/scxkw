@@ -9,7 +9,7 @@ import subprocess as sproc
 
 from enum import IntEnum
 
-from .file_obj import FitsFileObj
+from .fits_file_obj import FitsFileObj
 from . import file_tools
 
 class FPackJobCodeEnum(IntEnum):
@@ -18,11 +18,10 @@ class FPackJobCodeEnum(IntEnum):
     TOOMANY = -1
     STARTED = 0
 
-
 class FpackJobManager:
-    MAX_CONCURRENT_JOBS = 15
-    FPACK_OPTIONS_SCX = '-h -s 0 -q 20'
-    FPACK_OPTIONS_VMP = '-r'
+    MAX_CONCURRENT_JOBS = 50 # FIXME
+    FPACK_OPTIONS_SCX = '-h -s 0 -q 20' # Maintains the original .fits file!
+    FPACK_OPTIONS_VMP = '-r -D -Y' # Removes the original .fits file
 
     def __init__(self) -> None:
         self.pending_jobs: typ.Dict[str, sproc.Popen] = {}

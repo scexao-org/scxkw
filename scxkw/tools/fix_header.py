@@ -153,6 +153,8 @@ def fix_file(filename: str,
 
         if not supersede:
             update_keys = new_keys.difference(existing_keys)
+        else:
+            update_keys = new_keys
 
         for key in update_keys:
             header[key] = new_keyvals[key]

@@ -54,19 +54,35 @@ def uint_buff_to_object_buff(uint8_buff: np.ndarray) -> np.ndarray:
 
 class FrameListFitsFileObj(MotherOfFileObj):
     
+    DEBUG = False
+
+    def __init__(self, *args, **kwargs):
+
+        MotherOfFileObj.__init__(self, *args, **kwargs)
+
+        if type(self).DEBUG:
+            print(self.full_filepath)
+            print(kwargs['data'][:2, :])
+            import pdb; pdb.set_trace()
+
+
     def _initial_name_check(self) -> None:
         if not self.full_filepath.is_absolute():
             message = f"FrameListFitsFileObj::_initial_name_check: not an absolute path - {str(self.full_filepath)}"
             logg.critical(message)
             raise AssertionError(message)
 
-        if not '.fitsframes' in self.full_filepath.suffixes:
+        if not self.full_filepath.suffix == '.fitsframes':
             message = f"FrameListFitsFileObj::_initial_name_check: not .fitsframes[.fz|.gz] - {str(self.full_filepath)}"
             logg.critical(message)
             raise AssertionError(message)
         
     def _write_data_to_disk(self, filename: Path) -> None:
-
+        logg.warning(
+            f'FrameListFitsFileObj::write_to_disk - Writing {str(self.full_filepath)} '
+            f'({self.get_nframes()}x[{self.fits_header["PRD-RNG1"]}x{self.fits_header["PRD-RNG2"]}])'
+        )
+                
         # typ.Iterable[typ.Tuple[str, int]]
         _data = object_buff_to_uint_buff(self.constr_data)
 
@@ -81,10 +97,11 @@ class FrameListFitsFileObj(MotherOfFileObj):
     def _ensure_data_loaded(self):
         if self.data is None:
             if self.is_on_disk:
-                _data: np.ndarray = fits.getdata(self.full_filepath, memmap=False)
+                # Need to remove the unit second axis added when saving.
+                _data: np.ndarray = fits.getdata(self.full_filepath, memmap=False)[:,0,:]
                 self.data = uint_buff_to_object_buff(_data)
             else:
                 self.data = self.constr_data
 
     def _merge_data_after(self, other_data):
-        np.concatenate((self.data, other_data), axis=0)
+        return np.concatenate((self.data, other_data), axis=0)
