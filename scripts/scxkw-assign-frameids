@@ -1,0 +1,76 @@
+#!/bin/env python
+'''
+Assign frameIDs to a given DATE or FOLDER
+if DATE is all, patrol all of ARCHIVED_DATA
+
+Usage:
+    scxkw-assign-frameids <DATE> [-a] [-v]
+    scxkw-assign-frameids -f <FOLDER> [-a] [-v]
+
+Options:
+    -v      do vampires (vgen2)
+    -f      do fastPDI / CRED1 imaging (agen2)
+'''
+
+import typing as typ
+
+from pathlib import Path
+
+import docopt
+
+# FIXME start logger.
+
+from scxkw.config import GEN2PATH_NODELETE, GEN2HOST
+from scxkw.tools import file_tools
+
+from g2base.remoteObjects import remoteObjects as ro
+
+from scxkw.daemons.gen2_archiving import batch_assign_ids_and_rename
+
+if __name__ == "__main__":
+
+    args = docopt.docopt(__doc__)
+
+    DO_VAMP = args['-v']
+    DO_APAPANE = args['-a']
+
+
+    FOLDER = args['<FOLDER>']
+    DATE = args['<DATE>']
+
+    ALL = False #args['ALL']
+
+    print(args)
+
+    if ALL:
+        dateFolderPath = Path(GEN2PATH_NODELETE) / '*'
+    else:
+        if FOLDER is None:
+            dateFolderPath = Path(GEN2PATH_NODELETE) / DATE
+        else:
+            dateFolderPath = Path(FOLDER)
+            DATE = dateFolderPath.name
+        assert (dateFolderPath.is_absolute() and dateFolderPath.is_dir())
+
+    globs: typ.List[str] = []
+    unglobs: typ.List[str] = []
+
+    if DO_APAPANE:
+        globs += [str(dateFolderPath / 'agen2' / '*.fits')]
+        unglobs += [str(dateFolderPath / 'agen2' / 'SCX*.fits')]
+    if DO_VAMP:
+        globs += [str(dateFolderPath / 'vgen2' / '*.fits')]
+        unglobs += [str(dateFolderPath / 'vgen2' / 'VMP*.fits')]
+
+    print(dateFolderPath)
+    print(globs)
+    print(unglobs)
+
+    fobjs = file_tools.make_fileobjs_from_globs(globs, unglobs)
+    fobjs.sort(key = lambda f: f.get_start_unixtime_secs())
+
+    ro.init([GEN2HOST])
+    proxy_obj_scx = ro.remoteObjectProxy('SCEXAO')
+    proxy_obj_vmp = ro.remoteObjectProxy('VAMPIRES')    
+
+    batch_assign_ids_and_rename(proxy_obj_scx, proxy_obj_vmp, fobjs)

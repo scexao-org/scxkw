@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+'''
+    Archive manager cronable job
+
+    Reads SCX*. files in the GEN2NODELETE folder
+    Makes upload requests to gen2
+    Moves files to GEN2_OK
+
+
+    Usage:
+        scxkw-manage-archiving [-h | --help]
+        scxkw-manage-archiving upload
+        scxkw-manage-archiving checkstars
+'''
+
+import os, sys
+import time, datetime
+from docopt import docopt
+
+# fits_write
+from scxkw.config import GEN2HOST
+from scxkw.daemons.gen2_archiving import (archive_monitor_push_files,
+                                          archive_monitor_move_pushed_files)
+
+if __name__ == "__main__":
+
+    # Argument parsing
+
+    args = docopt(__doc__)
+
+    print(
+        f'Starting job at {datetime.datetime.now().strftime("%Y-%m-%d, %H:%M:%S")}'
+    )
+
+    try:  # Catch a Ctrl+C
+        if args["upload"]:
+            from g2base.remoteObjects import remoteObjects as ro
+            ro.init([GEN2HOST])
+            proxy_obj = ro.remoteObjectProxy('SCEXAO')
+
+            # Legal time: 7:50 to 13:00 HST (+10 for system time in UT)
+            TIME_START = (((7 + 10) * 60) + 50) % 1440
+            TIME_STOP = (((13 + 10) * 60) + 0) % 1440
+
+            # Spin a SCP request process
+            archive_monitor_push_files(proxy_obj,
+                                       n_files=None,
+                                       skip_last_wait=False,
+                                       time_allowed=(TIME_START, TIME_STOP))
+
+        if args["checkstars"]:
+            archive_monitor_check_STARS_and_delete()
+
+    except KeyboardInterrupt:
+        sys.exit(0)

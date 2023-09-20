@@ -1,0 +1,140 @@
+#!/bin/env python
+
+'''
+Synchronization of VAMPIRES data using framelist files.
+
+vcam1, vcam2 -> vsolo1, vsolo2, vsync, vbad
+
+Usage:
+    scxkw-vamp-syncdeint <DATE> [(-s|-p)]
+    scxkw-vamp-syncdeint -f <FOLDER> [(-s|-p)]
+
+Options:
+    -f      Give full folder path instead of just date
+    -s      Syncing only (vcam1, vcam2) -> (vbad, vsolo1, vsolo2, vsync)
+    -p      PDI deinterleave and/or wrap-up (vsolo1, vsolo2, vsync) -> vgen2
+'''
+
+import os
+import typing as typ
+from pathlib import Path
+import subprocess as sproc
+
+import docopt
+
+# FIXME start logger.
+
+from scxkw.config import GEN2PATH_NODELETE
+from scxkw.tools import file_tools
+from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
+
+if __name__ == "__main__":
+
+
+    args = docopt.docopt(__doc__)
+    print("------ ARGS --------")
+    print(args)
+
+    FOLDER = args['<FOLDER>']
+    DATE = args['<DATE>']
+
+    SYNC_ONLY = args['-s']
+    DEINT_ONLY = args['-p']
+    DO_DEINT = not SYNC_ONLY
+    DO_SYNC = not DEINT_ONLY
+
+    if FOLDER is None:
+        folderPath = Path(GEN2PATH_NODELETE) / DATE
+    else:
+        folderPath = Path(FOLDER)
+
+    assert (folderPath.is_absolute() and folderPath.is_dir()
+            and ((folderPath / 'vcam1').is_dir() or
+                 (folderPath / 'vcam2').is_dir()))
+
+    '''
+        Hardlink backup of subdirs as-is
+    '''
+    children_dirs: typ.List[str] = next(os.walk(folderPath))[1]
+    for child in children_dirs:
+        if not child.endswith('_hlinkbak'):
+            sproc.check_output(['cp', '-TlR', str(folderPath) + f'/{child}', str(folderPath) + f'/{child}_hlinkbak'])
+
+    if DO_SYNC:
+        '''
+            Initial fileobjs + UT glitch sanitize
+        '''
+        v1_fobjs = file_tools.make_fileobjs_from_globs([str(folderPath) + '/vcam1/*.fits'], [])
+        v2_fobjs = file_tools.make_fileobjs_from_globs([str(folderPath) + '/vcam2/*.fits'], [])
+        for fo in v1_fobjs:
+            fo.ut_sanitize()
+        for fo in v2_fobjs:
+            fo.ut_sanitize()
+        
+        '''
+            Conversion to FileListFitsFileObj -- assuming we have a txt file.
+        '''
+        v1_lfobjs = [file_tools.convert_to_filelist_obj(fo) for fo in v1_fobjs]
+        v2_lfobjs = [file_tools.convert_to_filelist_obj(fo) for fo in v2_fobjs]
+        #FrameListFitsFileObj.DEBUG = True
+        [fo.write_to_disk() for fo in v1_lfobjs]
+        [fo.write_to_disk() for fo in v2_lfobjs]
+        
+        '''
+            Synchronization
+        '''
+        from scxkw.tools.vampires_synchro import VampiresSynchronizer
+
+        syncer = VampiresSynchronizer(auto_tolerancing=True)
+        syncer.feed_file_objs(v1_lfobjs)
+        syncer.feed_file_objs(v2_lfobjs)
+        
+        while syncer.process_queues(10):
+            pass
+
+        assert (
+            len(syncer.queue1) == 0 and len(syncer.queue2) == 0 and
+            syncer.out_files[1] is None and syncer.out_files[2] is None and
+            len(syncer.out_queues[1]) == 0 and len(syncer.out_queues[2]) == 0
+        ) # TODO: syncer.is_completed()
+
+    '''
+        PDI Deint
+    '''
+
+    if DO_DEINT:
+
+        from scxkw.tools import pdi_deinterleave as pdi
+        from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
+
+        '''
+        Find straggler fits files and convert them to fitsframes files
+        '''
+        v_fobjs = file_tools.make_fileobjs_from_globs([str(folderPath) + '/vsync/*.fits',
+                                                      str(folderPath) + '/vsolo1/*.fits',
+                                                      str(folderPath) + '/vsolo2/*.fits',], [])
+        v_lfobjs = [file_tools.convert_to_filelist_obj(fo) for fo in v_fobjs]
+        [fo.write_to_disk() for fo in v_lfobjs]
+
+        '''
+        List Framelist objects
+        '''
+        all_fobjs = file_tools.make_fileobjs_from_globs(
+            [str(folderPath) + '/vsync/*.fitsframes',
+            str(folderPath) + '/vsolo1/*.fitsframes',
+            str(folderPath) + '/vsolo2/*.fitsframes',], [],
+            type_to_use=FrameListFitsFileObj)
+        
+        '''
+        Actual deinterleaving
+        '''
+        deinterleaver = pdi.SyncPDIDeintManager()
+        for fobj in all_fobjs:
+            ret = deinterleaver.run_pdi_deint_job(fobj, 'vgen2')
+            if ret == pdi.PDIJobCodeEnum.NOTHING:
+                fobj.move_file_to_streamname('vgen2')
+
+    '''
+        Remaining: ... the consolidation.
+    '''
+    
