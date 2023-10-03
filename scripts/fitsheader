@@ -43,7 +43,7 @@ if __name__ == "__main__":
                 if not maybe_end: # Valid keyword line !
                     print(line)
 
-                if line[:3] == 'END': # We found the end
+                if line[:4] == 'END ': # We found the end
                     # Don't abort - maybe XTENSION in the next 2880 block.
                     maybe_end = True
 
