@@ -84,19 +84,27 @@ class LogshimTxtParser:
 
     def _init_arrays_from_lines(self):
 
+        self.has_fgrab_timing = True
+
         if len(self.lines) == 0: # Empty file case.
-            values = np.zeros((0,6), np.float64)
+            values = np.zeros((0,7), np.float64)
         else:
             values = np.asarray([[float(v) for v in l.split()] for l in self.lines])
+            if values.shape[1] == 6:
+                self.has_fgrab_timing = False
 
         self.logshim_t_us = values[:, 3] * 1e6
-        self.fgrab_t_us = values[:, 4] * 1e6
+        if self.has_fgrab_timing:
+            self.fgrab_t_us = values[:, 4] * 1e6
+        else:
+            logg.warning('LogshimTxtParser::_init_arrays: no fgrab timings, only logshim.')
+            self.fgrab_t_us = self.logshim_t_us
 
         self.logshim_dt_us = self.logshim_t_us[1:] - self.logshim_t_us[:-1]
         self.fgrab_dt_us = self.fgrab_t_us[1:] - self.fgrab_t_us[:-1]
 
-        self.cnt0 = values[:, 5]
-        self.cnt1 = values[:, 6]
+        self.cnt0 = values[:, -2]
+        self.cnt1 = values[:, -1]
 
 
     def print_stats(self):

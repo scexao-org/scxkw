@@ -13,8 +13,9 @@ from enum import IntEnum
 
 from .logshim_txt_parser import LogshimTxtParser
 
-from .file_obj import MotherOfFileObj as MFFO
-OpT_FFO = t_Op[MFFO]
+if typ.TYPE_CHECKING:
+    from .file_obj import MotherOfFileObj as MFFO
+    OpT_FFO = typ.Optional[MFFO]
 
 class PDIJobCodeEnum(IntEnum):
     ALREADY_RUNNING = -3
@@ -241,7 +242,7 @@ def deinterleave_compute(dt_array: np.ndarray,
                          hamm_size: t_Op[int] = None,
                          clip_vals: t_Op[typ.Tuple[float,float]] = None,
                          corr_trust_margin: float = 0.4
-                         ) -> typ.Tuple[np.ndarray, np.ndarray]:
+                         ) -> typ.Tuple[np.ndarray, np.ndarray | None]:
     '''
         Validate the FLC state from an array of timing deltas
 
@@ -255,7 +256,10 @@ def deinterleave_compute(dt_array: np.ndarray,
     n_frames = len(dt_array) + 1
 
     if hamm_size is None:
-        hamm_size = min(12, max(2, len(dt_array) // 2))
+        # Gymnastics to enforce parity
+        hamm_size = min(12, max(2, (len(dt_array) + 3) // 4 * 2))
+
+    assert hamm_size % 2 == 0
 
     # Too short!
     if len(dt_array) < 2: # No can do.
@@ -307,7 +311,7 @@ def deinterleave_compute(dt_array: np.ndarray,
         flc_state[-hamm_size // 2:] = flc_state[-hamm_size:-hamm_size // 2] * flipper
 
     # Return point without enforce_pairing
-    if enforce_pairing and not np.all(flc_state == 0):
+    if enforce_pairing and np.any(flc_state != 0):
         # Find the first certain frame.
         first = 0
         while flc_state[first] == 0:
