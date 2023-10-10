@@ -43,7 +43,7 @@ def find_data_subdirs(path: Path) -> List[Path]:
 def main():
     args = docopt(__doc__)
     # get input directories
-    input_dir = Path(args["INPUT"])
+    input_dir = Path(args["INPUT"]).resolve()
     logger.debug(f"Using input directory {input_dir}")
     cam_dirs = find_data_subdirs(input_dir)
     logger.debug(f"Found {len(cam_dirs)} subdirs: {', '.join(str(p) for p in cam_dirs)}")
@@ -53,7 +53,6 @@ def main():
     else:
         outdir = input_dir
     assert outdir.is_dir(), "outdir should be a directory"
-
     create_db(cam_dirs, outdir=outdir, quiet=args["--quiet"], nproc=args["-j"])
 
 
