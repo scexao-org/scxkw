@@ -5,11 +5,11 @@
 '''
 
 from setuptools import setup, find_packages
+import glob
 
 with open("README.md", 'r') as f:
     long_description = f.read()
 
-import glob
 
 script_list = glob.glob('./scripts/scxkw-*') + ['scripts/fitsheader']
 
@@ -22,6 +22,6 @@ setup(
         author_email = 'vdeo@naoj.org',
         url = "http://www.github.com/scexao-org/scxkw",
         packages = find_packages(),  # same as name
-        install_requires = ['astropy', 'docopt', 'numpy', 'polars', 'redis', 'sqlalchemy', 'tqdm'],
+        install_requires = ['astropy', 'docopt', 'numpy', 'pandas', 'redis', 'sqlalchemy', 'tqdm'],
         scripts = script_list
     )

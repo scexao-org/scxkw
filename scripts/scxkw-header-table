@@ -14,12 +14,14 @@ These tables will all be consolidated into a single SQLite database (`.db`) file
 In addition, the tables for each subfolder will be exported as CSV files
 
 Usage:
-    scxkw-header-table [-h | --help]
-    scxkw-header-table [-o <name>] <directory>
+    scxkw-header-table (-h | --help)
+    scxkw-header-table [-q] [-j NPROC] [-o DIR] INPUT
 
 Options:
-    -o, --output  <name>    Specify output name, including path, without any file extension.
-                            By default will use the input directory name with `_headers` appended.
+    -h, --help              Show this help message.
+    -o DIR, --outdir=DIR    Specify output folder, by default will use the same folder as the input.
+    -j NPROC                Use process pool with NPROC processed [default: 10]
+    -q, --quiet             Silence progress bar
 """
 from docopt import docopt
 from pathlib import Path
@@ -41,18 +43,18 @@ def find_data_subdirs(path: Path) -> List[Path]:
 def main():
     args = docopt(__doc__)
     # get input directories
-    input_dir = Path(args["<directory>"])
+    input_dir = Path(args["INPUT"])
     logger.debug(f"Using input directory {input_dir}")
     cam_dirs = find_data_subdirs(input_dir)
-    logger.debug(f"Found {len(cam_dirs)} subdirs: {', '.join(cam_dirs)}")
+    logger.debug(f"Found {len(cam_dirs)} subdirs: {', '.join(str(p) for p in cam_dirs)}")
 
-    if args["<name>"]:
-        outdir = Path(args["<name>"])
+    if args["--outdir"]:
+        outdir = Path(args["--outdir"])
     else:
         outdir = input_dir
     assert outdir.is_dir(), "outdir should be a directory"
 
-    create_db(cam_dirs, outdir=outdir)
+    create_db(cam_dirs, outdir=outdir, quiet=args["--quiet"], nproc=args["-j"])
 
 
 if __name__ == "__main__":
