@@ -15,11 +15,11 @@ In addition, the tables for each subfolder will be exported as CSV files
 
 Usage:
     scxkw-header-table [-h | --help]
-    scxkw-header-table [(-o | --output)=<name>] <directory>
+    scxkw-header-table [-o <name>] <directory>
 
 Options:
-    -o, --output <name>    Specify output name, including path, without any file extension.
-                           By default will use the input directory name with `_headers` appended.
+    -o, --output  <name>    Specify output name, including path, without any file extension.
+                            By default will use the input directory name with `_headers` appended.
 """
 from docopt import docopt
 from pathlib import Path
@@ -41,13 +41,13 @@ def find_data_subdirs(path: Path) -> List[Path]:
 def main():
     args = docopt(__doc__)
     # get input directories
-    input_dir = Path(args.directory)
+    input_dir = Path(args["<directory>"])
     logger.debug(f"Using input directory {input_dir}")
     cam_dirs = find_data_subdirs(input_dir)
     logger.debug(f"Found {len(cam_dirs)} subdirs: {', '.join(cam_dirs)}")
 
-    if args.output:
-        outdir = Path(args.output)
+    if args["<name>"]:
+        outdir = Path(args["<name>"])
     else:
         outdir = input_dir
     assert outdir.is_dir(), "outdir should be a directory"
