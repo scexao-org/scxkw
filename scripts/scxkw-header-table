@@ -49,7 +49,7 @@ def main():
     logger.debug(f"Found {len(cam_dirs)} subdirs: {', '.join(str(p) for p in cam_dirs)}")
 
     if args["--outdir"]:
-        outdir = Path(args["--outdir"])
+        outdir = Path(args["--outdir"]).resolve()
     else:
         outdir = input_dir
     assert outdir.is_dir(), "outdir should be a directory"
