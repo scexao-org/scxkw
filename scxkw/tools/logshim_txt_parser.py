@@ -89,7 +89,14 @@ class LogshimTxtParser:
         if len(self.lines) == 0: # Empty file case.
             values = np.zeros((0,7), np.float64)
         else:
-            values = np.asarray([[float(v) for v in l.split()] for l in self.lines])
+            splits = [[float(v) for v in l.split()] for l in self.lines]
+            if len(splits[-1]) != len(splits[0]):
+                # The txt writer probably messed up halfway.
+                # We toss the end
+                logg.warning('LogshimTxtParser::_init_arrays: it seems that the file has missing data.')
+
+            values = np.asarray([s for s in splits if len(s) == len(splits[0])])
+            
             if values.shape[1] == 6:
                 self.has_fgrab_timing = False
 
