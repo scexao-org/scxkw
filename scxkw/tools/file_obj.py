@@ -129,18 +129,15 @@ class MotherOfFileObj(abc.ABC):
             return self.constr_header
 
     def _locate_txtparser(self) -> typ.Tuple[bool, t_Op[LogshimTxtParser]]:
-        if self.is_on_disk:
-            txt_exists = self.txt_file_path.is_file()
-            txt_file_parser = None
-            if txt_exists:
-                txt_file_parser = LogshimTxtParser(self.txt_file_path)
-            return txt_exists, txt_file_parser
-        else:
-            if self.constr_txt is not None:
+        if self.is_on_disk and self.txt_file_path.is_file():
+            txt_file_parser = LogshimTxtParser(self.txt_file_path)
+            if len(txt_file_parser.lines) == self.get_nframes():
+                return True, txt_file_parser
+        elif self.constr_txt is not None:
                 self.constr_txt.name = str(self.txt_file_path)
                 return True, self.constr_txt
-            else:
-                return False, None
+        else:
+            return False, None
         
     def disown_txt_file(self) -> None:
         self.txt_exists = False
