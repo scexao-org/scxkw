@@ -133,10 +133,13 @@ class MotherOfFileObj(abc.ABC):
             txt_file_parser = LogshimTxtParser(self.txt_file_path)
             if len(txt_file_parser.lines) == self.get_nframes():
                 return True, txt_file_parser
+            else:
+                return False, None
+            
         elif self.constr_txt is not None:
                 self.constr_txt.name = str(self.txt_file_path)
                 return True, self.constr_txt
-        else:
+        else: # Shouldn't happen at all, should it?
             return False, None
         
     def disown_txt_file(self) -> None:
