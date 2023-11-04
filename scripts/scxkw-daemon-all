@@ -30,6 +30,7 @@
 '''
 
 import os, sys
+import traceback
 import time, datetime
 from docopt import docopt
 
@@ -134,7 +135,7 @@ if __name__ == "__main__":
                     gen2_pull(rdb, status_obj)
                 if G2PUSH and n % 10 == 1:
                     gen2_push(rdb, status_obj)
-                if G2ARCHIVE and n% 10 == 2:
+                if G2ARCHIVE and n % 10 == 2:
                     archive_monitor_get_ids(proxy_obj_scx, proxy_obj_vmp)
                 if COMPRESSFPACK and n % 10 == 4:
                     archive_monitor_compression(job_manager=fpack_manager)
@@ -163,6 +164,7 @@ if __name__ == "__main__":
                 print('Likely cause: connection Error - can\'t ping SCExAO '
                       'redis DB (briefly or due to something crashed)')
                 print(f'=== {e} ===')
+                print(traceback.format_exc())
             except ro.remoteObjectError as e:
                 # This catch statement will FAIL in not-Gen2 mode, because "ro" is undefined.
                 # See fix above
@@ -171,6 +173,7 @@ if __name__ == "__main__":
                 )
                 print('Likely cause: timeout / gen2 offline')
                 print(f'=== {e} ===')
+                print(traceback.format_exc())
 
             # Except in case of socket timeout... print message, then re-init RDB ?
 

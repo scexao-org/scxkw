@@ -22,10 +22,11 @@ except:
     FITS_HEADER_PATH = None
 
 # Where to write the data dump every now and then
-CSV_DUMP_PATH = '/home/scexao/logdir/' # + date + csv file name
-if not os.environ.get("WHICHCOMP", "0") == "6":
+if os.environ.get("WHICHCOMP", "0") not in ("5", "6"):
     # scexao2 fallback !
     CSV_DUMP_PATH = '/media/data'
+else:
+    CSV_DUMP_PATH = '/home/scexao/logdir/' # + date + csv file name
 
 REDIS_CONF_PATH='/home/scexao/src/scxkw/conf/redis_dbconf.conf'
 #REDIS_CONF_PATH='/home/vdeo/src/scxkw/conf/redis_dbconf.conf'
