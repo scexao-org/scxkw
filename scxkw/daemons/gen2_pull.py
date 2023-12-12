@@ -10,6 +10,9 @@ from g2base.remoteObjects import remoteObjects as ro
 
 from swmain.hwp.hwpmanager import ask_garde
 
+import logging
+logg = logging.getLogger(__name__)
+
 
 def gen2_pull(rdb, status_obj):
     # Getting the keys - this code is now repeated, while
@@ -122,8 +125,14 @@ def gen2_pull(rdb, status_obj):
 
         # We do NOT set RET-ANG1/2 from gen2. This is done from direct IRCS feedback.
         # THESE MUST be kept for CHARIS headers in particular.
-        val_hwp = ask_garde(hwp_true_qwp_false=True)
-        val_qwp = ask_garde(hwp_true_qwp_false=False)
+        try:
+            val_hwp = ask_garde(hwp_true_qwp_false=True)
+            val_qwp = ask_garde(hwp_true_qwp_false=False)
+        except Exception as exc:  # Mostly expecting a paramiko error here
+            logg.error(f"garde is behaving wrong - {exc!r}")
+            val_hwp, val_qwp = -1, -1
+            # Do we even have a logger here?
+
         pipe.hset('RET-ANG1', 'value', val_hwp)
         pipe.hset('RET-ANG2', 'value', val_qwp)
 

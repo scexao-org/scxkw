@@ -45,12 +45,19 @@ from scxkw.daemons.fits_write import write_headers
 # Dump telescope status to csv file
 from scxkw.daemons.csv_write import csv_write
 from scxkw.daemons.scexao_status_legacy import scexaostatus_legacy_update
+from swmain.infra.badsystemd.aux import auto_register_to_watchers
+
+import logging
 
 if __name__ == "__main__":
 
     # Argument parsing
+    from swmain.infra.logger import init_logger_autoname, LOG_PATH
+    init_logger_autoname(stdoutlevel=logging.WARNING)
+    logg = logging.getLogger(__name__)
 
     args = docopt(__doc__)
+    auto_register_to_watchers("SCXKW", "scxkw daemon")
 
     G2PULL = args["--pull"] or not args["select"]
     G2PUSH = args["--push"] or not args["select"]
