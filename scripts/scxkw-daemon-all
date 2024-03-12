@@ -15,6 +15,7 @@
     Usage:
         scxkw-daemon-all [-h | --help]
         scxkw-daemon-all select [options]
+        scxkw-daemon-all select fpackthendie
 
     Options:
         -h --help     Show this message
@@ -62,7 +63,8 @@ if __name__ == "__main__":
     G2PULL = args["--pull"] or not args["select"]
     G2PUSH = args["--push"] or not args["select"]
     G2ARCHIVE = args["--archiveid"] or not args["select"]
-    COMPRESSFPACK = args["--fpack"] or not args["select"]
+    COMPRESSFPACK = args["--fpack"] or not args["select"] or args['fpackthendie']
+    FPACK_THEN_DIE = args['fpackthendie']
     PDI_DEINTERLEAVE = args["--deint"] or not args["select"]
 
     if G2PULL or G2PUSH or G2ARCHIVE:
@@ -145,9 +147,13 @@ if __name__ == "__main__":
                 if G2ARCHIVE and n % 10 == 2:
                     archive_monitor_get_ids(proxy_obj_scx, proxy_obj_vmp)
                 if COMPRESSFPACK and n % 10 == 4:
-                    archive_monitor_compression(job_manager=fpack_manager)
+                    n_candidates_comp, _ = archive_monitor_compression(job_manager=fpack_manager)
+                    if FPACK_THEN_DIE and n_candidates_comp == 0:
+                        break # Out of while True.
                 if COMPRESSFPACK and n % 10 == 5:
-                    archive_migrate_compressed_files(time_allowed=(1020, 1050))
+                    # Deprecated.
+                    #archive_migrate_compressed_files(time_allowed=(1020, 1050))
+                    pass
                 if PDI_DEINTERLEAVE and n % 10 == 6:
                     pdi_deinterleave() # TODO
 

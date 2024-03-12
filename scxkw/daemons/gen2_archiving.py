@@ -304,7 +304,7 @@ def archive_migrate_compressed_files(*, time_allowed=(17*60, 17*60 + 30)):
 
 
 
-def synchronize_vampires_files(*, folder_root=GEN2PATH_NODELETE, sync_manager: VampiresSynchronizer):
+def synchronize_vampires_files(*, folder_root=GEN2PATH_NODELETE, sync_manager: VampiresSynchronizer) -> None:
     v1_fileobjs = file_tools.make_fileobjs_from_globs([folder_root + '/*/vcam1/*.fits'], [])
     v2_fileobjs = file_tools.make_fileobjs_from_globs([folder_root + '/*/vcam2/*.fits'], [])
 
@@ -314,7 +314,7 @@ def synchronize_vampires_files(*, folder_root=GEN2PATH_NODELETE, sync_manager: V
     sync_manager.process_queues()
 
 
-def archive_monitor_compression(*, job_manager: FpackJobManager):
+def archive_monitor_compression(*, job_manager: FpackJobManager) -> tuple[int,int]:
     '''
         Macro function: watches for SCX*.fits files in GEN2_NODELETE and spawns
         fpack compression jobs.
@@ -328,6 +328,8 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
     only_fits = file_tools.separate_compression_dups(all_fits, all_fzs)
     # No need for looping on all files, since we're gonna compress ~15-20 at the same time
     # tops
+    n_cands_comp = len(only_fits)
+    print(f'archive_monitor_compression: found {n_cands_comp} candidate files for compression.')
     file_objs = file_tools.make_fileobjs_from_filenames(only_fits[:100])
     
 
@@ -346,6 +348,8 @@ def archive_monitor_compression(*, job_manager: FpackJobManager):
     print(f'archive_monitor_compression: '
           f'found {len(file_objs)} SCX/VMP files to compress; '
           f'started {n_jobs} fpacks.')
+
+    return n_cands_comp, n_jobs
 
 from scxkw.tools.pdi_deinterleave import deinterleave_filechecker, PDIJobCodeEnum, AsyncPDIDeintJobManager
 

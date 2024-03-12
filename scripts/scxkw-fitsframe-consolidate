@@ -1,0 +1,120 @@
+#!/bin/env python
+'''
+Consolidation of framelist files found in vgen2
+
+Usage:
+    scxkw-vamp-summary <DATE> [-P]
+    scxkw-vamp-summary -f <FOLDER> [-P]
+
+Options:
+    -P      Use a 10-parallel pool (possibly, this is quite CPU bound.)
+'''
+from __future__ import annotations
+
+import typing as typ
+
+import numpy as np
+from pathlib import Path
+
+import docopt
+import logging
+
+from swmain.infra.logger import init_logger_autoname
+
+
+from scxkw.config import GEN2PATH_NODELETE
+from scxkw.tools import file_tools
+from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
+from scxkw.tools.fits_file_obj import FitsFileObj
+
+def write_func(fobjs_framelist, fobjs_fits_dict):
+    fitsobj = file_tools.consolidate_framelist_to_fits(fobjs_framelist, fobjs_fits_dict)
+    fitsobj.write_to_disk(try_flush_ram=True)
+    # If the write is successful, we should get rid of the fitsframes, otherwise
+    # We might consolidate it a second time...
+
+    ### WARNING! the txt is shared!
+    fobjs_framelist.disown_txt_file()
+    fobjs_framelist.delete_from_disk()
+
+if __name__ == "__main__":
+
+    init_logger_autoname()
+    logg = logging.getLogger(__name__)
+
+    args = docopt.docopt(__doc__)
+
+    FOLDER = args['<FOLDER>']
+    DATE = args['<DATE>']
+    PARALLEL = args['-P']
+
+    if FOLDER is None:
+        dateFolderPath = Path(GEN2PATH_NODELETE) / DATE
+    else:
+        dateFolderPath = Path(FOLDER)
+        DATE = dateFolderPath.name
+
+    assert (dateFolderPath.is_absolute() and dateFolderPath.is_dir())
+
+    fobjs_framelists: list[FrameListFitsFileObj] = file_tools.make_fileobjs_from_globs(
+                                                   [str(dateFolderPath) + '/vgen2/*.fitsframes'], [],
+                                                   type_to_use=FrameListFitsFileObj) + \
+                                                   file_tools.make_fileobjs_from_globs(
+                                                   [str(dateFolderPath) + '/agen2/*.fitsframes'], [],
+                                                   type_to_use=FrameListFitsFileObj)
+    fobjs_framelists.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
+
+    set_needed_fits: set[str] = set()
+    dict_needed_fits2fitsframes: dict[str, set[str]] = {}
+    dict_needed_fitsframes2fits: dict[str, set[str]] = {}
+
+    for fobj_fitsframes in fobjs_framelists:
+        fobj_fitsframes._ensure_data_loaded()
+        needed_fits: set[str] = set(fobj_fitsframes.data[:,0])
+        # Maintain set of all needed fits files to consolidate.
+        set_needed_fits.update(needed_fits)
+        # Maintain dictionnary of forward and reverse relationship between fits and fitsframes
+        dict_needed_fitsframes2fits[str(fobj_fitsframes.full_filepath)] = needed_fits
+        for fits_fname in needed_fits:
+            if not fits_fname in dict_needed_fitsframes2fits:
+                dict_needed_fits2fitsframes[fits_fname] = set()
+            dict_needed_fits2fitsframes[fits_fname].add(str(fobj_fitsframes.full_filepath))
+
+    # Save time if we don't need to load all the set (little amount of .fitsframes remaining)
+    fobjs_fits = [FitsFileObj(fullname=fname) for fname in set_needed_fits]
+    fobjs_fits_dict = {str(fo.full_filepath): fo for fo in fobjs_fits}
+
+    # Find trivial files where the consolidation is actually just a move.
+    fobjs_framelists_toremove: list[FrameListFitsFileObj] = []
+    for fobj_fitsframes in fobjs_framelists:
+        fpath_fitsframes = str(fobj_fitsframes.full_filepath)
+        set_fits_needed_for_fobj = dict_needed_fitsframes2fits[fpath_fitsframes]
+        if len(set_fits_needed_for_fobj) == 1:
+            fpath_fits = list(set_fits_needed_for_fobj)[0]
+            if len(dict_needed_fits2fitsframes[fpath_fits]) == 1:
+                this_fobj_fits = fobjs_fits_dict[fpath_fits]
+                if (fobj_fitsframes.get_nframes() == this_fobj_fits.get_nframes() and
+                    np.all(fobj_fitsframes.data[:,1] == np.arange(this_fobj_fits.get_nframes()))):
+                    logg.warning(f'Trivial duplicate found! '
+                              f'{fpath_fitsframes} and {fpath_fits}.')
+                    # Move the file - logically they have the same name so the .txt should be named ok
+                    this_fobj_fits.move_file_to_streamname(fobj_fitsframes.stream_from_foldername)
+                    fobj_fitsframes.disown_txt_file()
+                    fobj_fitsframes.delete_from_disk()
+
+                    fobjs_framelists_toremove.append(fobj_fitsframes)
+
+    fobjs_framelists = [f for f in fobjs_framelists if (not f in fobjs_framelists_toremove)]
+
+    import multiprocessing # Using multiprocessing is a bit faster, and also keeps the RAM in check
+    # But careful: files may appear in timely disorder
+
+    for slice_idx in range(len(fobjs_framelists) // 10 + 1):
+        ps = []
+        for fobjs_framelist in fobjs_framelists[10*slice_idx:10*slice_idx+10]:
+
+            ps += [multiprocessing.Process(target=write_func, args=(fobjs_framelist, fobjs_fits_dict))]
+            ps[-1].start()
+    
+        for p in ps:
+            p.join()

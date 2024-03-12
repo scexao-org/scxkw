@@ -1,0 +1,93 @@
+#!/bin/env python
+
+'''
+PDI deinterleaving of Apapane data.
+Non-PDI data will just be left alone.
+
+apapane -> agen2
+
+Usage:
+    scxkw-vamp-syncdeint <DATE>
+    scxkw-vamp-syncdeint -f <FOLDER>
+
+Options:
+    -f   Give full folder path instead of just dates
+'''
+from __future__ import annotations
+
+import os
+import typing as typ
+from pathlib import Path
+import subprocess as sproc
+
+import docopt
+
+# FIXME start logger.
+
+from scxkw.config import GEN2PATH_NODELETE
+from scxkw.tools import file_tools
+from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
+
+if __name__ == "__main__":
+
+
+    args = docopt.docopt(__doc__)
+    print("------ ARGS --------")
+    print(args)
+
+    FOLDER = args['<FOLDER>']
+    DATE = args['<DATE>']
+
+    if FOLDER is None:
+        folderPath = Path(GEN2PATH_NODELETE) / DATE
+    else:
+        folderPath = Path(FOLDER)
+
+    print(f'folderPath: {folderPath}')
+
+    assert (folderPath.is_absolute() and folderPath.is_dir()
+            and (folderPath / 'apapane').is_dir())
+
+    '''
+        Hardlink backup of subdirs as-is
+    '''
+    children_dirs: typ.List[str] = next(os.walk(folderPath))[1]
+    for child in children_dirs:
+        if not child.endswith('_hlinkbak'):
+            sproc.check_output(['cp', '-TlR', str(folderPath) + f'/{child}', str(folderPath) + f'/{child}_hlinkbak'])
+
+    '''
+        PDI Deint
+    '''
+
+
+    from scxkw.tools import pdi_deinterleave as pdi
+    from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
+
+    '''
+    Find straggler fits files and convert them to fitsframes files
+    '''
+    a_fobjs = file_tools.make_fileobjs_from_globs([str(folderPath) + '/apapane/*.fits'], [])
+    a_lfobjs = [file_tools.convert_to_filelist_obj(fo) for fo in a_fobjs]
+    [fo.write_to_disk() for fo in a_lfobjs]
+
+    '''
+    List Framelist objects
+    '''
+    all_fobjs = file_tools.make_fileobjs_from_globs(
+        [str(folderPath) + '/apapane/*.fitsframes'], [],
+        type_to_use=FrameListFitsFileObj)
+    
+    '''
+    Actual deinterleaving
+    '''
+    deinterleaver = pdi.SyncPDIDeintManager()
+    for fobj in all_fobjs:
+        ret = deinterleaver.run_pdi_deint_job(fobj, 'agen2')
+        if ret == pdi.PDIJobCodeEnum.NOTHING:
+            fobj.move_file_to_streamname('agen2')
+
+    '''
+        Remaining: ... the consolidation.
+    '''
+    

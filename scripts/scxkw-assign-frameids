@@ -7,9 +7,9 @@ Usage:
     scxkw-assign-frameids <DATE> [-a] [-v]
     scxkw-assign-frameids -f <FOLDER> [-a] [-v]
 
-Options:
+Options: 
     -v      do vampires (vgen2)
-    -f      do fastPDI / CRED1 imaging (agen2)
+    -a      do fastPDI / CRED1 imaging (agen2)
 '''
 
 import typing as typ
