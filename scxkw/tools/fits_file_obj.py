@@ -72,7 +72,7 @@ class FitsFzFileObj(MotherOfFileObj):
             raise AssertionError(message)
         
     def _write_data_to_disk(self, filename: Path) -> None:
-        raise NotImplemented('Illegal on .fits.fz. For now.')
+        raise NotImplementedError('Illegal on .fits.fz. For now.')
 
     def get_nframes(self) -> int:
         # Assume logshim format... n_frames = last axis
@@ -80,7 +80,12 @@ class FitsFzFileObj(MotherOfFileObj):
         return _NAXIS3
     
     def _ensure_data_loaded(self):
-        raise NotImplemented('Illegal on .fits.fz. For now.')
+        if self.data is None:
+            if self.is_on_disk:
+                # This will uncompress HDU 1
+                self.data = fits.getdata(self.full_filepath, memmap=False)
+            else:
+                self.data = self.constr_data
 
     def _merge_data_after(self, other_data):
-        raise NotImplemented('Illegal on .fits.fz. For now.')
+        raise NotImplementedError('Illegal on .fits.fz. For now.')
