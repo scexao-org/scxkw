@@ -37,7 +37,7 @@ def gen2_pull(rdb, status_obj):
     dict_to_pull = {
         k: v
         for k, v in dict_to_pull.items()
-        if not (k.startswith('AON.IWFS') or k.startswith('AON.NRTS'))
+        if not (k.startswith('AON.IRWFS') or k.startswith('AON.NRTS'))
     }
 
     # ========================

@@ -33,7 +33,7 @@ def gen2_push(rdb: Redis, status_obj):
     dict_to_push_aon = {
         k: v
         for k, v in dict_to_push.items()
-        if (k.startswith('AON.IWFS') or k.startswith('AON.NRTS'))
+        if (k.startswith('AON.IRWFS') or k.startswith('AON.NRTS'))
     }
 
     # =========================
