@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import annotations
 
 import sys, time
 from astropy.coordinates import Angle
@@ -7,8 +8,6 @@ from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, GEN2HOST
 from scxkw.redisutil.typed_db import Redis
 
 from g2base.remoteObjects import remoteObjects as ro
-
-from swmain.hwp.hwpmanager import ask_garde
 
 import logging
 
@@ -138,12 +137,20 @@ def gen2_pull(rdb, status_obj):
         # We do NOT set RET-ANG1/2 from gen2. This is done from direct IRCS feedback.
         # THESE MUST be kept for CHARIS headers in particular.
         try:
-            val_hwp = ask_garde(hwp_true_qwp_false=True)
-            val_qwp = ask_garde(hwp_true_qwp_false=False)
+            from swmain.hwp.wpu import WPU
+            wpu = WPU()
+            wpu.get_status()
+            val_hwp = wpu.hwp.get_pol_angle()
+            val_qwp = wpu.qwp.get_pol_angle()
         except Exception as exc:  # Mostly expecting a paramiko error here
-            logg.error(f"garde is behaving wrong - {exc!r}")
+            logg.error(f"HWP: garde is behaving wrong - {exc!r}")
             val_hwp, val_qwp = -1, -1
             # Do we even have a logger here?
+        finally:
+            try:
+                wpu.client.close()
+            except:
+                pass
 
         pipe.hset('RET-ANG1', 'value', val_hwp)
         pipe.hset('RET-ANG2', 'value', val_qwp)

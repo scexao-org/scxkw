@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
 
 import sys, time
 
@@ -8,12 +10,12 @@ from scxkw.redisutil.typed_db import Redis
 from g2base.remoteObjects import remoteObjects as ro
 
 
-def gen2_push(rdb, status_obj):
+def gen2_push(rdb: Redis, status_obj):
     # Getting the keys - this code is now repeated, while
     # Originally it was outside the while(True) loop
 
     # WARNING: We must push more than just SCExAO - NIRWFS and RTS23 too.
-    fits_keys_to_push: set[str] = rdb.smembers('set:g2:SCX', 'set:g2:AON')
+    fits_keys_to_push: set[str] = rdb.sunion('set:g2:SCX', 'set:g2:AON')
 
     # Now Getting the keys
     with rdb.pipeline() as pipe:
