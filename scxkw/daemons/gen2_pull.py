@@ -11,13 +11,16 @@ from g2base.remoteObjects import remoteObjects as ro
 from swmain.hwp.hwpmanager import ask_garde
 
 import logging
+
 logg = logging.getLogger(__name__)
 
 
 def gen2_pull(rdb, status_obj):
     # Getting the keys - this code is now repeated, while
     # Originally it was outside the while(True) loop
-    fits_keys_to_pull = rdb.sunion('set:g2:FITS', 'set:g2:WAV', 'set:g2:AON')
+    # WARNING: We mustn't pull all of those anymore - NIRWFS and RTS23 excluded.
+    fits_keys_to_pull: set[str] = rdb.sunion('set:g2:FITS', 'set:g2:WAV',
+                                             'set:g2:AON')
     with rdb.pipeline() as pipe:
         for key in fits_keys_to_pull:
             pipe.hget(key, 'Gen2 Variable')
@@ -25,9 +28,18 @@ def gen2_pull(rdb, status_obj):
             pipe.hget(key, 'value')
         values = pipe.execute()
 
+    # g2key: value
     dict_to_pull = {k: v for k, v in zip(values[::2], values[1::2])}
 
+    # g2key: FITS key
     g2map = rdb.hgetall('map:g2_lookup')
+
+    # Remove AON.IWFS and AON.NRTS keys. SCExAO is managing those.
+    dict_to_pull = {
+        k: v
+        for k, v in dict_to_pull.items()
+        if not (k.startswith('AON.IWFS') or k.startswith('AON.NRTS'))
+    }
 
     # ========================
     # NOW PULL FROM GEN2

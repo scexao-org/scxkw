@@ -7,10 +7,13 @@ from scxkw.redisutil.typed_db import Redis
 
 from g2base.remoteObjects import remoteObjects as ro
 
+
 def gen2_push(rdb, status_obj):
     # Getting the keys - this code is now repeated, while
     # Originally it was outside the while(True) loop
-    fits_keys_to_push = rdb.smembers('set:g2:SCX')
+
+    # WARNING: We must push more than just SCExAO - NIRWFS and RTS23 too.
+    fits_keys_to_push: set[str] = rdb.smembers('set:g2:SCX', 'set:g2:AON')
 
     # Now Getting the keys
     with rdb.pipeline() as pipe:
@@ -18,17 +21,25 @@ def gen2_push(rdb, status_obj):
             pipe.hget(key, 'Gen2 Variable')
             pipe.hget(key, 'value')
         values = pipe.execute()
-            
-    dict_to_push = {k: v for k,v in zip(values[::2], values[1::2])}
-    
-    
+
+    # g2key: value
+    dict_to_push = {k: v for k, v in zip(values[::2], values[1::2])}
+    dict_to_push_scx = {
+        k: v
+        for k, v in dict_to_push.items() if k.startswith('SCX')
+    }
+    dict_to_push_aon = {
+        k: v
+        for k, v in dict_to_push.items()
+        if (k.startswith('AON.IWFS') or k.startswith('AON.NRTS'))
+    }
+
     # =========================
     # NOW PUSH TO GEN2
     # ========================
-    
-    status_obj.store_table('SCX', dict_to_push)
 
-
+    status_obj.store_table('SCX', dict_to_push_scx)
+    status_obj.store_table('AON', dict_to_push_aon)
 
 
 if __name__ == "__main__":
