@@ -16,7 +16,8 @@ from ..tools import file_tools
 from ..tools.vampires_synchro import VampiresSynchronizer
 from ..tools.fits_file_obj import FitsFileObj
 
-from g2base.remoteObjects import remoteObjects as ro
+if typ.TYPE_CHECKING:
+    from g2base.remoteObjects import remoteObjects as ro
 
 from astropy.io import fits
 

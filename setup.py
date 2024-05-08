@@ -22,6 +22,6 @@ setup(
         author_email = 'vdeo@naoj.org',
         url = "http://www.github.com/scexao-org/scxkw",
         packages = find_packages(),  # same as name
-        install_requires = ['astropy', 'docopt', 'numpy', 'pandas', 'redis', 'sqlalchemy', 'tqdm'],
+        install_requires = ['astropy', 'docopt', 'numpy', 'pandas', 'redis', 'sqlalchemy', 'tqdm', "numba"],
         scripts = script_list
     )
