@@ -183,7 +183,7 @@ class SCEXAO(BASECAM):
         """Forced export of our status.
         Useful command to test whether instrument status export is working.
         """
-        # Bump our status send count and time
+        # Bump our status send count and self.ocs.setvals(subtag, task_end=time.time())time
         self.stattbl1.count += 1
         self.stattbl1.time = time.time()
 
@@ -199,6 +199,34 @@ class SCEXAO(BASECAM):
         d = self.ocs.requestOCSstatusList2Dict(self.s_aliases)
 
         self.logger.info("Status returned: %s" % (str(d)))
+
+    def ircam_steering(self, tag=None, mode=None, a=None, b=None, c=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        mode = mode.lower()
+
+        a, b = float(a), float(b)
+        c = int(c)
+
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting cexao2 for ircam_steering {mode} {a} {b} {c}')
+        sp = subprocess.run(['ssh', 'sc2l', f'ircam_steering {mode} {a} {b} {c}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('ircam_steering went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: ircam_steering {mode} {a} {b} {c}")
+        self.ocs.setvals(subtag, task_end=time.time())
+        
 
 
     def archive_fits(self, frame_no=None, path=None, tag=None):
