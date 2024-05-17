@@ -2,7 +2,7 @@
 '''
     Daemon starting point
 
-    Starts a 10-sec loop which by default does:
+    Starts a 1-sec loop which by default does:
         - Fetch gen2, publish to scexao-redis
         - Fetch scexao-redis, publish to gen2
 
@@ -47,15 +47,16 @@ from scxkw.daemons.fits_write import write_headers
 from scxkw.daemons.csv_write import csv_write
 from scxkw.daemons.scexao_status_legacy import scexaostatus_legacy_update
 from swmain.infra.badsystemd.aux import auto_register_to_watchers
+from swmain.infra.logger import init_logger_autoname, LOG_PATH
 
 import logging
+
+init_logger_autoname(stdoutlevel=logging.WARNING)
+logg = logging.getLogger(__name__)
 
 if __name__ == "__main__":
 
     # Argument parsing
-    from swmain.infra.logger import init_logger_autoname, LOG_PATH
-    init_logger_autoname(stdoutlevel=logging.WARNING)
-    logg = logging.getLogger(__name__)
 
     args = docopt(__doc__)
     auto_register_to_watchers("SCXKW", "scxkw daemon")
@@ -160,7 +161,7 @@ if __name__ == "__main__":
 
                 if FITSWRITE and n % 2 == 0:
                     write_headers(rdb, FITS_HEADER_PATH)
-                
+
                 # Dump telescope status to csv file
                 if CSVWRITE and n % 10 == 2:
                     csv_write(rdb, CSV_DUMP_PATH)
@@ -168,7 +169,7 @@ if __name__ == "__main__":
                     scexaostatus_legacy_update(rdb)
 
 
-            except (ConnectionError, ConnectionRefusedError, 
+            except (ConnectionError, ConnectionRefusedError,
                     redis.exceptions.TimeoutError,
                     redis.exceptions.ConnectionError) as e:
                 print(
