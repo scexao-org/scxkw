@@ -15,6 +15,64 @@ logger = logging.getLogger(__name__)
 
 NULL_DATA = np.array([0, 1, 2, 3], dtype=np.float32)
 
+
+class FormattedFloat(float):
+    # https://subarutelescope.org/Observing/fits/howto/floatformat/
+    """
+    A class used to represent a FormattedFloat, which is a subclass of float.
+
+    ...
+
+    Attributes
+    ----------
+    formatstr : str
+        a formatted string that is used to represent the float value
+
+    Methods
+    -------
+    __str__():
+        Returns the float value as a formatted string.
+    """
+
+    def __new__(cls, value, formatstr=None):
+        """
+        Constructs a new instance of the FormattedFloat class.
+
+        Parameters
+        ----------
+        value : float
+            the float value to be formatted
+        formatstr : str, optional
+            the format string to be used (default is None)
+        """
+        return super().__new__(cls, value)
+
+    def __init__(self, value, formatstr=None):
+        """
+        Initializes the FormattedFloat instance.
+
+        Parameters
+        ----------
+        value : float
+            the float value to be formatted
+        formatstr : str, optional
+            the format string to be used (default is None)
+        """
+        if formatstr is not None:
+            # remove the leading % if present to be compatible with the f-string format
+            self.formatstr = formatstr[1:] if formatstr[0] == "%" else formatstr
+
+    def __str__(self):
+        """
+        Returns the float value as a formatted string.
+
+        Returns
+        -------
+        str
+            the formatted string representation of the float value
+        """
+        return f"{self.__float__():{self.formatstr}}"
+
 def format_as_card(key: str, fmt: str, value, comment: Optional[str] = None) -> str:
     """
     Create a FITS card string from its constituent components. In general, we try to make things
@@ -120,9 +178,19 @@ def write_headers(rdb, path) -> Dict[str, fits.Card]:
         # this is necessary to enforce the formatting in the master spreadsheet
         # otherwise, casting to float and letting astropy do what it wants
         # alters the represenation, and does not abide by the Subaru FITS standard :)
-        card_str = format_as_card(key, fmt, value, comment)
-        card = fits.Card.fromstring(card_str)
-        kw_data[key] = card
+        try:
+            if fmt == 'BOOLEAN':
+                value = bool(value)
+            elif fmt[-1] == 'd':
+                value = int(fmt % value)
+            elif fmt[-1] == 'f':
+                value = FormattedFloat(value, fmt)
+            elif fmt[-1] == 's':  # string
+                value = fmt % value
+        except:  # Sometime garbage values cannot be formatted properly...
+            value = value
+            print(f"fits_headers: formatting error on {value}, {fmt}, {comment}")
+        kw_data[key] = (value, comment)
 
     # Now make the dicts on the fly for each file_key, and call the write_one_header
     for file_key in file_keys:
@@ -136,11 +204,12 @@ def _isnt_structural_keyword(key):
     predicate = key in ("SIMPLE", "BITPIX", "BZERO", "BSCALE", "END") or key.startswith("NAXIS")
     return not predicate
 
-def write_one_header(cards_dict: Dict[str, fits.Card], folder, name):
+def write_one_header(kw_dict: Dict[str, fits.Card], folder, name):
     # generate Header card-by-card
     header = fits.Header()
-    for k in sorted(filter(_isnt_structural_keyword, cards_dict.keys())):
-        header.append(cards_dict[k])
+    for k in sorted(filter(_isnt_structural_keyword, kw_dict.keys())):
+        value, comment = kw_dict[k]
+        header[k] = value, comment
 
     hdu = fits.PrimaryHDU(data=NULL_DATA, header=header)
     # Must be set to not None AFTER creation of the HDU
