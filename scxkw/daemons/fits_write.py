@@ -181,9 +181,7 @@ def write_headers(rdb, path) -> Dict[str, fits.Card]:
         try:
             if fmt == 'BOOLEAN':
                 value = bool(value)
-            elif fmt[-1] == 'd':
-                value = int(fmt % value)
-            elif fmt[-1] == 'f':
+            elif fmt[-1] in ('d', 'f'):
                 value = FormattedFloat(value, fmt)
             elif fmt[-1] == 's':  # string
                 value = fmt % value

@@ -6,10 +6,9 @@ import logging
 
 logg = logging.getLogger(__name__)
 
-import os, sys, glob, time, datetime, subprocess
+import os, glob, time, datetime, subprocess
 
-from scxkw.config import GEN2PATH_NODELETE, GEN2PATH_OKDELETE, CAMIDS, GEN2PATH_PRELIM
-from scxkw.redisutil.typed_db import Redis
+from scxkw.config import GEN2PATH_NODELETE, GEN2PATH_OKDELETE, CAMIDS
 from scxkw.tools.compression_job_manager import FPackJobCodeEnum, FpackJobManager
 
 from ..tools import file_tools
