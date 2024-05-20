@@ -119,9 +119,11 @@ class MotherOfFileObj(abc.ABC):
 
         self.fits_header: fits.Header = self._locate_fitsheader()
 
-        _DATE: str = self.fits_header['DATE']  # type: ignore
-        self.file_time_header: float = datetime.strptime(
-            _DATE, '%Y-%m-%dT%H:%M:%S').timestamp()
+        self.file_time_header: float | None = None
+        if 'DATE' in self.fits_header:
+            _DATE: str = self.fits_header['DATE']  # type: ignore
+            self.file_time_header = datetime.strptime(
+                _DATE, '%Y-%m-%dT%H:%M:%S').timestamp()
 
         self.txt_file_path: Path = self.full_filepath.parent / (
             self.full_filepath.stem + '.txt')
@@ -221,6 +223,7 @@ class MotherOfFileObj(abc.ABC):
 
         assert self.stream_from_filename is not None
         assert self.time_from_filename is not None
+        assert self.file_time_header is not None
 
         if not abs((self.file_time_header - self.time_from_filename) % 86400 -
                    36000) < 2000:
