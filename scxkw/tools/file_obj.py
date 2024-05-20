@@ -8,6 +8,7 @@ import logging
 logg = logging.getLogger(__name__)
 
 import abc
+import re
 import os, shutil
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +18,7 @@ import time
 
 from .logshim_txt_parser import LogshimTxtParser
 from .fix_header import fix_header_times
+
 
 class MotherOfFileObj(abc.ABC):
 
@@ -89,9 +91,14 @@ class MotherOfFileObj(abc.ABC):
 
         self.full_rootfolder: Path = self.full_filepath.parent.parent.parent
 
-        self.stream_from_filename: t_Op[str] = None
-        self.time_from_filename: t_Op[float] = None
-        if not self.is_archived:
+        self.stream_from_filename: str | None = None
+        self.time_from_filename: float | None = None
+
+        # Oh look an ugly regex to find if this is a MILK-generated filename
+        self.name_is_milk_compliant: bool = re.match(
+            '^[a-zA-Z0-9]+_\d{2}:\d{2}:\d{2}.\d{1,9}', self.full_filepath.name) is not None
+
+        if not self.is_archived and self.name_is_milk_compliant:
             self.stream_from_filename = self.file_name.split('_')[0]
             # remove ns (not supported by strptime %f)
             fname_no_decimal = self.full_filepath.stem.split('.')[0]
@@ -135,13 +142,13 @@ class MotherOfFileObj(abc.ABC):
                 return True, txt_file_parser
             else:
                 return False, None
-            
+
         elif self.constr_txt is not None:
-                self.constr_txt.name = str(self.txt_file_path)
-                return True, self.constr_txt
-        else: # Shouldn't happen at all, should it?
+            self.constr_txt.name = str(self.txt_file_path)
+            return True, self.constr_txt
+        else:  # Shouldn't happen at all, should it?
             return False, None
-        
+
     def disown_txt_file(self) -> None:
         self.txt_exists = False
         self.txt_file_parser = None
@@ -207,7 +214,7 @@ class MotherOfFileObj(abc.ABC):
 
         new_name = filename_no_suff + ''.join(
             suffixes[:-1]) + suffix + suffixes[-1]
-        
+
         self.rename_in_folder(new_name)
 
     def ut_sanitize(self) -> None:
@@ -460,7 +467,7 @@ class MotherOfFileObj(abc.ABC):
             logg.error(message)
             assert self.file_time_creation is not None
             return self.file_time_creation
-        
+
     def edit_header(self, key: str, value):
         '''
         Don't use this for multiple updates... gun' be slow.
@@ -470,11 +477,10 @@ class MotherOfFileObj(abc.ABC):
             with fits.open(self.full_filepath, 'update') as fptr:
                 fptr[self.HDU_POS].header[key] = value
 
-
     def delete_from_disk(self,
                          try_purge_ram: bool = False,
                          silent_fail: bool = False):
-        
+
         if silent_fail and not self.is_on_disk:
             return
 
