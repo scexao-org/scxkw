@@ -1,17 +1,4 @@
 #!/bin/env python
-'''
-Synchronization of VAMPIRES data using framelist files.
-
-vcam1, vcam2 -> vsolo1, vsolo2, vsync, vbad
-
-Usage:
-    scxkw-vamp-summary <DATE> [--fits] [--fz]
-    scxkw-vamp-summary -f <FOLDER> [--fits] [--fz]
-
-Options:
-    --fits  Use fits files instead of fitsframes files
-    --fz    Use fits.fz file instead of fitsframes files
-'''
 import argparse
 import logging
 from pathlib import Path
