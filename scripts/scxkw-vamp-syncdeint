@@ -1,13 +1,11 @@
 #!/bin/env python
 import argparse
 import logging
-import os
 from pathlib import Path
 import subprocess as sproc
 import typing as typ
 
 
-from scxkw.config import GEN2PATH_NODELETE
 from scxkw.tools import file_tools
 from scxkw.tools import pdi_deinterleave as pdi
 from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
@@ -27,6 +25,28 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("folder", type=Path, help="Root folder containing the `vcam*` subfolders")
 parser.add_argument("-s", "--sync-only", action="store_true", help="Synchronize files ONLY (vcam1, vcam2) -> (vbad, vsolo1, vsolo2, vsync). Normally files get synchronized as well as deinterleaved and prepared for gen2, this only synchronizes.")
+
+
+def hardlink_backup(path: Path, suffix: str="hlinkbak"):
+    ## Hardlink backup of subdirs as-is
+    og_path = str(path.absolute())
+    hlink_path = f"{og_path}_{suffix}"
+    sproc.check_output(["cp", "-TlR", og_path, hlink_path])
+    logger.debug(f"Created hardlink dir {og_path} -> {hlink_path}")
+
+def _sanitize_and_convert(fileobj):
+    fileobj.ut_sanitize()
+    ## Conversion to FrameListFitsFileObj -- assuming we have a txt file.
+    framelistobj = file_tools.convert_to_filelist_obj(fileobj)
+    framelistobj.write_to_disk()
+    return framelistobj
+
+def create_filelists(path: Path, glob: str="*.fits") -> typ.List[FrameListFitsFileObj]:
+    ## Initial fileobjs + UT glitch sanitize
+    glob_pattern = f"{path}/{glob}"
+    fileobjs = file_tools.make_fileobjs_from_globs([glob_pattern], [])
+    framelist = [_sanitize_and_convert(fo) for fo in fileobjs]
+    return framelist
 
 def main():
     # prepare local debug log
@@ -48,64 +68,41 @@ def main():
     if not folderPath.is_dir():
         msg = f"{folderPath} was not recognized as a directory"
         raise ValueError(msg)
-    
+
+    vcam_paths = []
     vcam1Path = folderPath / "vcam1"
-    if not vcam1Path.is_dir():
-        msg = f"Could not find 'vcam1' directory"
-        raise ValueError(msg)
-    
+    vcam1_exists = vcam1Path.is_dir()
+
     vcam2Path = folderPath / "vcam2"
-    if not vcam2Path.is_dir():
-        msg = f"Could not find 'vcam2' directory"
+    vcam2_exists = vcam2Path.is_dir()
+
+    if not (vcam1_exists or vcam2_exists):
+        msg = f"Could not find 'vcam1' or 'vcam2' directory. Check {folderPath}"
         raise ValueError(msg)
+    elif not vcam1_exists:
+        msg = f"Could not find 'vcam1' directory; ignoring it"
+        logger.warning(msg)
+    elif not vcam2_exists:
+        msg = f"Could not find 'vcam2' directory; ignoring it"
+        logger.warning(msg)
 
     sync_only = args.sync_only
 
     lfobjs: typ.Dict[Path, typ.Any] = {}
-    for path in (vcam1Path, vcam2Path):
-        ## Hardlink backup of subdirs as-is
-        og_path = str(path.absolute())
-        hlink_path = f"{og_path}_hlinkbak"
-        sproc.check_output(['cp', '-TlR', og_path, hlink_path])
-        logger.debug(f"Created hardlink dir {og_path} -> {hlink_path}")
+    ## Hardlink backup of subdirs as-is
+    ## Initial fileobjs + UT glitch sanitize
+    if vcam1_exists:
+        hardlink_backup(vcam1Path)
+        lfobjs[vcam1Path] = create_filelists(vcam1Path)
+    if vcam2_exists:
+        hardlink_backup(vcam2Path)
+        lfobjs[vcam2Path] = create_filelists(vcam2Path)
 
-        
-
-        ## Initial fileobjs + UT glitch sanitize
-        glob = f"{og_path}/*.fits"
-        fobjs = file_tools.make_fileobjs_from_globs([glob], [])
-        lfobjs[path] = []
-        for fo in fobjs:
-            fo.ut_sanitize()
-            ## Conversion to FileListFitsFileObj -- assuming we have a txt file.
-            lfobj = file_tools.convert_to_filelist_obj(fo)
-            lfobj.write_to_disk()
-            lfobjs[path].append(lfobj)
-
-
-
-
-    # v1_fobjs = file_tools.make_fileobjs_from_globs([str(folderPath) + '/vcam1/*.fits'], [])
-    # v2_fobjs = file_tools.make_fileobjs_from_globs([str(folderPath) + '/vcam2/*.fits'], [])
-    # for fo in v1_fobjs:
-    #     fo.ut_sanitize()
-    # for fo in v2_fobjs:
-    #     fo.ut_sanitize()
-
-    
-    # ## Conversion to FileListFitsFileObj -- assuming we have a txt file.
-    # v1_lfobjs = [file_tools.convert_to_filelist_obj(fo) for fo in v1_fobjs]
-    # v2_lfobjs = [file_tools.convert_to_filelist_obj(fo) for fo in v2_fobjs]
-    # #FrameListFitsFileObj.DEBUG = True
-    # [fo.write_to_disk() for fo in v1_lfobjs]
-    # [fo.write_to_disk() for fo in v2_lfobjs]
-
-    
     ## Synchronization
     syncer = VampiresSynchronizer(auto_tolerancing=True)
-    syncer.feed_file_objs(lfobjs[vcam1Path])
-    syncer.feed_file_objs(lfobjs[vcam2Path])
-
+    for lfo in lfobjs.values():
+        syncer.feed_file_objs(lfo)
+    
     while syncer.process_queues(10):
         pass
 
