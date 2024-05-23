@@ -12,55 +12,69 @@ Options:
     --fits  Use fits files instead of fitsframes files
     --fz    Use fits.fz file instead of fitsframes files
 '''
-
+import argparse
+import logging
 from pathlib import Path
 
 import docopt
 from datetime import datetime
 
-# FIXME start logger.
+
+# set up logging
+logger = logging.getLogger("scxkw-vamp-summary")
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(logging.INFO)
+logger.addHandler(stream_handler)
 
 from scxkw.config import GEN2PATH_NODELETE
 from scxkw.tools import file_tools
 from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
 from scxkw.tools.fits_file_obj import FitsFzFileObj
 
-if __name__ == "__main__":
+# prepare arg parsing
+parser = argparse.ArgumentParser(
+    "scxkw-vamp-summary",
+    description="Summarize VAMPIRES synchronization output.",
+    epilog="If you run into problems, contacnt vdeo or mlucas (TODO make undo script)."
+)
+parser.add_argument("folder", type=Path, help="Root folder containing the `vcam*` subfolders")
+parser.add_argument("--fits", action="store_true", help="Use fits files instead of fitsframes files")
+parser.add_argument("--fz", action="store_true", help="Use fits.fz files instead of fitsframes files")
 
 
-    args = docopt.docopt(__doc__)
+def main():
+    # prepare local debug log
+    debug_path = Path.cwd() / "syncdeint_debug.log"
+    file_handler = logging.FileHandler(debug_path)
+    file_handler.setLevel(logging.DEBUG)
+    logger.addHandler(file_handler)
+    logger.info(f"Saving debug log to {debug_path}")
 
-    FOLDER = args['<FOLDER>']
-    DATE = args['<DATE>']
-    DO_FITS = args['--fits']
-    DO_FZ = args['--fz']
+    args = parser.parse_args()
+    logger.debug("Parsed arguments:")
+    logger.debug(args)
 
-    if FOLDER is None:
-        dateFolderPath = Path(GEN2PATH_NODELETE) / DATE
-    else:
-        dateFolderPath = Path(FOLDER)
-        DATE = dateFolderPath.name
+    folderPath = args.folder.absolute()
+    logger.debug(f"Absolute path: {folderPath}")
 
-    assert (dateFolderPath.is_absolute() and dateFolderPath.is_dir())
+    assert (folderPath.is_absolute() and folderPath.is_dir())
     
     # We need to load all the txts and all the frame times
-    if DO_FITS:
-        fobjs = file_tools.make_fileobjs_from_globs(
-            [str(dateFolderPath) + '/vgen2/*.fits'], [])
-    elif DO_FZ:
-        fobjs = file_tools.make_fileobjs_from_globs(
-            [str(dateFolderPath) + '/vgen2/*.fits.fz'], [],
-            type_to_use=FitsFzFileObj)
+    if args.fits:
+        glob_str = f"{folderPath}/vgen2/*.fits"
+        fobjs = file_tools.make_fileobjs_from_globs([glob_str], [])
+    elif args.fz:
+        glob_str = f"{folderPath}/vgen2/*.fits.fz"
+        fobjs = file_tools.make_fileobjs_from_globs([glob_str], [], type_to_use=FitsFzFileObj)
     else:
-        fobjs = file_tools.make_fileobjs_from_globs(
-            [str(dateFolderPath) + '/vgen2/*.fitsframes'], [],
-            type_to_use=FrameListFitsFileObj)
+        glob_str = f"{folderPath}/vgen2/*.fitsframes"
+        fobjs = file_tools.make_fileobjs_from_globs([glob_str], [], type_to_use=FrameListFitsFileObj)
         
-    time_midnight_ut = datetime.strptime(DATE + 'T' + '00:00:00',
-                                         '%Y%m%dT%H:%M:%S').timestamp()
-    
-    fojbs_bak = fobjs.copy()
-    
+    # parse date from fileobjs
+    date = fobjs[-1].fits_header["DATE-OBS"]
+    time_midnight_ut = datetime.strptime(f"{date}T00:00:00", "%Y-%m-%dT%H:%M:%S").timestamp()
+
+    # N.B.: Miles- not gonna touch below this line
     min_slice = 1
     for n_min_slice in range((1440 + min_slice - 1) // min_slice):
         frame_dict = {}
@@ -71,7 +85,6 @@ if __name__ == "__main__":
         while True:
             if len(fobjs) == 0:
                 break
-
 
             time = fobjs[0].get_start_unixtime_secs()
             if (time - time_midnight_ut) > min_slice*60*(n_min_slice+1):
@@ -96,3 +109,7 @@ if __name__ == "__main__":
             keys.sort()
             for k in keys:
                 print('\t\t%-20s' % str(k) + f'\t\t{frame_dict[k]}')
+
+
+if __name__ == "__main__":
+    main()
