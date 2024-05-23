@@ -9,7 +9,7 @@ import numpy as np
 from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, FITS_HEADER_PATH
 from scxkw.redisutil.typed_db import Redis
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -18,116 +18,52 @@ NULL_DATA = np.array([0, 1, 2, 3], dtype=np.float32)
 
 class FormattedFloat(float):
     # https://subarutelescope.org/Observing/fits/howto/floatformat/
-    """
-    A class used to represent a FormattedFloat, which is a subclass of float.
-
-    ...
-
-    Attributes
-    ----------
-    formatstr : str
-        a formatted string that is used to represent the float value
-
-    Methods
-    -------
-    __str__():
-        Returns the float value as a formatted string.
-    """
 
     def __new__(cls, value, formatstr=None):
-        """
-        Constructs a new instance of the FormattedFloat class.
-
-        Parameters
-        ----------
-        value : float
-            the float value to be formatted
-        formatstr : str, optional
-            the format string to be used (default is None)
-        """
         return super().__new__(cls, value)
 
     def __init__(self, value, formatstr=None):
-        """
-        Initializes the FormattedFloat instance.
-
-        Parameters
-        ----------
-        value : float
-            the float value to be formatted
-        formatstr : str, optional
-            the format string to be used (default is None)
-        """
         if formatstr is not None:
             # remove the leading % if present to be compatible with the f-string format
             self.formatstr = formatstr[1:] if formatstr[0] == "%" else formatstr
 
     def __str__(self):
-        """
-        Returns the float value as a formatted string.
-
-        Returns
-        -------
-        str
-            the formatted string representation of the float value
-        """
         return f"{self.__float__():{self.formatstr}}"
 
-def format_as_card(key: str, fmt: str, value, comment: Optional[str] = None) -> str:
-    """
-    Create a FITS card string from its constituent components. In general, we try to make things
-    as consistent as astropy while enforcing the Subaru FITS standard.
+class FormattedInt(int):
+    # https://subarutelescope.org/Observing/fits/howto/floatformat/
 
-    Authors: Miles Lucas
+    def __new__(cls, value, formatstr=None):
+        return super().__new__(cls, value)
+
+    def __init__(self, value, formatstr=None):
+        if formatstr is not None:
+            # remove the leading % if present to be compatible with the f-string format
+            self.formatstr = formatstr[1:] if formatstr[0] == "%" else formatstr
+
+    def __str__(self):
+        return f"{self.__int__():{self.formatstr}}"
+
+def _format_values(value, fmt: str, comment: str) -> Tuple[str, str]:
     """
-    # Note: the rules of a card: 
-    # - 8 chars for key
-    # - strictly "= "
-    # - Value + comment max length: 70 chars
-    # - Comments must be presceded by a " / "
-    key_str = f"{key:<8}"
+    Formats values into a (val, comment) string tuple
+    """
     if value is None:
-        val_str = ""
-    else:
-        try:
-            if fmt == "BOOLEAN":
-                val_str = "T" if value else "F"
-                val_str = f"{val_str:>20}"
-            elif fmt.endswith("s"):
-                # first, strip any existing quotes and whitespace
-                val_strip = fmt % value.replace("'", "").strip()
-                # wrap value with quotes
-                # enforece closing quote is at least on byte 2
-                # super legacy FITS requriemement (sec. 4.2.1 FITS standard paper)
-                if len(val_strip) < 8:
-                    val_quote = f"'{val_strip:<8}'"
-                else:
-                    val_quote = f"'{val_strip}'"
-                # now pad string
-                if len(val_quote) < 20:
-                    val_str = f"{val_quote:<20}"
-                else:
-                    val_str = val_quote
-            else: # float or int
-                val_str = f"{fmt % value:>20}"
-        # Sometime garbage values cannot be formatted properly...
-        except Exception as e:
-            err = f"fits_headers: formatting error on {value}, {comment}, {fmt}"
-            logger.warn(err)
-            logger.exception(e)
-            val_str = str(value)
-    
-    # only add comment string if it's here
-    full_str = f"{key_str}= {val_str}"
-    if comment is not None:
-        full_str += f" / {comment}"
-    
-    # truncate string to 80 chars, thems the rules
-    if len(full_str) > 80:
-        msg = f"{key} exceeds 80 character header length ({len(full_str)} chars)"
-        msg += f"\n{full_str}"
-        logger.warn(msg)
-    return full_str[:80]
+        return "", comment
+    # wrap this in a huge block because sometimes there's garbage in
+    try:
+        if fmt == 'BOOLEAN':
+            value = bool(value)
+        elif fmt[-1] == 'd':
+            value = FormattedInt(fmt % value)
+        elif fmt[-1] == 'f':
+            value = FormattedFloat(value, fmt)
+        elif fmt[-1] == 's':  # string
+            value = fmt % value
+    except Exception:  # Sometime garbage values cannot be formatted properly...
+        value = str(value)
+        print(f"fits_headers: formatting error on {value}, {fmt}, {comment}")
+    return value, comment
 
 
 def write_headers(rdb, path) -> Dict[str, fits.Card]:
@@ -172,23 +108,7 @@ def write_headers(rdb, path) -> Dict[str, fits.Card]:
     # fmt is a valid %-format string stored in the "Type" column of the spreadsheet
     for key in kw_data:
         value, comment, fmt = kw_data[key]
-        # Some values are None: camera-stream keywords (EXPTIME, FG_SIZE1, ...),
-        # and time-keywords (MJD, HST, UTC...) generated upon saving
-        # Manually construct the header string and format into a FITS card
-        # this is necessary to enforce the formatting in the master spreadsheet
-        # otherwise, casting to float and letting astropy do what it wants
-        # alters the represenation, and does not abide by the Subaru FITS standard :)
-        try:
-            if fmt == 'BOOLEAN':
-                value = bool(value)
-            elif fmt[-1] in ('d', 'f'):
-                value = FormattedFloat(value, fmt)
-            elif fmt[-1] == 's':  # string
-                value = fmt % value
-        except:  # Sometime garbage values cannot be formatted properly...
-            value = value
-            print(f"fits_headers: formatting error on {value}, {fmt}, {comment}")
-        kw_data[key] = (value, comment)
+        kw_data[key] = _format_values(value, fmt, comment)
 
     # Now make the dicts on the fly for each file_key, and call the write_one_header
     for file_key in file_keys:
