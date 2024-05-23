@@ -13,7 +13,6 @@ stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.INFO)
 logger.addHandler(stream_handler)
 
-from scxkw.config import GEN2PATH_NODELETE
 from scxkw.tools import file_tools
 from scxkw.tools.framelist_file_obj import FrameListFitsFileObj
 from scxkw.tools.fits_file_obj import FitsFzFileObj
