@@ -84,7 +84,7 @@ if __name__ == "__main__":
     fobjs_fits = [FitsFileObj(fullname=fname) for fname in set_needed_fits]
     fobjs_fits_dict = {str(fo.full_filepath): fo for fo in fobjs_fits}
 
-    # Find trivial files where the consolidation is actually just a move.
+    # Find trivial files where the consolidation is actually just a move. OR we could hardlink?
     fobjs_framelists_toremove: list[FrameListFitsFileObj] = []
     for fobj_fitsframes in fobjs_framelists:
         fpath_fitsframes = str(fobj_fitsframes.full_filepath)
