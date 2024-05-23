@@ -24,7 +24,7 @@ parser = argparse.ArgumentParser(
     description="Summarize VAMPIRES synchronization output.",
     epilog="If you run into problems, contacnt vdeo or mlucas (TODO make undo script)."
 )
-parser.add_argument("folder", type=Path, help="Root folder containing the `vcam*` subfolders")
+parser.add_argument("folder", type=Path, help="Root folder containing the `vgen2` subfolder")
 parser.add_argument("--fits", action="store_true", help="Use fits files instead of fitsframes files")
 parser.add_argument("--fz", action="store_true", help="Use fits.fz files instead of fitsframes files")
 
