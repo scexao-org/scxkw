@@ -21,7 +21,6 @@ class FormattedFloat(float):
     def __str__(self):
         return f"{self.__float__():{self.formatstr}}"
 
-
 class FormattedInt(int):
     # https://subarutelescope.org/Observing/fits/howto/floatformat/
 
@@ -36,6 +35,32 @@ class FormattedInt(int):
     def __str__(self):
         return f"{self.__int__():{self.formatstr}}"
 
+class NeverEqualFormattedInt(FormattedInt):
+    '''
+    When amending a FITS card e.g. as
+    header[key] = value
+    The card is modified ONLY in case of non-equality.
+
+    e.g. if
+        val: float = header[key]
+    then
+        header[key] = FormattedFloat(val, format)
+    the reformatting will NOT happen because we have equality.
+    '''
+
+    def __eq__(self, other: float) -> bool:
+        return False
+
+    def __ne__(self, other: float) -> bool:
+        return True
+
+class NeverEqualFormattedFloat(FormattedFloat):
+    def __eq__(self, other: int) -> bool:
+        return False
+
+    def __ne__(self, other: int) -> bool:
+        return True
+
 
 T_kwValue_pre: typ.TypeAlias = bool | float | int | str
 T_kwValue_post: typ.TypeAlias = bool | FormattedFloat | FormattedInt | str
@@ -44,7 +69,8 @@ T_kwValue_post: typ.TypeAlias = bool | FormattedFloat | FormattedInt | str
 def format_values(
         value: T_kwValue_pre | None,
         fmt: str,
-        comment: str | None = None) -> tuple[T_kwValue_post, str | None]:
+        comment: str | None = None,
+        non_equalizable_formattables: bool = False) -> tuple[T_kwValue_post, str | None]:
     """
     Formats values into a (val, comment) string tuple
     """
@@ -55,9 +81,11 @@ def format_values(
         if fmt == 'BOOLEAN':
             ovalue = bool(value)
         elif fmt[-1] == 'd':
-            ovalue = FormattedInt(value, fmt)
+            kls = (FormattedInt, NeverEqualFormattedInt)[non_equalizable_formattables]
+            ovalue = kls(value, fmt)
         elif fmt[-1] == 'f':
-            ovalue = FormattedFloat(value, fmt)
+            kls = (FormattedFloat, NeverEqualFormattedFloat)[non_equalizable_formattables]
+            ovalue = kls(value, fmt)
         elif fmt[-1] == 's':  # string
             ovalue = fmt % value
     except Exception:  # Sometimes garbage values cannot be formatted properly...

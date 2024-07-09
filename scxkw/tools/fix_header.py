@@ -127,7 +127,7 @@ class CSV_table_lookup:
 def reformat_file(filename: str,
                   fmt_dict: dict[str, str],
                   hdu_number: int = 0):
-    fix_file(filename, {}, fmt_dict)
+    fix_file(filename, {}, fmt_dict, hdu_number=hdu_number)
 
 
 def fix_file(filename: str,
@@ -173,7 +173,8 @@ def fix_file(filename: str,
                     # Future ref: the only diff between Redis' ScxkwValueType and
                     # fits_format T_kwValue_pre is the complex type.
                     assert not isinstance(val, complex)
-                    header[key] = format_values(val, fmt_dict[key])[0]
+                    formattable_val, _ = format_values(val, fmt_dict[key], non_equalizable_formattables = True)
+                    header[key] = formattable_val
 
 
 def reformat_all_files(
@@ -196,7 +197,7 @@ def reformat_all_files(
 
     from tqdm import tqdm
     for fname in tqdm(filenames):
-        reformat_file(fname, formats)
+        reformat_file(fname, formats, hdu_number=1 if do_fits_fz else 0)
 
 
 def fix_all_files(root_folder: str,
@@ -288,3 +289,12 @@ BUFFY_SPECIAL_KW = {
     'RETPLAT2': ('NONE            ', 'Identifier of second retarder plate'),
     'WCS-ORIG': ('SUBARU', 'Origin of the WCS value'),
 }
+
+
+'''
+from scxkw.tools import fix_header
+from scxkw.redisutil import redis_util as rdbutil
+key_list = rdbutil.get_all_uppercase_keys_from_redis()
+formats = rdbutil.get_formats_for_keys(key_list)
+fix_header.reformat_file('/mnt/tier1/ARCHIVED_DATA/20240624/agen2/SCXB00051035.fits', formats)
+'''
