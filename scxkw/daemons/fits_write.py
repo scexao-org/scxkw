@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+from __future__ import annotations
+
+import typing as typ
 
 import os, sys, time
 from pathlib import Path
@@ -7,66 +10,14 @@ from astropy.io import fits
 import numpy as np
 
 from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT, FITS_HEADER_PATH
-from scxkw.redisutil.typed_db import Redis
-import logging
-from typing import Optional, Dict, Tuple
+from scxkw.redisutil.typed_db import Redis, ScxkwValueType
 
+import logging
 logger = logging.getLogger(__name__)
 
-NULL_DATA = np.array([0, 1, 2, 3], dtype=np.float32)
+from ..tools import fits_format
 
-
-class FormattedFloat(float):
-    # https://subarutelescope.org/Observing/fits/howto/floatformat/
-
-    def __new__(cls, value, formatstr=None):
-        return super().__new__(cls, value)
-
-    def __init__(self, value, formatstr=None):
-        if formatstr is not None:
-            # remove the leading % if present to be compatible with the f-string format
-            self.formatstr = formatstr[1:] if formatstr[0] == "%" else formatstr
-
-    def __str__(self):
-        return f"{self.__float__():{self.formatstr}}"
-
-class FormattedInt(int):
-    # https://subarutelescope.org/Observing/fits/howto/floatformat/
-
-    def __new__(cls, value, formatstr=None):
-        return super().__new__(cls, value)
-
-    def __init__(self, value, formatstr=None):
-        if formatstr is not None:
-            # remove the leading % if present to be compatible with the f-string format
-            self.formatstr = formatstr[1:] if formatstr[0] == "%" else formatstr
-
-    def __str__(self):
-        return f"{self.__int__():{self.formatstr}}"
-
-def _format_values(value, fmt: str, comment: str) -> Tuple[str, str]:
-    """
-    Formats values into a (val, comment) string tuple
-    """
-    if value is None:
-        return "", comment
-    # wrap this in a huge block because sometimes there's garbage in
-    try:
-        if fmt == 'BOOLEAN':
-            value = bool(value)
-        elif fmt[-1] == 'd':
-            value = FormattedInt(fmt % value)
-        elif fmt[-1] == 'f':
-            value = FormattedFloat(value, fmt)
-        elif fmt[-1] == 's':  # string
-            value = fmt % value
-    except Exception:  # Sometime garbage values cannot be formatted properly...
-        value = str(value)
-        print(f"fits_headers: formatting error on {value}, {fmt}, {comment}")
-    return value, comment
-
-
-def write_headers(rdb, path) -> Dict[str, fits.Card]:
+def write_headers(rdb, path) -> dict[str, fits.Card]:
     """
     Authors: Vincent Deo, Miles Lucas
     """
@@ -98,7 +49,8 @@ def write_headers(rdb, path) -> Dict[str, fits.Card]:
             pipe.hget(kw_key, "Type")
         res = pipe.execute()
         # Generate (value, description tuples)
-        kw_data = {
+        
+        kw_data: dict[str, tuple[typ.Any, str, str]] = {
             kw: (val, descr, fmt)
             for kw, val, descr, fmt in zip(kw_keys, res[::3], res[1::3],
                                            res[2::3])
@@ -108,7 +60,7 @@ def write_headers(rdb, path) -> Dict[str, fits.Card]:
     # fmt is a valid %-format string stored in the "Type" column of the spreadsheet
     for key in kw_data:
         value, comment, fmt = kw_data[key]
-        kw_data[key] = _format_values(value, fmt, comment)
+        kw_data[key] = fits_format.format_values(value, fmt, comment)
 
     # Now make the dicts on the fly for each file_key, and call the write_one_header
     for file_key in file_keys:
@@ -122,14 +74,14 @@ def _isnt_structural_keyword(key):
     predicate = key in ("SIMPLE", "BITPIX", "BZERO", "BSCALE", "END") or key.startswith("NAXIS")
     return not predicate
 
-def write_one_header(kw_dict: Dict[str, fits.Card], folder, name):
+def write_one_header(kw_dict: dict[str, fits.Card], folder, name):
     # generate Header card-by-card
     header = fits.Header()
     for k in sorted(filter(_isnt_structural_keyword, kw_dict.keys())):
         value, comment = kw_dict[k]
         header[k] = value, comment
 
-    hdu = fits.PrimaryHDU(data=NULL_DATA, header=header)
+    hdu = fits.PrimaryHDU(data=fits_format.NULL_DATA, header=header)
     # Must be set to not None AFTER creation of the HDU
     # Insert point is in hope to maintain the alphabetical order
     hdu.header.insert("BUNIT", ("BSCALE", None, "Real=fits-value*BSCALE+BZERO"))
