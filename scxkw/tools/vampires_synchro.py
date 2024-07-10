@@ -30,7 +30,9 @@ VAMPIRES_USEC_TOLERANCING = 400
 
 class VampiresSynchronizer:
 
-    def __init__(self, tolerancing_us: int = VAMPIRES_USEC_TOLERANCING, auto_tolerancing: bool = False) -> None:
+    def __init__(self,
+                 tolerancing_us: int = VAMPIRES_USEC_TOLERANCING,
+                 auto_tolerancing: bool = False) -> None:
 
         self.queue1: typ.List[MFFO] = []
         self.queue2: typ.List[MFFO] = []
@@ -88,7 +90,7 @@ class VampiresSynchronizer:
             self.flush_out_queues()
             if not status:
                 return False
-            
+
         return True
 
     def flush_out_queues(self) -> None:
@@ -110,8 +112,8 @@ class VampiresSynchronizer:
 
         # File is big enough by itself
         assert file is not None
-        if (file.get_finish_unixtime_secs() - file.get_start_unixtime_secs() >
-                10.0):
+        if (file.get_finish_unixtime_secs() - file.get_start_unixtime_secs()
+                > 10.0):
             assert file.txt_file_parser is not None
 
             # Offset by 1 EXPTIME, the same way as for get_start_unixtime
@@ -123,7 +125,7 @@ class VampiresSynchronizer:
                 file_0 = file.sub_file_nodisk(selector)
 
                 assert file_0.stream_from_foldername == 'vsync' and '.cam' in file_0.file_name  # TODO remove once confident
-                file_0.write_to_disk(try_flush_ram = True)
+                file_0.write_to_disk(try_flush_ram=True)
 
             if sum(~selector) > 0:
                 file_1 = file.sub_file_nodisk(~selector)
@@ -144,7 +146,7 @@ class VampiresSynchronizer:
                 and len(self.queue2) == 0
                 and (now - file.get_finish_unixtime_secs()) > 30.0):
             assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name  # TODO remove once confident
-            file.write_to_disk(try_flush_ram = True)
+            file.write_to_disk(try_flush_ram=True)
             self.out_files[idx] = None
 
             return True
@@ -157,16 +159,16 @@ class VampiresSynchronizer:
             # and some critical parameters have changed OR
             # and there's 3 second gap
             if (next_file.fits_header['EXPTIME'] != file.fits_header['EXPTIME']
-                    or next_file.fits_header['NAXIS1'] !=
-                    file.fits_header['NAXIS1']
-                    or next_file.fits_header['NAXIS2'] !=
-                    file.fits_header['NAXIS2']
-                    or next_file.fits_header['RET-ANG1'] !=
-                    file.fits_header['RET-ANG1']
+                    or next_file.fits_header['NAXIS1']
+                    != file.fits_header['NAXIS1']
+                    or next_file.fits_header['NAXIS2']
+                    != file.fits_header['NAXIS2']
+                    or next_file.fits_header['RET-ANG1']
+                    != file.fits_header['RET-ANG1']
                     or next_file.get_start_unixtime_secs() -
                     file.get_finish_unixtime_secs() > 3.0):
                 assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name  # TODO remove once confident
-                file.write_to_disk(try_flush_ram = True)
+                file.write_to_disk(try_flush_ram=True)
                 self.out_files[idx] = next_file
                 return True
 
@@ -370,8 +372,8 @@ class VampiresSynchronizer:
     def is_bad_file(self, file: MFFO) -> bool:
         # We need EXPTIME and DET-NSMP because they allow to calculate the start and end
         # of a single frame file properly and give it some temporal "thickness"
-        return  (file.txt_file_parser is None or
-                file.get_nframes() != len(file.txt_file_parser.fgrab_t_us)
+        return (file.txt_file_parser is None
+                or file.get_nframes() != len(file.txt_file_parser.fgrab_t_us)
                 or file.fits_header is None
                 or not 'EXPTIME' in file.fits_header
                 or file.fits_header['EXPTIME'] is None)
@@ -393,14 +395,16 @@ def save_to_disk_if(file_obj: OpT_MFFO,
         logg.warning(f'save_to_disk_if - file is None')
     return False
 
+
 def find_sync_tol_for_vamp(file: MFFO) -> int:
     # Don't assume NAXIS1 and NAXIS2 haven't been messed up by the
     # fitsframes files etc...
     size_rows = file.fits_header['PRD-RNG2']
     readout_mode_slow = file.fits_header['U_DETMOD'].strip().lower() == 'slow'
     slow_factor = (1.0, 2.5)[readout_mode_slow]
-    
-    prow_allowed = 0.434 # 434 nsec per row.
+
+    # prow_allowed = 0.434 # 434 nsec per row. # EDIT that's not enough... and where did that come from??? Need to be related to some same boundary under the max framerate.
+    prow_allowed = 0.868  # Doubled from above -- which should be a quarter of a frame at max FPS
 
     return int(slow_factor * size_rows * prow_allowed)
 
@@ -416,11 +420,13 @@ def resync_two_files(file_v1: MFFO, file_v2: MFFO,
     timings_v1 = file_v1.txt_file_parser.fgrab_t_us
     timings_v2 = file_v2.txt_file_parser.fgrab_t_us
 
-    
-    usec_tol = min(find_sync_tol_for_vamp(file_v1), find_sync_tol_for_vamp(file_v2)) if auto_tolerance_us else tolerance_usec
+    usec_tol = min(find_sync_tol_for_vamp(file_v1),
+                   find_sync_tol_for_vamp(
+                       file_v2)) if auto_tolerance_us else tolerance_usec
 
-    common_arr_v1, common_arr_v2 = sync_timing_arrays(
-        timings_v1, timings_v2, tolerance_us=usec_tol)
+    common_arr_v1, common_arr_v2 = sync_timing_arrays(timings_v1,
+                                                      timings_v2,
+                                                      tolerance_us=usec_tol)
 
     # Fraction of successfully synced up frames
     ratio1 = np.sum(common_arr_v1) / len(common_arr_v1)
@@ -533,8 +539,6 @@ syncer = VampiresSynchronizer()
 syncer.feed_file_objs(v1_fobjs)
 syncer.feed_file_objs(v2_fobjs)
 '''
-
-
 '''s
 # FIXME this poses issue per deleting the txt files maybe too early?
 import os, psutil
