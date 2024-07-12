@@ -7,6 +7,8 @@ import typing as typ
 
 from astropy.io import fits
 from astropy.time import Time as AstroTime  # astropy >= 5 to work with recent numpy.
+from tqdm import tqdm
+from pathlib import Path
 
 from scxkw import config as cfg
 from scxkw.redisutil import redis_util as rdbutil
@@ -51,7 +53,7 @@ def fix_header_times(header: fits.Header, start_time_unix: float,
     return ut_start.strftime('%H:%M:%S.%f')
 
 
-class CSV_table_lookup:
+class CSVTableLookup:
     header_row: list[str] = None
     header_col: list[str] = None
     dict_by_row: dict[datetime, list[str]] = None
@@ -177,27 +179,17 @@ def fix_file(filename: str,
                     header[key] = formattable_val
 
 
-def reformat_all_files(
-    root_folder: str,
-    ut_date: str,
-    stream: str,
-    do_fits_fz: bool = False
-):
+def reformat_all_files(folder: str | Path):
     key_list = rdbutil.get_all_uppercase_keys_from_redis()
     formats = rdbutil.get_formats_for_keys(key_list)
 
     # List the fits files that need fixing
-    if do_fits_fz:
-        fits_glob = f'{root_folder}/{ut_date}/{stream}/*.fits.fz'
-    else:
-        fits_glob = f'{root_folder}/{ut_date}/{stream}/*.fits'
-        
-    filenames = glob.glob(fits_glob)
-    filenames.sort()
-
-    from tqdm import tqdm
+    path = Path(folder)
+    filenames = list(sorted(path.glob("*.fits*")))
     for fname in tqdm(filenames):
-        reformat_file(fname, formats, hdu_number=1 if do_fits_fz else 0)
+        abs_path = str(fname.absolute())
+        hdu = 1 if abs_path.endswith(".fz") else 0
+        reformat_file(abs_path, formats, hdu_number=hdu)
 
 
 def fix_all_files(root_folder: str,
@@ -208,7 +200,7 @@ def fix_all_files(root_folder: str,
                   extra_keywords: dict[str, tuple[typ.Any, str]] = {}):
 
     csv_table_path = f'{csv_root_folder}/{ut_date}/logging/keywords_log.tsv'
-    csv_mapping = CSV_table_lookup(csv_table_path)
+    csv_mapping = CSVTableLookup(csv_table_path)
     #csv_mapping.reformat_using_format_from_redis()
 
     # Get the keys from redis and restrict them to what's
@@ -225,7 +217,6 @@ def fix_all_files(root_folder: str,
     filenames = glob.glob(fits_regex)
     filenames.sort()
 
-    from tqdm import tqdm
     for fname in tqdm(filenames):
         with fits.open(fname, 'readonly') as f:
             fits_time = datetime.strptime(f[0].header['DATE'],
@@ -249,52 +240,3 @@ def fix_all_files(root_folder: str,
 
     return csv_mapping
 
-
-BUFFY_SPECIAL_KW = {
-    'CDELT1': (4.5e-6, 'X Scale projected on detector (#/pix)'),
-    'CDELT2': (4.5e-6, 'Y Scale projected on detector (#/pix)'),
-    'C2ELT1': (4.5e-6, 'X Scale projected on detector (#/pix)'),
-    'C2ELT2': (4.5e-6, 'Y Scale projected on detector (#/pix)'),
-    'CTYPE1': ('RA--TAN   ', 'Pixel coordinate system'),
-    'CTYPE2': ('DEC--TAN  ', 'Pixel coordinate system'),
-    'C2YPE1': ('RA--TAN   ', 'Pixel coordinate system'),
-    'C2YPE2': ('DEC--TAN  ', 'Pixel coordinate system'),
-    'CUNIT1': ('DEGREE    ', 'Units used in both CRVAL1 and CDELT1'),
-    'CUNIT2': ('DEGREE    ', 'Units used in both CRVAL2 and CDELT2'),
-    'C2NIT1': ('DEGREE    ', 'Units used in both C2VAL1 and C2ELT1'),
-    'C2NIT2': ('DEGREE    ', 'Units used in both C2VAL2 and C2ELT2'),
-
-    # Those will change with cropmode
-    'CRPIX1': (40., 'Reference pixel in X (pixel)'),
-    'CRPIX2': (80., 'Reference pixel in Y (pixel)'),
-    'C2PIX1': (120., 'Reference pixel in X (pixel)'),
-    'C2PIX2': (80., 'Reference pixel in Y (pixel)'),
-    'CD1_1': (4.5e-6, 'Pixel coordinate translation matrix'),
-    'CD1_2': (0., 'Pixel coordinate translation matrix'),
-    'CD2_1': (0., 'Pixel coordinate translation matrix'),
-    'CD2_2': (4.5e-6, 'Pixel coordinate translation matrix'),
-    'CRVAL1': (0.0, 'Physical value of the reference pixel X'),
-    'CRVAL2': (0.0, 'Physical value of the reference pixel Y'),
-    'C2VAL1': (0.0, 'Physical value of the reference pixel X'),
-    'C2VAL2': (0.0, 'Physical value of the reference pixel Y'),
-    'INSTRUME': ('SCExAO              ', 'Instrument name'),
-    'LONPOLE': (0.0, 'The North Pole of standard system (deg)'),
-    'OBS-MOD': ('Imaging', 'Observation Mode'),
-    'TIMESYS': ('UTC     ', 'Time System used in the header'),
-    'RADESYS': ('FK5     ', 'The equatorial coordinate system'),
-    'POL-ANG1': (0.0, 'Position angle of first polarizer (deg)'),
-    'POLARIZ1': ('NONE            ', 'Identifier of first polarizer'),
-    'RET-ANG2': (0.0, 'Position angle of second retarder plate (deg)'),
-    'RETPLAT1': ('NONE            ', 'Identifier of first retarder plate'),
-    'RETPLAT2': ('NONE            ', 'Identifier of second retarder plate'),
-    'WCS-ORIG': ('SUBARU', 'Origin of the WCS value'),
-}
-
-
-'''
-from scxkw.tools import fix_header
-from scxkw.redisutil import redis_util as rdbutil
-key_list = rdbutil.get_all_uppercase_keys_from_redis()
-formats = rdbutil.get_formats_for_keys(key_list)
-fix_header.reformat_file('/mnt/tier1/ARCHIVED_DATA/20240624/agen2/SCXB00051035.fits', formats)
-'''

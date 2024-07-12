@@ -1,0 +1,25 @@
+#!/bin/env python
+import argparse
+import logging
+from pathlib import Path
+import subprocess as sproc
+import typing as typ
+
+from scxkw.tools import fix_header
+
+parser = argparse.ArgumentParser(
+    "scxkw-fix-headers",
+    description="Forcibly ensure all FITS headers are compliant",
+    epilog="If you run into problems, contact vdeo or mlucas."
+)
+parser.add_argument("folders", type=Path, nargs="+", help="Folder(s) with FITS files to fix")
+
+
+def main():
+    args = parser.parse_args()
+    for folder in args.folders:
+        fix_header.reformat_all_files(folder)
+
+
+if __name__ == "__main__":
+    main()
