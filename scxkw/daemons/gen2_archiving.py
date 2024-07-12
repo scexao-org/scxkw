@@ -8,6 +8,8 @@ logg = logging.getLogger(__name__)
 
 import os, glob, time, datetime, subprocess
 
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 from scxkw.config import GEN2PATH_NODELETE, GEN2PATH_OKDELETE, CAMIDS
 from scxkw.tools.compression_job_manager import FPackJobCodeEnum, FpackJobManager
 
@@ -344,7 +346,6 @@ def archive_monitor_compression(*, job_manager: FpackJobManager) -> tuple[int,in
         elif ret == FPackJobCodeEnum.TOOMANY:
             break
         # FPackJobCodeEnum.ALREADY_RUNNING continues silently
-
     print(f'archive_monitor_compression: '
           f'found {len(file_objs)} SCX/VMP files to compress; '
           f'started {n_jobs} fpacks.')
@@ -439,7 +440,8 @@ def batch_assign_ids_and_rename(scx_proxy: ro.remoteObjectProxy,
             frame_ids[id_letter] = gen2_getframeids(scx_proxy, vmp_proxy, id_letter,
                                                     per_id_count[id_letter])
 
-    for file in fobj_list:
+    pbar = tqdm(fobj_list)
+    for file in pbar:
         frame_id = frame_ids[CAMIDS[file.stream_from_foldername]].pop(0)
 
         # Update the keyword with the FRAMEID
@@ -455,6 +457,7 @@ def batch_assign_ids_and_rename(scx_proxy: ro.remoteObjectProxy,
             namelog.write(f"{file.file_name}\t{frame_id}.fits\n")
 
         # Rename the files
-        file.rename_in_folder(frame_id + '.fits')
+        with logging_redirect_tqdm():
+            file.rename_in_folder(frame_id + '.fits')
 
     # Done !

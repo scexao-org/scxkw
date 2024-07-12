@@ -124,6 +124,10 @@ class MotherOfFileObj(abc.ABC):
             _DATE: str = self.fits_header['DATE']  # type: ignore
             self.file_time_header = datetime.strptime(
                 _DATE, '%Y-%m-%dT%H:%M:%S').timestamp()
+        else:
+            _DATE = f"{self.fits_header['DATE-OBS']}T{self.fits_header['UT']}"
+            self.file_time_header = datetime.strptime(
+                _DATE, '%Y-%m-%dT%H:%M:%S').timestamp()
 
         self.txt_file_path: Path = self.full_filepath.parent / (
             self.full_filepath.stem + '.txt')
