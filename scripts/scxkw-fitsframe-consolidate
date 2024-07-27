@@ -107,17 +107,17 @@ def main():
     import multiprocessing # Using multiprocessing is a bit faster, and also keeps the RAM in check
     # But careful: files may appear in timely disorder
 
-    pbar = tqdm.trange(len(fobjs_framelists))
+    pbar = tqdm.trange(len(fobjs_framelists), desc="Consolidating")
     for slice_idx in range(len(fobjs_framelists) // 10 + 1):
-        ps = []
         with logging_redirect_tqdm():
+            jobs = []
             for fobjs_framelist in fobjs_framelists[10*slice_idx:10*slice_idx+10]:
+                job = multiprocessing.Process(target=write_func, args=(fobjs_framelist, fobjs_fits_dict))
+                jobs.append(job)
+                job.start()
 
-                ps += [multiprocessing.Process(target=write_func, args=(fobjs_framelist, fobjs_fits_dict))]
-                ps[-1].start()
-
-            for p in ps:
-                p.join()
+            for job in jobs:
+                job.join()
                 pbar.update()
     pbar.close()
 
