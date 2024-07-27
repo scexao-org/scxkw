@@ -27,7 +27,7 @@ logg = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(
     "scxkw-fitsframe-consolidate",
     description="Consolidate fitsframes files back to fits files.",
-    epilog="If you run into problems, contacnt vdeo or mlucas (TODO make undo script)."
+    epilog="If you run into problems, contact vdeo or mlucas (TODO make undo script)."
 )
 parser.add_argument("folder", type=Path, help="Root folder containing the `agen2` subfolder")
 parser.add_argument("-p", "--num-procs", default=1, type=int, help="Multi-processing pool size (default is %(default)s)")
