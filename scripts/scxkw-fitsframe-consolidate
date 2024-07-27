@@ -9,6 +9,8 @@ from pathlib import Path
 
 import docopt
 import logging
+import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from swmain.infra.logger import init_logger_autoname
 
@@ -105,15 +107,19 @@ def main():
     import multiprocessing # Using multiprocessing is a bit faster, and also keeps the RAM in check
     # But careful: files may appear in timely disorder
 
+    pbar = tqdm.trange(len(fobjs_framelists))
     for slice_idx in range(len(fobjs_framelists) // 10 + 1):
         ps = []
-        for fobjs_framelist in fobjs_framelists[10*slice_idx:10*slice_idx+10]:
+        with logging_redirect_tqdm():
+            for fobjs_framelist in fobjs_framelists[10*slice_idx:10*slice_idx+10]:
 
-            ps += [multiprocessing.Process(target=write_func, args=(fobjs_framelist, fobjs_fits_dict))]
-            ps[-1].start()
+                ps += [multiprocessing.Process(target=write_func, args=(fobjs_framelist, fobjs_fits_dict))]
+                ps[-1].start()
 
-        for p in ps:
-            p.join()
+            for p in ps:
+                p.join()
+                pbar.update()
+    pbar.close()
 
 if __name__ == "__main__":
     main()
