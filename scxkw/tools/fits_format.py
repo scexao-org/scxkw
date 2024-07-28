@@ -62,8 +62,8 @@ class NeverEqualFormattedFloat(FormattedFloat):
         return True
 
 
-T_kwValue_pre: typ.TypeAlias = bool | float | int | str
-T_kwValue_post: typ.TypeAlias = bool | FormattedFloat | FormattedInt | str
+T_kwValue_pre: typ.TypeAlias = typ.Union[bool, float, int, str]
+T_kwValue_post: typ.TypeAlias = typ.Union[bool, FormattedFloat, FormattedInt, str]
 
 
 def format_values(

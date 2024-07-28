@@ -21,16 +21,17 @@ try:
 except:
     FITS_HEADER_PATH = None
 
+HOME = os.environ.get("HOME", "/home/scexao")
 # Where to write the data dump every now and then
-CSV_DUMP_PATH = '/home/scexao/logdir/' # + date + csv file name
+CSV_DUMP_PATH = f'{HOME}/logdir/' # + date + csv file name
 if os.environ.get("WHICHCOMP", "") == "2":
     # scexao2 fallback !
     CSV_DUMP_PATH = '/media/data'
 
-REDIS_CONF_PATH='/home/scexao/src/scxkw/conf/redis_dbconf.conf'
+REDIS_CONF_PATH=f'{HOME}/src/scxkw/conf/redis_dbconf.conf'
 #REDIS_CONF_PATH='/home/vdeo/src/scxkw/conf/redis_dbconf.conf'
 # Actually we need to use a TSV instead of a CSV, because the data contains commas...
-KEYWORD_CSV_PATH='/home/scexao/src/scxkw/conf/scxkw.tsv'
+KEYWORD_CSV_PATH=f'{HOME}/src/scxkw/conf/scxkw.tsv'
 #KEYWORD_CSV_PATH='/home/vdeo/src/scxkw/conf/scxkw.tsv'
 
 
