@@ -165,6 +165,10 @@ class VampiresSynchronizer:
                     != file.fits_header['NAXIS2']
                     or next_file.fits_header['RET-ANG1']
                     != file.fits_header['RET-ANG1']
+                    or next_file.fits_header["FILTER01"]
+                    != file.fits_header["FILTER01"]
+                    or next_file.fits_header["FILTER02"]
+                    != file.fits_header["FILTER02"]
                     or next_file.get_start_unixtime_secs() -
                     file.get_finish_unixtime_secs() > 3.0):
                 assert file.stream_from_foldername == 'vsync' and '.cam' in file.file_name  # TODO remove once confident
