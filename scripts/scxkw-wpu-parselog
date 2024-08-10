@@ -1,0 +1,79 @@
+#!/bin/env python
+import argparse
+import logging
+from pathlib import Path
+import re
+from datetime import datetime, timezone
+import pandas as pd
+
+parser = argparse.ArgumentParser()
+parser.add_argument("filename", type=Path)
+
+WPU_LOG_RE = re.compile(r"^(\S+) (\S+)\s*(\S+)\s*status: (.*)$")
+
+def create_tables(filename):
+    hwp_rows = []
+    qwp_rows = []
+    i = 0
+    with filename.open("r") as fh:
+        for line in fh:
+            match = re.match(WPU_LOG_RE, line.strip())
+            if not match:
+                continue
+
+            # check if status is WPU
+            if match.group(3) != "WPU":
+                continue
+            # create isot timestamp
+            # note time is HST which is fixed -10 offset to UTC
+            date_str = match.group(1)
+            timestamp = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}T{match.group(2)}-10:00"
+            timestamp_hst = datetime.fromisoformat(timestamp)
+            timestamp_utc = timestamp_hst.astimezone(timezone.utc)
+
+            # parse position from status message
+            status_msg = match.group(4)
+            if "OKAY hwp busy" in status_msg:
+                tokens = status_msg.split()
+                position = tokens[tokens.index("position") + 1]
+                target = tokens[tokens.index("target") + 1]
+                mode = tokens[tokens.index("mode") + 1]
+                hwp_rows.append({
+                    "t_hst": timestamp_hst,
+                    "t_utc": timestamp_utc,
+                    "stage": "HWP",
+                    "position": position,
+                    "target": target,
+                    "mode": mode
+                })
+            elif "OKAY qwp busy" in status_msg:
+                tokens = status_msg.split()
+                position = tokens[tokens.index("position") + 1]
+                target = tokens[tokens.index("target") + 1]
+                mode = tokens[tokens.index("mode") + 1]
+                qwp_rows.append({
+                    "t_hst": timestamp_hst,
+                    "t_utc": timestamp_utc,
+                    "stage": "QWP",
+                    "position": position,
+                    "target": target,
+                    "mode": mode
+                })
+    
+    
+    hwp_outpath = str(filename).replace(".log", ".HWP.csv")
+    hwp_table = pd.DataFrame(hwp_rows)
+    hwp_table.to_csv(hwp_outpath, index=False)
+    print(f"Saved HWP log to {hwp_outpath}")
+
+    qwp_outpath = str(filename).replace(".log", ".QWP.csv")
+    qwp_table = pd.DataFrame(qwp_rows)
+    qwp_table.to_csv(qwp_outpath, index=False)
+    print(f"Saved QWP log to {qwp_outpath}")
+
+def main() -> None:
+    args = parser.parse_args()
+    create_tables(args.filename)
+        
+if __name__ == "__main__":
+    main()
