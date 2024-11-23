@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import annotations
 
 import os, sys
 import time, datetime
@@ -10,18 +11,20 @@ import redis
 from scxkw.config import REDIS_DB_HOST, REDIS_DB_PORT
 from scxkw.redisutil.typed_db import Redis
 
-from swmain.hwp.hwpmanager import ask_garde
+#from swmain.hwp.hwpmanager import ask_garde
+from swmain.hwp.wpu import WPU_HWP
+from swmain.infra.badsystemd.aux import auto_register_to_watchers
 
 from functools import partial
 
+
 class FITSFeeder(socketserver.StreamRequestHandler):
 
-    def __init__(self, rdb, *args, **kwargs):
+    def __init__(self, rdb: Redis, hwp: WPU_HWP, *args, **kwargs):
 
-        self.rdb = rdb # For some reason must be BEFORE calling superclass
+        self.rdb = rdb  # For some reason must be BEFORE calling superclass
+        self.hwp = hwp
         socketserver.StreamRequestHandler.__init__(self, *args, **kwargs)
-
-
 
     def handle(self):
         '''
@@ -64,36 +67,40 @@ class FITSFeeder(socketserver.StreamRequestHandler):
 
         values = val_coms[::2]
         comments = val_coms[1::2]
-        
+
         if 'RET-ANG1' in keys:
             hwp_index = keys.index('RET-ANG1')
-            val_hwp = ask_garde(hwp_true_qwp_false=True)
+            val_hwp = self.hwp.get_pol_angle()
             values[hwp_index] = val_hwp
 
-        hdr = [(k,v,c) for k,v,c in zip(keys, values, comments)]
+        hdr = [(k, v, c) for k, v, c in zip(keys, values, comments)]
         hdr.sort()
         self.wfile.write(pickle.dumps(hdr, protocol=2))
 
-        
 
 if __name__ == "__main__":
 
     rdb = Redis(host=REDIS_DB_HOST, port=REDIS_DB_PORT)
+    wpu = WPU_HWP()
 
-    FITSFeederWithRDB = partial(FITSFeeder, rdb)
-
+    # I'm a little concerned of persistence effects with the reused Paramiko client inside
+    # the WPU object. What happens if garde has been down / rebooted since the last header we got?
+    FITSFeederWithRDB = partial(FITSFeeder, rdb, wpu)
 
     if len(sys.argv) == 1:
         PORT = 18447
     else:
         PORT = int(sys.argv[1])
 
-    server = socketserver.TCPServer(('', PORT), # 18447
-                                    FITSFeederWithRDB)
+    server = socketserver.TCPServer(
+        ('', PORT),  # 18447
+        FITSFeederWithRDB)
 
+    auto_register_to_watchers("CRSFITS", "Charis FITS server")
     try:
         print('Starting X_* FITS server...')
         server.serve_forever()
     except KeyboardInterrupt:
         print('Keyboard interrupt !')
-        server.server_close() # Doesn't seem to clean the socket as well as expected?
+        server.server_close(
+        )  # Doesn't seem to clean the socket as well as expected?
