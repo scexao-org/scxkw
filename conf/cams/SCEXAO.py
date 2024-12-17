@@ -402,7 +402,7 @@ class SCEXAO(BASECAM):
         # hanging
         self.logger.info(f'Requesting scexao2 for charis_filter {slot}')
         
-        sp = subprocess.run(['ssh', 'sc2l', f'charis_filter {slot}'])
+        sp = subprocess.run(['ssh', 'sc2l', f'charis_filter {slot} -w'])
 
         time.sleep(1.5) # Finish moving detached Conex/Zaber commands
 
