@@ -200,34 +200,9 @@ class SCEXAO(BASECAM):
 
         self.logger.info("Status returned: %s" % (str(d)))
 
-    def ircam_steering(self, tag=None, mode=None, a=None, b=None, c=None):
-
-        import subprocess
-
-        subtag = '%s.1' % tag
-
-        self.ocs.setvals(tag, subpath=subtag)
-
-        mode = mode.lower()
-
-        a, b = float(a), float(b)
-        c = int(c)
-
-
-        # Would be nice to actually do something like the CHARIS execCmd to avoid
-        # hanging
-        self.logger.info(f'Requesting cexao2 for ircam_steering {mode} {a} {b} {c}')
-        sp = subprocess.run(['ssh', 'sc2l', f'ircam_steering {mode} {a} {b} {c}'])
-
-        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
-
-        if sp.returncode != 0:
-            raise CamCommandError('ircam_steering went wrong.')
-
-        self.ocs.setvals(subtag, cam_str=f"Done: ircam_steering {mode} {a} {b} {c}")
-        self.ocs.setvals(subtag, task_end=time.time())
-        
-
+    def scream(self, tag=None, mode=None, a=None, b=None, c=None):
+        print('g2cam is screaming')
+        self.logger.critical('g2cam is screaming')
 
     def archive_fits(self, frame_no=None, path=None, tag=None):
         """Archive a local file to Gen2.
@@ -271,6 +246,264 @@ class SCEXAO(BASECAM):
         # write frame list to file
         with open("/tmp/frames_SCX%s.txt" % (frtype,), 'w') as out_f:
             out_f.write('\n'.join(framelist))
+
+    def src_fib(self, tag=None, position=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        position = position.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for src_fib {position}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'src_fib {position}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('src_fib went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: src_fib {position}")
+        
+    def fpm(self, tag=None, slot=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        slot = slot.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for fpm {slot}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'fpm {slot}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('fpm went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: fpm {slot}")
+        
+    def lyot(self, tag=None, slot=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        slot = slot.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for lyot {slot}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'lyot {slot}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('lyot went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: lyot {slot}")
+
+    def ircam_steering(self, tag=None, mode=None, a=None, b=None, motion=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        mode = mode.lower()
+
+        a, b = float(a), float(b)
+        motion = motion.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for ircam_steering {mode} {a} {b} {motion}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'ircam_steering {mode} {a} {b} {motion}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('ircam_steering went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: ircam_steering {mode} {a} {b} {motion}")
+        
+    def charis_pickoff(self, tag=None, slot=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        slot = slot.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for charis_pickoff {slot}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'charis_pickoff {slot}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('charis_pickoff went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: charis_pickoff {slot}")
+                
+    def mkids_pickoff(self, tag=None, slot=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        slot = slot.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for mkids_pickoff {slot}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'mkids_pickoff {slot}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('mkids_pickoff went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: mkids_pickoff {slot}")
+        
+    def charis_filter(self, tag=None, slot=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        slot = slot.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for charis_filter {slot}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'charis_filter {slot}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('charis_filter went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: charis_filter {slot}")
+        
+    def ircam_filter(self, tag=None, slot=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        slot = slot.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for ircam_filter {slot}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'ircam_filter {slot}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('ircam_filter went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: ircam_filter {slot}")
+
+    def field_stop(self, tag=None, position=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        position = position.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for field_stop {position}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'field_stop {position}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('field_stop went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: field_stop {position}")
+        
+    def charis_wollaston(self, tag=None, position=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        position = position.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for charis_wollaston {position}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'charis_wollaston'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('charis_wollaston went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: charis_wollaston {position}")
+        
+    def ircam_flc(self, tag=None, position=None):
+
+        import subprocess
+
+        subtag = '%s.1' % tag
+
+        self.ocs.setvals(tag, subpath=subtag)
+
+        position = position.lower()
+
+        # Would be nice to actually do something like the CHARIS execCmd to avoid
+        # hanging
+        self.logger.info(f'Requesting scexao2 for ircam_flc {position}')
+        
+        sp = subprocess.run(['ssh', 'sc2l', f'ircam_flc {position}'])
+
+        time.sleep(1.5) # Finish moving detached Conex/Zaber commands
+
+        if sp.returncode != 0:
+            raise CamCommandError('ircam_flc went wrong.')
+
+        self.ocs.setvals(subtag, cam_str=f"Done: ircam_flc {position}")
+        
+
 
 
 
