@@ -36,7 +36,9 @@ echo -e "- $FOLDER/vgen2"
 echo -e "Waiting 10 seconds before continuing, CTRL+C now to cancel..."
 sleep 10
 
+set +e
 rm -rf "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo"* "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp" "$FOLDER/vgen2"
+set -e
 
 echo -e "\n--------------------------------------------------"
 echo -e "Restoring backups\n"

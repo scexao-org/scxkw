@@ -67,12 +67,14 @@ scxkw-fitsframe-consolidate "$FOLDER"
 echo -e "\n--------------------------------------------------"
 echo -e "Cleaning up folder\n"
 
+set +e
 rm -rf "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo*" "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp"
+set -e
 
 echo -e "\n--------------------------------------------------"
 echo -e "Fixing headers\n"
 
-scxkw-fix-headers "$FOLDER/vgen2"
+scxkw-fix-headers "$FOLDER"/vgen2
 
 echo -e "\n--------------------------------------------------"
 echo -e "Assigning frame IDS\n"
@@ -90,13 +92,13 @@ echo -e "Compressing with fpack\n"
 #
 # fpack is using rice compression (-r) with printing (-v) overwriting the original (-D)
 # and suppressing any prompts -Y
-find "$FOLDER/vgen2" -name "VMP*.fits" -print0 | xargs -0 -n1 -P 50 -- fpack -r -v -D -Y $1
+find "$FOLDER"/vgen2 -name "VMP*.fits" -print0 | xargs -0 -n1 -P 50 -- fpack -r -v -D -Y $1
 
 echo -e "\n--------------------------------------------------"
 echo -e "Preparing manifest\n"
 
 folder_date=$(basename "$FOLDER")
-scxkw-g2archive-manifest -o "manifest_VMP_${folder_date}.csv" -p VMP "$FOLDER/vgen2/VMP*.fits.fz"
+scxkw-g2archive-manifest -o "manifest_VMP_${folder_date}.csv" -p VMP "$FOLDER"/vgen2/VMP*.fits.fz
 
 echo -e "\n--------------------------------------------------"
 echo -e "Syncing to scexao6\n"
