@@ -1,0 +1,107 @@
+#!/bin/bash
+set -e # script exits if a command fails
+set -u # script exits if unset variable is used
+
+echo -e "======================="
+echo -e "VAMPIRES DATA ARCHIVING"
+echo -e "======================="
+
+
+# Check if a folder was provided
+if [ -z "$1" ]; then
+    echo -e "Usage: $0 <folder>"
+    exit 1
+fi
+
+FOLDER="$1"
+
+# Check if the folder exists
+if [ ! -d "$FOLDER" ]; then
+    echo -e "Error: Folder '$FOLDER' does not exist."
+    exit 1
+fi
+
+# Function to check disk space
+check_disk_space() {
+    local mount_point
+    mount_point=$(df --output=target "$1" | tail -1)
+    local required_space_gb="$2"
+
+    # Ensure both arguments are provided
+    if [[ -z "$mount_point" || -z "$required_space_gb" ]]; then
+        echo -e "Usage: check_disk_space <mount_point> <required_space_gb>"
+        echo -e "Recommended to use inside a tmux!"
+        return 1
+    fi
+
+    # Get available space in GB
+    local available_space_gb
+    available_space_gb=$(df -BG "$mount_point" --output=avail | tail -1 | tr -d 'G')
+
+    # Compare available space with required space
+    if (( available_space_gb >= required_space_gb )); then
+        echo -e "Sufficient space: ${available_space_gb}GB available on $mount_point."
+        return 0
+    else
+        echo -e "Insufficient space: ${available_space_gb}GB available, but ${required_space_gb}GB required."
+        return 1
+    fi
+}
+
+folder_size_gb=$(du -sB1G "$FOLDER" 2>/dev/null | awk '{print $1}' | tr -d 'G')
+needed_size_gb=$((folder_size_gb * 2))
+
+check_disk_space "$FOLDER" "$needed_size_gb"
+
+echo -e "\n--------------------------------------------------"
+echo -e "Running sync+deint\n"
+
+scxkw-vamp-syncdeint "$FOLDER"
+scxkw-vamp-summary "$FOLDER"
+
+echo -e "\n--------------------------------------------------"
+echo -e "Running consolidate\n"
+
+scxkw-fitsframe-consolidate "$FOLDER"
+
+echo -e "\n--------------------------------------------------"
+echo -e "Cleaning up folder\n"
+
+rm -r "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo"* "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp"
+
+echo -e "\n--------------------------------------------------"
+echo -e "Fixing headers\n"
+
+scxkw-fix-headers "$FOLDER/vgen2"
+
+echo -e "\n--------------------------------------------------"
+echo -e "Assigning frame IDS\n"
+
+scxkw-assign-frameids -f "$FOLDER" -v
+
+echo -e "\n--------------------------------------------------"
+echo -e "Compressing with fpack\n"
+
+find "$FOLDER/vgen2" -name "VMP*.fits" -print0 | xargs --0 n1 -P 50 -- fpack -r -v -D -Y "$1"
+
+echo -e "\n--------------------------------------------------"
+echo -e "Preparing manifest\n"
+
+folder_date=$(basename "$FOLDER")
+scxkw-g2archive-manifest -o "manifest_VMP_${folder_date}.csv" -p VMP "$FOLDER/vgen2/VMP*.fits.fz"
+
+echo -e "\n--------------------------------------------------"
+echo -e "Generating table\n"
+
+scxkw-header-table -o "${folder_date}_vgen2_table.csv" "$FOLDER/vgen2/VMP*.fits.fz"
+
+
+echo -e "\n--------------------------------------------------"
+echo -e "Syncing to scexao6\n"
+
+rsync -arxuh --progress -e "ssh -T -c aes128-ctr -o Compression=no -o ConnectTimeout=10 -x" --exclude=lost+found --exclude=vcam* "$FOLDER" sc6l:/mnt/tier1/2_ARCHIVED_DATA/
+
+echo -e "======================="
+echo -e "        FINISHED"
+echo -e "======================="
+

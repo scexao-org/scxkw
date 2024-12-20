@@ -1,0 +1,40 @@
+#!/bin/bash
+set -e # script exits if a command fails
+set -u # script exits if unset variable is used
+
+echo -e "================================"
+echo -e "VAMPIRES DATA ARCHIVING RECOVERY"
+echo -e "================================"
+
+
+# Check if a folder was provided
+if [ -z "$1" ]; then
+    echo -e "Usage: $0 <folder>"
+    exit 1
+fi
+
+FOLDER="$1"
+
+# Check if the folder exists
+if [ ! -d "$FOLDER" ]; then
+    echo -e "Error: Folder '$FOLDER' does not exist."
+    exit 1
+fi
+
+echo -e "\n--------------------------------------------------"
+echo -e "Cleaning up folder\n"
+
+rm -r "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo"* "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp" "$FOLDER/vgen2"
+
+echo -e "\n--------------------------------------------------"
+echo -e "Restoring backups\n"
+
+if [ -d "$FOLDER/vcam1_hlinkbak" ]; then
+    mv "$FOLDER/vcam1_hlinkbak" vcam1
+fi
+if [ -d "$FOLDER/vcam2_hlinkbak" ]; then
+    mv "$FOLDER/vcam2_hlinkbak" vcam2
+fi
+
+echo -e "\n--------------------------------------------------"
+echo -e "Folder restored\n"
