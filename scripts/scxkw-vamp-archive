@@ -67,7 +67,7 @@ scxkw-fitsframe-consolidate "$FOLDER"
 echo -e "\n--------------------------------------------------"
 echo -e "Cleaning up folder\n"
 
-rm -r "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo"* "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp"
+rm -rf "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo*" "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp"
 
 echo -e "\n--------------------------------------------------"
 echo -e "Fixing headers\n"
@@ -82,7 +82,15 @@ scxkw-assign-frameids -f "$FOLDER" -v
 echo -e "\n--------------------------------------------------"
 echo -e "Compressing with fpack\n"
 
-find "$FOLDER/vgen2" -name "VMP*.fits" -print0 | xargs --0 n1 -P 50 -- fpack -r -v -D -Y "$1"
+## what in tarnation?
+# the find command gets all the filenames and puts them in a list
+#
+# xargs maps a function across that list, separated by the null terminator (-0)
+# only taking one argument per line (-n1) and parallelizing across 50 processes (-P 50)
+#
+# fpack is using rice compression (-r) with printing (-v) overwriting the original (-D)
+# and suppressing any prompts -Y
+find "$FOLDER/vgen2" -name "VMP*.fits" -print0 | xargs -0 -n1 -P 50 -- fpack -r -v -D -Y $1
 
 echo -e "\n--------------------------------------------------"
 echo -e "Preparing manifest\n"

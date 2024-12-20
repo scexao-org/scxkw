@@ -24,7 +24,19 @@ fi
 echo -e "\n--------------------------------------------------"
 echo -e "Cleaning up folder\n"
 
-rm -r "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo"* "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp" "$FOLDER/vgen2"
+echo -e "!!! WARNING !!!"
+echo -e "We are about to delete the following folders:"
+echo -e "- $FOLDER/vcam1"
+echo -e "- $FOLDER/vcam2"
+echo -e "- $FOLDER/vsolo*" 
+echo -e "- $FOLDER/vsync" 
+echo -e "- $FOLDER/vbad"
+echo -e "- $FOLDER/**/tmp"
+echo -e "- $FOLDER/vgen2"
+echo -e "Waiting 10 seconds before continuing, CTRL+C now to cancel..."
+sleep 10
+
+rm -rf "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo"* "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp" "$FOLDER/vgen2"
 
 echo -e "\n--------------------------------------------------"
 echo -e "Restoring backups\n"
