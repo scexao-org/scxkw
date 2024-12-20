@@ -91,12 +91,6 @@ folder_date=$(basename "$FOLDER")
 scxkw-g2archive-manifest -o "manifest_VMP_${folder_date}.csv" -p VMP "$FOLDER/vgen2/VMP*.fits.fz"
 
 echo -e "\n--------------------------------------------------"
-echo -e "Generating table\n"
-
-scxkw-header-table -o "${folder_date}_vgen2_table.csv" "$FOLDER/vgen2/VMP*.fits.fz"
-
-
-echo -e "\n--------------------------------------------------"
 echo -e "Syncing to scexao6\n"
 
 rsync -arxuh --progress -e "ssh -T -c aes128-ctr -o Compression=no -o ConnectTimeout=10 -x" --exclude=lost+found --exclude=vcam* "$FOLDER" sc6l:/mnt/tier1/2_ARCHIVED_DATA/
