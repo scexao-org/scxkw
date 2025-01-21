@@ -1,11 +1,16 @@
 #!/bin/bash
 set -e # script exits if a command fails
 set -u # script exits if unset variable is used
+set -o pipefail # fail fast on pipes and print error
 
-echo -e "======================="
-echo -e "VAMPIRES DATA ARCHIVING"
-echo -e "======================="
-
+# Check for help flags
+for arg in "$@"; do
+    if [ "$arg" == "--help" ] || [ "$arg" == "-h" ]; then
+        echo -e "Usage: $0 <folder>"
+        # Add help message or behavior here
+        exit 0
+    fi
+done
 
 # Check if a folder was provided
 if [ -z "$1" ]; then
@@ -13,11 +18,12 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-FOLDER="$1"
+
+folder=$(realpath "$1")
 
 # Check if the folder exists
-if [ ! -d "$FOLDER" ]; then
-    echo -e "Error: Folder '$FOLDER' does not exist."
+if [ ! -d "$folder" ]; then
+    echo -e "Error: Folder '$folder' does not exist."
     exit 1
 fi
 
@@ -48,38 +54,43 @@ check_disk_space() {
     fi
 }
 
-folder_size_gb=$(du -sB1G "$FOLDER" 2>/dev/null | awk '{print $1}' | tr -d 'G')
+echo -e "======================="
+echo -e "VAMPIRES DATA ARCHIVING"
+echo -e "======================="
+
+
+folder_size_gb=$(du -sB1G "$folder" 2>/dev/null | awk '{print $1}' | tr -d 'G')
 needed_size_gb=$((folder_size_gb * 2))
 
-check_disk_space "$FOLDER" "$needed_size_gb"
+check_disk_space "$folder" "$needed_size_gb"
 
 echo -e "\n--------------------------------------------------"
 echo -e "Running sync+deint\n"
 
-scxkw-vamp-syncdeint "$FOLDER"
-scxkw-vamp-summary "$FOLDER"
+scxkw-vamp-syncdeint "$folder"
+scxkw-vamp-summary "$folder"
 
 echo -e "\n--------------------------------------------------"
 echo -e "Running consolidate\n"
 
-scxkw-fitsframe-consolidate "$FOLDER"
+scxkw-fitsframe-consolidate "$folder"
 
 echo -e "\n--------------------------------------------------"
 echo -e "Cleaning up folder\n"
 
-set +e
-rm -rf "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo*" "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp"
-set -e
+set +e # rm -rf will fail if vbad or **/tmp folders don't exist, which is OK
+rm -rf "$folder/vcam1" "$folder/vcam2" "$folder/vsolo1" "$folder/vsolo2" "$folder/vsync" "$folder/vbad" "$folder/**/tmp"
+set -e # back to safety!
 
 echo -e "\n--------------------------------------------------"
 echo -e "Fixing headers\n"
 
-scxkw-fix-headers "$FOLDER"/vgen2
+scxkw-fix-headers "$folder"/vgen2
 
 echo -e "\n--------------------------------------------------"
 echo -e "Assigning frame IDS\n"
 
-scxkw-assign-frameids -f "$FOLDER" -v
+scxkw-assign-frameids -f "$folder" -v
 
 echo -e "\n--------------------------------------------------"
 echo -e "Compressing with fpack\n"
@@ -92,18 +103,18 @@ echo -e "Compressing with fpack\n"
 #
 # fpack is using rice compression (-r) with printing (-v) overwriting the original (-D)
 # and suppressing any prompts -Y
-find "$FOLDER"/vgen2 -name "VMP*.fits" -print0 | xargs -0 -n1 -P 50 -- fpack -r -v -D -Y $1
+find "$folder"/vgen2 -name "VMP*.fits" -print0 | xargs -0 -n1 -P 50 -- fpack -r -v -D -Y $1
 
 echo -e "\n--------------------------------------------------"
 echo -e "Preparing manifest\n"
 
-folder_date=$(basename "$FOLDER")
-scxkw-g2archive-manifest -o "manifest_VMP_${folder_date}.csv" -p VMP "$FOLDER"/vgen2/VMP*.fits.fz
+folder_date=$(basename "$folder")
+scxkw-g2archive-manifest -o "manifest_VMP_${folder_date}.csv" -p VMP "$folder"/vgen2/VMP*.fits.fz
 
 echo -e "\n--------------------------------------------------"
 echo -e "Syncing to scexao6\n"
 
-rsync -arxuh --progress -e "ssh -T -c aes128-ctr -o Compression=no -o ConnectTimeout=10 -x" --exclude=lost+found --exclude=vcam* "$FOLDER" sc6l:/mnt/tier1/2_ARCHIVED_DATA/
+rsync -arxuh --progress -e "ssh -T -c aes128-ctr -o Compression=no -o ConnectTimeout=10 -x" --exclude=lost+found --exclude=vcam* "$folder" sc6l:/mnt/tier1/2_ARCHIVED_DATA/
 
 echo -e "======================="
 echo -e "        FINISHED"
