@@ -98,18 +98,16 @@ echo -e "Compressing with fpack\n"
 ## what in tarnation?
 # the find command gets all the filenames and puts them in a list
 #
-# xargs maps a function across that list, separated by the null terminator (-0)
-# only taking one argument per line (-n1) and parallelizing across 50 processes (-P 50)
-#
 # fpack is using rice compression (-r) with printing (-v) overwriting the original (-D)
 # and suppressing any prompts -Y
-find "$folder"/vgen2 -name "VMP*.fits" -print0 | xargs -0 -n1 -P 50 -- fpack -r -v -D -Y $1
+find "$folder/vgen2" -name "VMP*.fits" -type f -exec fpack -r -v -D -Y {} \;
+# find "$folder"/vgen2 -name "VMP*.fits" -type f -print0 | xargs -0 -n1 -P 50 -- fpack -r -v -D -Y $1
 
 echo -e "\n--------------------------------------------------"
 echo -e "Preparing manifest\n"
 
 folder_date=$(basename "$folder")
-scxkw-g2archive-manifest -o "manifest_VMP_${folder_date}.csv" -p VMP "$folder"/vgen2/VMP*.fits.fz
+scxkw-g2archive-manifest -o "${folder}/manifest_VMP_${folder_date}.csv" -p VMP "$folder"/vgen2/VMP*.fits.fz
 
 echo -e "\n--------------------------------------------------"
 echo -e "Syncing to scexao6\n"

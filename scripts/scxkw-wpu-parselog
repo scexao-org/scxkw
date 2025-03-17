@@ -35,9 +35,21 @@ def create_tables(filename):
             status_msg = match.group(4)
             if "OKAY hwp busy" in status_msg:
                 tokens = status_msg.split()
-                position = tokens[tokens.index("position") + 1]
-                target = tokens[tokens.index("target") + 1]
-                mode = tokens[tokens.index("mode") + 1]
+                try:
+                    pos_idx = tokens.index("position")
+                except ValueError:
+                    continue
+                position = tokens[pos_idx + 1]
+                try:
+                    targ_idx = tokens.index("target")
+                except ValueError:
+                    continue
+                target = tokens[targ_idx + 1]
+                try:
+                    mode_idx = tokens.index("mode")
+                except ValueError:
+                    continue
+                mode = tokens[mode_idx + 1]
                 hwp_rows.append({
                     "t_hst": timestamp_hst,
                     "t_utc": timestamp_utc,
@@ -48,9 +60,21 @@ def create_tables(filename):
                 })
             elif "OKAY qwp busy" in status_msg:
                 tokens = status_msg.split()
-                position = tokens[tokens.index("position") + 1]
-                target = tokens[tokens.index("target") + 1]
-                mode = tokens[tokens.index("mode") + 1]
+                try:
+                    pos_idx = tokens.index("position")
+                except ValueError:
+                    continue
+                position = tokens[pos_idx + 1]
+                try:
+                    targ_idx = tokens.index("target")
+                except ValueError:
+                    continue
+                target = tokens[targ_idx + 1]
+                try:
+                    mode_idx = tokens.index("mode")
+                except ValueError:
+                    continue
+                mode = tokens[mode_idx + 1]
                 qwp_rows.append({
                     "t_hst": timestamp_hst,
                     "t_utc": timestamp_utc,
