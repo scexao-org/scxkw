@@ -11,8 +11,6 @@ for arg in "$@"; do
         echo -e "Usage: $0 <folder>"
         # Add help message or behavior here
         exit 0
-    elif [ "$arg" == "--force" ] || [ "$arg" == "-f" ]; then
-        skip_disk_check=true
     fi
 done
 
@@ -54,13 +52,7 @@ check_disk_space() {
         return 0
     else
         echo -e "Insufficient space: ${available_space_gb}GB available, but ${required_space_gb}GB required." | tee -a "${logfile}"
-        if [ "$skip_disk_check" ]; then
-            echo -e "Disk check skipped! Pausing for 10 seconds before continuing..."  | tee -a "${logfile}"
-            sleep 10
-            return 0
-        else
-            return 1
-        fi
+        return 1
     fi
 }
 
@@ -80,7 +72,7 @@ echo -e "Saving logs to ${logfile}\n" | tee -a "${logfile}"
 
 
 folder_size_gb=$(du -sB1G "$folder" 2>/dev/null | awk '{print $1}' | tr -d 'G')
-needed_size_gb=$((folder_size_gb * 2))
+needed_size_gb=$((folder_size_gb))
 
 check_disk_space "$folder" "$needed_size_gb"
 
