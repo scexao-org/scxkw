@@ -13,11 +13,11 @@ if [ -z "$1" ]; then
     exit 1
 fi
 
-FOLDER="$1"
+folder=$(realpath "$1")
 
 # Check if the folder exists
-if [ ! -d "$FOLDER" ]; then
-    echo -e "Error: Folder '$FOLDER' does not exist."
+if [ ! -d "$folder" ]; then
+    echo -e "Error: Folder '$folder' does not exist."
     exit 1
 fi
 
@@ -26,28 +26,28 @@ echo -e "Cleaning up folder\n"
 
 echo -e "!!! WARNING !!!"
 echo -e "We are about to delete the following folders:"
-echo -e "- $FOLDER/vcam1"
-echo -e "- $FOLDER/vcam2"
-echo -e "- $FOLDER/vsolo*" 
-echo -e "- $FOLDER/vsync" 
-echo -e "- $FOLDER/vbad"
-echo -e "- $FOLDER/**/tmp"
-echo -e "- $FOLDER/vgen2"
+echo -e "- $folder/vcam1"
+echo -e "- $folder/vcam2"
+echo -e "- $folder/vsolo*" 
+echo -e "- $folder/vsync" 
+echo -e "- $folder/vbad"
+echo -e "- $folder/**/tmp"
+echo -e "- $folder/vgen2"
 echo -e "Waiting 10 seconds before continuing, CTRL+C now to cancel..."
 sleep 10
 
 set +e
-rm -rf "$FOLDER/vcam1" "$FOLDER/vcam2" "$FOLDER/vsolo"* "$FOLDER/vsync" "$FOLDER/vbad" "$FOLDER/**/tmp" "$FOLDER/vgen2"
+rm -rf "$folder/vcam1" "$folder/vcam2" "$folder/vsolo"* "$folder/vsync" "$folder/vbad" "$folder/**/tmp" "$folder/vgen2"
 set -e
 
 echo -e "\n--------------------------------------------------"
 echo -e "Restoring backups\n"
 
-if [ -d "$FOLDER/vcam1_hlinkbak" ]; then
-    mv "$FOLDER/vcam1_hlinkbak" vcam1
+if [ -d "$folder/vcam1_hlinkbak" ]; then
+    mv "$folder/vcam1_hlinkbak" vcam1
 fi
-if [ -d "$FOLDER/vcam2_hlinkbak" ]; then
-    mv "$FOLDER/vcam2_hlinkbak" vcam2
+if [ -d "$folder/vcam2_hlinkbak" ]; then
+    mv "$folder/vcam2_hlinkbak" vcam2
 fi
 
 echo -e "\n--------------------------------------------------"
