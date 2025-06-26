@@ -6,12 +6,13 @@ from astropy.io import fits
 
 parser = argparse.ArgumentParser("fitschecksums", description="for each file, prints the filename and the CHECKSUM for each hdu separated by commas")
 parser.add_argument("filename", type=pathlib.Path, nargs="+")
+parser.add_argument("-c", "--check", action="store_true")
 
 def main():
     args = parser.parse_args()
     for filename in args.filename:
         try:
-            with fits.open(filename, checksum=True) as hdul:
+            with fits.open(filename, checksum=args.check) as hdul:
                 checksums = [hdu.header["CHECKSUM"] for hdu in hdul]
             checksum_str = ",".join(checksums)
             output_str = f"{filename.name},{checksum_str}"
