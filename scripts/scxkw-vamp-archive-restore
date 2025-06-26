@@ -44,10 +44,10 @@ echo -e "\n--------------------------------------------------"
 echo -e "Restoring backups\n"
 
 if [ -d "$folder/vcam1_hlinkbak" ]; then
-    mv "$folder/vcam1_hlinkbak" vcam1
+    mv "$folder/vcam1_hlinkbak" "$folder/vcam1"
 fi
 if [ -d "$folder/vcam2_hlinkbak" ]; then
-    mv "$folder/vcam2_hlinkbak" vcam2
+    mv "$folder/vcam2_hlinkbak" "$folder/vcam2"
 fi
 
 echo -e "\n--------------------------------------------------"
