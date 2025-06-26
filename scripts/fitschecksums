@@ -11,7 +11,7 @@ def main():
     args = parser.parse_args()
     for filename in args.filename:
         try:
-            with fits.open(filename, "update", checksum=True) as hdul:
+            with fits.open(filename, checksum=True) as hdul:
                 checksums = [hdu.header["CHECKSUM"] for hdu in hdul]
             checksum_str = ",".join(checksums)
             output_str = f"{filename.name},{checksum_str}"
