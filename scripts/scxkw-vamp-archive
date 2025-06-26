@@ -3,12 +3,13 @@ set -e # script exits if a command fails
 set -u # script exits if unset variable is used
 set -o pipefail # fail fast on pipes and print error
 
-skip_disk_check=false
 
 # Check for help flags
 for arg in "$@"; do
     if [ "$arg" == "--help" ] || [ "$arg" == "-h" ]; then
         echo -e "Usage: $0 <folder>"
+        echo -e "Recommended to use inside a tmux!"
+        echo -e "Note: set environment variable DEBUG=1 to skip frame ID allocations"
         # Add help message or behavior here
         exit 0
     fi
@@ -38,7 +39,6 @@ check_disk_space() {
     # Ensure both arguments are provided
     if [[ -z "$mount_point" || -z "$required_space_gb" ]]; then
         echo -e "Usage: check_disk_space <mount_point> <required_space_gb>"
-        echo -e "Recommended to use inside a tmux!"
         return 1
     fi
 
@@ -99,10 +99,13 @@ echo -e "Fixing headers\n" | tee -a "${logfile}"
 
 scxkw-fix-headers "$folder"/vgen2 | tee -a "${logfile}"
 
-echo -e "\n--------------------------------------------------" | tee -a "${logfile}"
-echo -e "Assigning frame IDS\n" | tee -a "${logfile}"
+## Avoid FRAMEIDs if we're not serious!
+if [ "$DEBUG" != "1" ]; then
+    echo -e "\n--------------------------------------------------" | tee -a "${logfile}"
+    echo -e "Assigning frame IDS\n" | tee -a "${logfile}"
 
-scxkw-assign-frameids -f "$folder" -v | tee -a "${logfile}"
+    scxkw-assign-frameids -f "$folder" -v | tee -a "${logfile}"
+fi
 
 echo -e "\n--------------------------------------------------" | tee -a "${logfile}"
 echo -e "Compressing with fpack\n" | tee -a "${logfile}"
@@ -111,17 +114,42 @@ echo -e "Compressing with fpack\n" | tee -a "${logfile}"
 #
 # fpack is using rice compression (-r) with printing (-v) overwriting the original (-D)
 # and suppressing any prompts -Y
-find "$folder/vgen2" -name "VMP*.fits" -type f -print0 | xargs -0 -P 50 -n1 -- fpack -r -v -D -Y | tee -a "${logfile}"
+find "$folder/vgen2" -iname "v*.fits" -type f -print0 | xargs -0 -P 50 -n1 -- fpack -r -v -D -Y | tee -a "${logfile}"
 
-echo -e "\n--------------------------------------------------" | tee -a "${logfile}"
-echo -e "Preparing manifest\n" | tee -a "${logfile}"
+## Now let's update the archiving database to say this data is processed
+archive_csv_path="/mnt/fuuu/ARCHIVED_DATA/ARCHIVE_LOG.csv"
+timestamp_utc=$(date -u +"%Y-%m-%dT%H:%M:%S")
+# wizardry: find line that matches path of this folder, then
+# update 3rd column "processed" to True, and 4th column with timestamp
+awk -i inplace -F',' -v folder="$folder" -v now="$timestamp_utc" -v OFS=',' '
+NR == 1 { print; next }
+$1 == folder { $3 = "True"; $4 = now }
+{ print }
+' "$archive_csv_path"
 
-scxkw-g2archive-manifest -o "${folder}/manifest_VMP_${folder_date}.csv" -p VMP "$folder"/vgen2/VMP*.fits.fz | tee -a "${logfile}"
 
-echo -e "\n--------------------------------------------------" | tee -a "${logfile}"
-echo -e "Syncing to scexao6\n" | tee -a "${logfile}"
+if [ "$DEBUG" != "1" ]; then
+    echo -e "\n--------------------------------------------------" | tee -a "${logfile}"
+    echo -e "Preparing manifest\n" | tee -a "${logfile}"
 
-rsync -arxuh --progress -e "ssh -T -c aes128-ctr -o Compression=no -o ConnectTimeout=10 -x" --exclude=lost+found --exclude=vcam* "$folder" sc6l:/mnt/tier1/2_ARCHIVED_DATA/ | tee -a "${logfile}"
+    scxkw-g2archive-manifest -o "${folder}/manifest_VMP_${folder_date}.csv" -p VMP "$folder"/vgen2/VMP*.fits.fz | tee -a "${logfile}"
+
+    echo -e "\n--------------------------------------------------" | tee -a "${logfile}"
+    echo -e "Syncing to scexao6\n" | tee -a "${logfile}"
+
+    rsync -arxuh --progress -e "ssh -T -c aes128-ctr -o Compression=no -o ConnectTimeout=10 -x" --exclude=lost+found --exclude=vcam* "$folder" sc6l:/mnt/tier1/2_ARCHIVED_DATA/ | tee -a "${logfile}"
+
+    ## update archive file, again, that data has been transferred
+    timestamp_utc=$(date -u +"%Y-%m-%dT%H:%M:%S")
+    # wizardry: find line that matches path of this folder, then
+    # update 5th column "transferred" to True, and 6th column with timestamp
+    awk -i inplace -F',' -v folder="$folder" -v now="$timestamp_utc" -v OFS=',' '
+    NR == 1 { print; next }
+    $1 == folder { $5 = "True"; $6 = now }
+    { print }
+    ' "$archive_csv_path"
+fi
+
 
 echo -e "=======================" | tee -a "${logfile}"
 echo -e "        FINISHED" | tee -a "${logfile}"
