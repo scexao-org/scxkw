@@ -23,7 +23,13 @@ def main():
     
     for folder in folders:
         print(f"Cross-checking folder: {folder}")
-        crosscheck_scexao6_sdata(pathlib.Path(folder))
+        bad_files = crosscheck_scexao6_sdata(pathlib.Path(folder))
+        if bad_files:
+            filename = pathlib.Path(folder) / "bad_sc6_files.txt"
+            with filename.open("w") as fh:
+                fh.write("\n".join(bad_files))
+                fh.write("\n")
+            print(f"Wrote a list of bad filenames to {filename.absolute()}")
 
 
 if __name__ == "__main__":

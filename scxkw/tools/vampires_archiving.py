@@ -99,10 +99,12 @@ def get_checksums(filename):
 
 def crosscheck_scexao6_sdata(directory: pathlib.Path):
     # get fits files in that directory
-    fits_files = list(sorted((directory / "vgen2").glob("[vV]*.fits*")))
+    fits_files = sorted((directory / "vgen2").glob("[vV]*.fits*"))
+    if len(fits_files) == 0:
+        msg = f"Did not find any input FITS files in directory {directory}"
+        raise ValueError(msg)
     pbar = tqdm.tqdm(fits_files, desc="Parsing local checksums")
     mapping = {filename.name: get_checksums(filename) for filename in pbar}
-    elapsed = pbar.format_dict['elapsed']
     ## now go find the same folder on scexao6 in sdata
     # Run the command and capture output
     sc6_folder = pathlib.Path(f"/mnt/tier1/2_ARCHIVED_DATA/{directory.name}/vgen2")
@@ -114,31 +116,45 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
         hostname="scexao6",
         username="scexao",
     )
-    cmd = f"/home/scexao/miniforge3/bin/python /home/scexao/src/scxkw/scripts/fitschecksums {' '.join(sc6_files)}"
+    # cmd = f"/home/scexao/miniforge3/bin/python /home/scexao/src/scxkw/scripts/fitschecksums {' '.join(sc6_files)}"
+    cmd = f"/home/scexao/miniforge3/bin/python /home/scexao/src/scxkw/scripts/fitschecksums {sc6_folder}/V*.fits.fz"
+    print(cmd)
     print("Checking remote checksums (might take a while...)")
     stdin, stdout, stderr = client.exec_command(cmd)
-    for line in stdout.read().decode().split("\n"):
-        if len(line.strip()) == 0:
-            continue
+    pbar = tqdm.tqdm(total=len(mapping), desc="Parsing remote checksums", leave=False)
+    bad_files = []
+    while line := stdout.readline().strip():
+        pbar.update()
         tokens = line.split(",")
-        expected = mapping.pop(tokens[0])
+        filename = tokens[0]
+        if filename not in mapping:
+            msg = f"File found on scexao6 that isn't on scexao5: {filename}"
+            pbar.write(msg)
+            continue
+        expected = mapping.pop(filename)
         if expected != tokens[1:]:
-            msg = f"Checksums did not match for {tokens[0]} between scexao5 and scexao6\nscexao5: {', '.join(expected)}\nscexao6: {', '.join(tokens[1:])}"
-            print(msg)
-            return False
+            msg = f"Checksums did not match for {filename} between scexao5 and scexao6\nscexao5: {', '.join(expected)}\nscexao6: {', '.join(tokens[1:])}"
+            pbar.write(msg)
+            bad_files.append(filename)
+            continue
         
     if len(mapping) > 0:
         msg = "Files found on scexao5 that weren't found on scexao6"
         print(msg)
         print("\n".join(mapping.keys()))
-        return False
+        bad_files.extend(mapping.keys())
+
+    if len(bad_files) > 0:
+        msg = f"{len(bad_files)}/{len(fits_files)} bad files"
+        print(msg)
+        return bad_files
+    
     print("All files verified")
     table = load_table()
     if table is None:
         return
     timestamp = datetime.now(timezone.utc).now().strftime("%Y-%m-%dT%H:%M:%S")
-    row = table["scexao5_path"] == directory.absolute()
-    table.loc[row, "safe_on_scexao6"] = True
-    table.loc[row, "safe_timestamp"] = timestamp
+    row = table["scexao5_path"] == str(directory.absolute())
+    table.loc[row, ["safe_on_scexao6", "safe_timestamp"]] = True, timestamp
     table.to_csv(ARCHIVE_LOG_PATH, index=False)
-    return True
+    print("Archive log updated!")
