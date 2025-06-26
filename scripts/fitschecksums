@@ -4,17 +4,17 @@ import argparse
 import pathlib
 from astropy.io import fits
 
-parser = argparse.ArgumentParser("fitsverify", description="for each file, prints the filename and the CHECKSUM for each hdu separated by commas")
+parser = argparse.ArgumentParser("fitschecksums", description="for each file, prints the filename and the CHECKSUM for each hdu separated by commas")
 parser.add_argument("filename", type=pathlib.Path, nargs="+")
 
 def main():
     args = parser.parse_args()
     for filename in args.filename:
         try:
-            with fits.open(filename, "update", checksum=, output_verify="exception") as hdul:
+            with fits.open(filename, "update", checksum=True) as hdul:
                 checksums = [hdu.header["CHECKSUM"] for hdu in hdul]
             checksum_str = ",".join(checksums)
-            output_str = f"{filename.absolute()},{checksum_str}"
+            output_str = f"{filename.name},{checksum_str}"
             print(output_str)
         except fits.VerifyError:
             continue

@@ -11,7 +11,7 @@ with open("README.md", 'r') as f:
     long_description = f.read()
 
 
-script_list = glob.glob('./scripts/scxkw-*') + ['scripts/fitsheader']
+script_list = glob.glob('./scripts/scxkw-*') + ['scripts/fitsheader', 'scripts/fitschecksums']
 
 setup(
         name = 'scxkw',
