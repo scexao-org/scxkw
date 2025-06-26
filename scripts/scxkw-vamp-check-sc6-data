@@ -1,0 +1,30 @@
+#! /usr/bin/env python3
+import argparse
+import os
+import pathlib
+from scxkw.tools.vampires_archiving import WrongComputerException, load_table, crosscheck_scexao6_sdata
+
+parser = argparse.ArgumentParser("scxkw-vamp-check-sc6-data")
+parser.add_argument("folder", type=pathlib.Path, nargs="*")
+
+def main():
+    if os.environ.get("WHICHCOMP", "") != "5":
+        msg = "This script must be run on scexao5"
+        raise WrongComputerException(msg)
+    args = parser.parse_args()
+    if len(args.folder) == 0:
+        table = load_table()
+        if table is None:
+            return
+        # by default, try data that's transferred but unverified
+        folders = table.query("transferred_to_scexao6 and not safe_on_scexao6")["scexao5_path"]
+    else:
+        folders = args.folder
+    
+    for folder in folders:
+        print(f"Cross-checking folder: {folder}")
+        crosscheck_scexao6_sdata(pathlib.Path(folder))
+
+
+if __name__ == "__main__":
+    main()

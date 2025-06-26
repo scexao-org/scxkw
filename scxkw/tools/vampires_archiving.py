@@ -2,7 +2,10 @@ from datetime import datetime, timezone
 import pandas
 import pathlib
 import re
-
+from astropy.io import fits
+import tqdm
+import subprocess
+import paramiko
 
 ARCHIVE_DIR = pathlib.Path("/mnt/fuuu/ARCHIVED_DATA")
 ARCHIVE_LOG_PATH = ARCHIVE_DIR / "ARCHIVE_LOG.csv"
@@ -84,4 +87,58 @@ def check_for_new_folders(directory: pathlib.Path=ARCHIVE_DIR):
 
     print("New folder(s) detected and added to archive log database")
     print(dataframe["scexao5_path"])
+    return True
+
+def get_checksums(filename):
+    try:
+        with fits.open(filename) as hdul:
+            checksums = [hdu.header["CHECKSUM"] for hdu in hdul]
+        return checksums
+    except fits.VerifyError:
+        return None
+
+def crosscheck_scexao6_sdata(directory: pathlib.Path):
+    # get fits files in that directory
+    fits_files = list(sorted((directory / "vgen2").glob("[vV]*.fits*")))
+    pbar = tqdm.tqdm(fits_files, desc="Parsing local checksums")
+    mapping = {filename.name: get_checksums(filename) for filename in pbar}
+    elapsed = pbar.format_dict['elapsed']
+    ## now go find the same folder on scexao6 in sdata
+    # Run the command and capture output
+    sc6_folder = pathlib.Path(f"/mnt/tier1/2_ARCHIVED_DATA/{directory.name}/vgen2")
+    sc6_files = [str(sc6_folder / fname) for fname in mapping.keys()]
+
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    client.connect(
+        hostname="scexao6",
+        username="scexao",
+    )
+    cmd = f"/home/scexao/miniforge3/bin/python /home/scexao/src/scxkw/scripts/fitschecksums {' '.join(sc6_files)}"
+    print("Checking remote checksums (might take a while...)")
+    stdin, stdout, stderr = client.exec_command(cmd)
+    for line in stdout.read().decode().split("\n"):
+        if len(line.strip()) == 0:
+            continue
+        tokens = line.split(",")
+        expected = mapping.pop(tokens[0])
+        if expected != tokens[1:]:
+            msg = f"Checksums did not match for {tokens[0]} between scexao5 and scexao6\nscexao5: {', '.join(expected)}\nscexao6: {', '.join(tokens[1:])}"
+            print(msg)
+            return False
+        
+    if len(mapping) > 0:
+        msg = "Files found on scexao5 that weren't found on scexao6"
+        print(msg)
+        print("\n".join(mapping.keys()))
+        return False
+    print("All files verified")
+    table = load_table()
+    if table is None:
+        return
+    timestamp = datetime.now(timezone.utc).now().strftime("%Y-%m-%dT%H:%M:%S")
+    row = table["scexao5_path"] == directory.absolute()
+    table.loc[row, "safe_on_scexao6"] = True
+    table.loc[row, "safe_timestamp"] = timestamp
+    table.to_csv(ARCHIVE_LOG_PATH, index=False)
     return True
