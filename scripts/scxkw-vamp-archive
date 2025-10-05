@@ -3,6 +3,7 @@ set -e # script exits if a command fails
 set -u # script exits if unset variable is used
 set -o pipefail # fail fast on pipes and print error
 
+DEBUG="0"
 
 # Check for help flags
 for arg in "$@"; do
