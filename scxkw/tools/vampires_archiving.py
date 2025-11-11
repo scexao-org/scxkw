@@ -107,7 +107,7 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
     mapping = {filename.name: get_checksums(filename) for filename in pbar}
     ## now go find the same folder on scexao6 in sdata
     # Run the command and capture output
-    sc6_folder = pathlib.Path(f"/mnt/tier1/2_ARCHIVED_DATA/{directory.name}/vgen2")
+    sc6_folder = pathlib.Path(f"/mnt/sdata/{directory.name}/ARCHIVED/vgen2")
     sc6_files = [str(sc6_folder / fname) for fname in mapping.keys()]
 
     client = paramiko.SSHClient()
