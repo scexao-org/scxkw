@@ -37,16 +37,18 @@ echo -e "Waiting 10 seconds before continuing, CTRL+C now to cancel..."
 sleep 10
 
 set +e
-rm -rf "$folder/vcam1" "$folder/vcam2" "$folder/vsolo"* "$folder/vsync" "$folder/vbad" "$folder/**/tmp" "$folder/vgen2"
+rm -rf "$folder/vcam1" "$folder/vcam2" "$folder/vsolo*"* "$folder/vsync" "$folder/vbad" "$folder/**/tmp" "$folder/vgen2"
 set -e
 
 echo -e "\n--------------------------------------------------"
 echo -e "Restoring backups\n"
 
 if [ -d "$folder/vcam1_hlinkbak" ]; then
+    echo "$folder/vcam1_hlinkbak -> $folder/vcam1"
     mv "$folder/vcam1_hlinkbak" "$folder/vcam1"
 fi
 if [ -d "$folder/vcam2_hlinkbak" ]; then
+    echo "$folder/vcam2_hlinkbak -> $folder/vcam2"
     mv "$folder/vcam2_hlinkbak" "$folder/vcam2"
 fi
 

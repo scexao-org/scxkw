@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from dateutil.relativedelta import relativedelta
 import pandas
 import pathlib
 import re
@@ -9,6 +10,7 @@ import paramiko
 
 ARCHIVE_DIR = pathlib.Path("/mnt/fuuu/ARCHIVED_DATA")
 ARCHIVE_LOG_PATH = ARCHIVE_DIR / "ARCHIVE_LOG.csv"
+DELETION_LOG_PATH = ARCHIVE_DIR / "MARKED_FOR_DELETION.csv"
 
 
 class WrongComputerException(BaseException):
@@ -47,6 +49,28 @@ def load_table() -> pandas.DataFrame | None:
     else:
         print("WARNING: No database CSV found!")
         return None
+
+
+def load_deletion_table() -> pandas.DataFrame | None:
+    if DELETION_LOG_PATH.exists():
+        return pandas.read_csv(DELETION_LOG_PATH)
+    else:
+        print("WARNING: No deletion CSV found!")
+        return None
+
+
+def create_deletion_entry(path: pathlib.Path):
+    # sanitize inputs
+    path_str = str(path.absolute())
+    datetime_now = datetime.now(timezone.utc)
+    datetime_tomorrow = datetime_now + relativedelta(days=1)
+
+    entry = {
+        "scexao5_path" : path_str,
+        "delete_after" :  datetime_tomorrow.isoformat(),
+    }
+    return entry
+
 
 def check_for_new_folders(directory: pathlib.Path=ARCHIVE_DIR):
     pattern = re.compile(r"\d{8}")
@@ -91,8 +115,13 @@ def check_for_new_folders(directory: pathlib.Path=ARCHIVE_DIR):
 
 def get_checksums(filename):
     try:
+        checksums = []
         with fits.open(filename) as hdul:
-            checksums = [hdu.header["CHECKSUM"] for hdu in hdul]
+            for hdu in hdul:
+                if "CHECKSUM" not in hdu.header:
+                    print(f"Missing CHECKSUM for {filename}: data may be corrupted")
+                    return None
+                checksums.append(hdu.header["CHECKSUM"])
         return checksums
     except fits.VerifyError:
         return None
@@ -158,3 +187,4 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
     table.loc[row, ["safe_on_scexao6", "safe_timestamp"]] = True, timestamp
     table.to_csv(ARCHIVE_LOG_PATH, index=False)
     print("Archive log updated!")
+
