@@ -27,7 +27,7 @@ def main():
         print(f"Launching archive process for folder: {path} in tmux: {session_name}")
         window = get_or_create_tmux_window(session_name)
         pane = window.attached_pane
-        pane.send_keys(f"scxkw-vamp-archive {path}")
+        pane.send_keys(f"scxkw-vamp-archive-folder {path}")
 
 if __name__ == "__main__":
     main()
