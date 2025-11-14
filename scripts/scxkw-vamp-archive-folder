@@ -53,6 +53,8 @@ check_disk_space() {
         return 0
     else
         echo -e "Insufficient space: ${available_space_gb}GB available, but ${required_space_gb}GB required." | tee -a "${logfile}"
+
+        echo -e "Insufficient space for processing $folder: ${available_space_gb}GB available, but ${required_space_gb}GB required. Please take action as soon as possible to continue automated archiving of VAMPIRES data." | mail -s "SC5: Insufficient Space for VAMPIRES Archiving" vdeo@naoj.org guyon@naoj.org mileslucas@arizona.edu
         return 1
     fi
 }
