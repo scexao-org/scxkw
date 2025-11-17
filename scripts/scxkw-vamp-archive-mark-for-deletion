@@ -1,11 +1,12 @@
 #! /usr/bin/env python3
 import os
 import pathlib
-from scxkw.tools.vampires_archiving import WrongComputerException, load_table, load_deletion_table, create_deletion_entry, DELETION_LOG_PATH
+from scxkw.tools.vampires_archiving import WrongComputerException, load_table, load_deletion_table, create_deletion_entry, DELETION_DB_PATH, setup_logger
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 import pandas as pd
 
+logger = setup_logger(__file__)
 
 def month_has_passed(ymd_timestamp: str) -> bool:
     """Return True if at least one full month has passed since the given ISO timestamp."""
@@ -18,8 +19,10 @@ def month_has_passed(ymd_timestamp: str) -> bool:
 def main():
     if os.environ.get("WHICHCOMP", "") != "5":
         msg = "This script must be run on scexao5"
+        logger.error(msg)
         raise WrongComputerException(msg)
 
+    logger.info("Script ran")
     # find folders which are confirmed safe on scexao6
     table = load_table()
     sub_table = table.query("safe_on_scexao6")
@@ -31,23 +34,20 @@ def main():
         root_path = pathlib.Path(row["scexao5_path"])
         vgen2_path = root_path / "vgen2"
         if vgen2_path.exists():
-            print(f"Found `vgen2` folder for {row['utc_date']} that is safely on scexao6")
-            print("it will be marked for deletion")
+            logger.info(f"Found `vgen2` folder for {row['utc_date']} that is safely on scexao6. It will be marked for deletion")
             entry = create_deletion_entry(vgen2_path)
             new_entries.append(entry)
         
         if month_has_passed(row["utc_date"]):
             vcam1_bak_path = root_path / "vcam1_hlinkbak"
             if vcam1_bak_path.exists():
-                print(f"Found `vcam1_hlinkbak` folder for {row['utc_date']} that is more than a month old")
-                print("it will be marked for deletion")
+                logger.info(f"Found `vcam1_hlinkbak` folder for {row['utc_date']} that is more than a month old. It will be marked for deletion")
                 entry = create_deletion_entry(vcam1_bak_path)
                 new_entries.append(entry)
 
             vcam2_bak_path = root_path / "vcam2_hlinkbak"
             if vcam2_bak_path.exists():
-                print(f"Found `vcam2_hlinkbak` folder for {row['utc_date']} that is more than a month old")
-                print("it will be marked for deletion")
+                logger.info(f"Found `vcam2_hlinkbak` folder for {row['utc_date']} that is more than a month old. It will be marked for deletion")
                 entry = create_deletion_entry(vcam2_bak_path)
                 new_entries.append(entry)
 
@@ -56,10 +56,10 @@ def main():
         new_df = pd.DataFrame(new_entries)
         combined_df = pd.concat([deletion_table, new_df], ignore_index=True)
         output_df = combined_df.drop_duplicates(subset="scexao5_path", keep="first")
-        output_df.to_csv(DELETION_LOG_PATH, index=False)
+        output_df.to_csv(DELETION_DB_PATH, index=False)
 
-        print(f"Wrote new entries to {DELETION_LOG_PATH.absolute()}")
-        print("They will be deleted in one day unless manually removed.")
+        logger.info(f"Wrote new entries to {DELETION_DB_PATH.absolute()}")
+        logger.info("They will be deleted in one day unless manually removed.")
 
 
 if __name__ == "__main__":

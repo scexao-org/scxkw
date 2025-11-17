@@ -47,6 +47,8 @@ def setup_logger(name: str):
     return logger
 
 
+logger = setup_logger(__file__)
+
 class WrongComputerException(BaseException):
     """Use to safegaurd scripts to run on specific computers"""
 
@@ -81,7 +83,7 @@ def load_table() -> pandas.DataFrame | None:
     if ARCHIVE_DB_PATH.exists():
         return pandas.read_csv(ARCHIVE_DB_PATH)
     else:
-        print("WARNING: No database CSV found!")
+        logger.warning("WARNING: No database CSV found!")
         return None
 
 
@@ -89,7 +91,7 @@ def load_deletion_table() -> pandas.DataFrame | None:
     if DELETION_DB_PATH.exists():
         return pandas.read_csv(DELETION_DB_PATH)
     else:
-        print("WARNING: No deletion CSV found!")
+        logger.warning("WARNING: No deletion CSV found!")
         return None
 
 
@@ -133,7 +135,7 @@ def check_for_new_folders(directory: pathlib.Path=ARCHIVE_DIR):
 
     if len(new_telemetry) == 0:
         msg = "No new archive folders detected"
-        print(msg)
+        logger.info(msg)
         return False
 
     dataframe = pandas.DataFrame(new_telemetry)
@@ -143,8 +145,8 @@ def check_for_new_folders(directory: pathlib.Path=ARCHIVE_DIR):
     else:
         dataframe.to_csv(ARCHIVE_DB_PATH, mode="a", index=False, header=False)
 
-    print("New folder(s) detected and added to archive log database")
-    print(dataframe["scexao5_path"])
+    logger.info("New folder(s) detected and added to archive log database")
+    logger.info(dataframe["scexao5_path"])
     return True
 
 def get_checksums(filename):
@@ -153,7 +155,7 @@ def get_checksums(filename):
         with fits.open(filename) as hdul:
             for hdu in hdul:
                 if "CHECKSUM" not in hdu.header:
-                    print(f"Missing CHECKSUM for {filename}: data may be corrupted")
+                    logger.warning(f"Missing CHECKSUM for {filename}: data may be corrupted")
                     return None
                 checksums.append(hdu.header["CHECKSUM"])
         return checksums
@@ -165,6 +167,7 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
     fits_files = sorted((directory / "vgen2").glob("[vV]*.fits.fz"))
     if len(fits_files) == 0:
         msg = f"Did not find any input FITS files in directory {directory}"
+        logger.error(msg)
         raise ValueError(msg)
     pbar = tqdm.tqdm(fits_files, desc="Parsing local checksums")
     mapping = {filename.name: get_checksums(filename) for filename in pbar}
@@ -180,7 +183,7 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
         username="scexao",
     )
     cmd = f"/home/scexao/miniforge3/bin/python /home/scexao/src/scxkw/scripts/fitschecksums {sc6_folder}/V*.fits.fz"
-    print("Checking remote checksums (might take a while...)")
+    logger.info("Checking remote checksums (might take a while...)")
     stdin, stdout, stderr = client.exec_command(cmd)
     pbar = tqdm.tqdm(total=len(mapping), desc="Parsing remote checksums", leave=False)
     bad_files = []
@@ -201,16 +204,16 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
         
     if len(mapping) > 0:
         msg = "Files found on scexao5 that weren't found on scexao6"
-        print(msg)
-        print("\n".join(mapping.keys()))
+        logger.warning(msg)
+        logger.info("\n".join(mapping.keys()))
         bad_files.extend(mapping.keys())
 
     if len(bad_files) > 0:
         msg = f"{len(bad_files)}/{len(fits_files)} bad files"
-        print(msg)
+        logger.warning(msg)
         return bad_files
     
-    print("All files verified")
+    logger.info("All files verified")
     table = load_table()
     if table is None:
         return
@@ -218,5 +221,5 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
     row = table["scexao5_path"] == str(directory.absolute())
     table.loc[row, ["safe_on_scexao6", "safe_timestamp"]] = True, timestamp
     table.to_csv(ARCHIVE_DB_PATH, index=False)
-    print("Archive log updated!")
+    logger.info("Archive log updated!")
 
