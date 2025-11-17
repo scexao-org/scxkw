@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 import os
-from scxkw.tools.vampires_archiving import WrongComputerException, load_deletion_table
+import shutil
+from scxkw.tools.vampires_archiving import WrongComputerException, load_deletion_table, DELETION_LOG_PATH
 from datetime import datetime
 import time
 
@@ -12,16 +13,22 @@ def main():
     deletion_table = load_deletion_table()
     # for each folder mark the vgen2 folder safe for deletion
     # and the vcam1/vcam2 hlinkbaks IF MORE THAN 1 MONTH HAS PASSED
-    for _, row in deletion_table.iterrows():
+    indices_to_drop = []
+    for idx, row in deletion_table.iterrows():
         deletion_time = datetime.fromisoformat(row["delete_after"])
         now = datetime.now(deletion_time.tzinfo)
         if now > deletion_time:
             path = row["scexao5_path"]
             print(f"!!! DELETING !!! - {path}")
             delay_time = 10 # seconds
-            print("Waiting {delay_time}s ... CTRL-C now to avoid deletion!")
+            print(f"Waiting {delay_time}s ... CTRL-C now to avoid deletion!")
             time.sleep(delay_time)
-            os.rmdir(path)
+            shutil.rmtree(path)
+            indices_to_drop.append(idx)
+
+    if len(indices_to_drop) > 0:
+        output_df = deletion_table.drop(indices_to_drop, axis=0)
+        output_df.to_csv(DELETION_LOG_PATH, index=False)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,9 @@
 import argparse
 import os
 import pathlib
-from scxkw.tools.vampires_archiving import WrongComputerException, load_table, crosscheck_scexao6_sdata
+from scxkw.tools.vampires_archiving import WrongComputerException, load_table, crosscheck_scexao6_sdata, setup_logger
+
+logger = setup_logger(__file__)
 
 parser = argparse.ArgumentParser("scxkw-vamp-check-sc6-data")
 parser.add_argument("folder", type=pathlib.Path, nargs="*")
@@ -10,7 +12,9 @@ parser.add_argument("folder", type=pathlib.Path, nargs="*")
 def main():
     if os.environ.get("WHICHCOMP", "") != "5":
         msg = "This script must be run on scexao5"
+        logger.error(msg)
         raise WrongComputerException(msg)
+    logger.info("Script ran")
     args = parser.parse_args()
     if len(args.folder) == 0:
         table = load_table()
@@ -21,15 +25,19 @@ def main():
     else:
         folders = args.folder
     
+    if len(folders) == 0:
+        logger.info("There are no unchecked folders on scexao5")
+        return
     for folder in folders:
-        print(f"Cross-checking folder: {folder}")
+        logger.info(f"Cross-checking folder: {folder}")
         bad_files = crosscheck_scexao6_sdata(pathlib.Path(folder))
         if bad_files:
+            logger.warning("Bad files found!")
             filename = pathlib.Path(folder) / "bad_sc6_files.txt"
             with filename.open("w") as fh:
                 fh.write("\n".join(bad_files))
                 fh.write("\n")
-            print(f"Wrote a list of bad filenames to {filename.absolute()}")
+            logger.info(f"Wrote a list of bad filenames to {filename.absolute()}")
 
 
 if __name__ == "__main__":

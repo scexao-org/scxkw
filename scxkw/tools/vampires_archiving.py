@@ -7,10 +7,44 @@ from astropy.io import fits
 import tqdm
 import subprocess
 import paramiko
+import logging
+from logging.handlers import TimedRotatingFileHandler
+import os
 
 ARCHIVE_DIR = pathlib.Path("/mnt/fuuu/ARCHIVED_DATA")
-ARCHIVE_LOG_PATH = ARCHIVE_DIR / "ARCHIVE_LOG.csv"
-DELETION_LOG_PATH = ARCHIVE_DIR / "MARKED_FOR_DELETION.csv"
+ARCHIVE_DB_PATH = ARCHIVE_DIR / "ARCHIVE_LOG.csv"
+DELETION_DB_PATH = ARCHIVE_DIR / "MARKED_FOR_DELETION.csv"
+LOG_DIR = ARCHIVE_DIR / "LOGS"
+
+
+def setup_logger(name: str):
+    logfile = os.path.join(LOG_DIR, "archive-cronjobs.log")
+
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False  # prevents duplicate logs if root logger configured
+
+    # Avoid adding multiple handlers if function is called twice
+    if not logger.handlers:
+        handler = TimedRotatingFileHandler(
+            logfile,
+            when="midnight",
+            interval=1,
+            utc=True,
+        )
+
+        # Format timestamps in UTC
+        formatter = logging.Formatter(
+            fmt="%(asctime)s %(name)s:%(lineno)d [%(levelname)s] %(message)s",
+            datefmt="%Y-%m-%dT%H:%M:%SZ"
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+        handler2 = logging.StreamHandler()
+        handler2.setFormatter(formatter)
+        logger.addHandler(handler2)
+    return logger
 
 
 class WrongComputerException(BaseException):
@@ -44,16 +78,16 @@ def _date_from_path(path: pathlib.Path) -> datetime:
     return date_obj
 
 def load_table() -> pandas.DataFrame | None:
-    if ARCHIVE_LOG_PATH.exists():
-        return pandas.read_csv(ARCHIVE_LOG_PATH)
+    if ARCHIVE_DB_PATH.exists():
+        return pandas.read_csv(ARCHIVE_DB_PATH)
     else:
         print("WARNING: No database CSV found!")
         return None
 
 
 def load_deletion_table() -> pandas.DataFrame | None:
-    if DELETION_LOG_PATH.exists():
-        return pandas.read_csv(DELETION_LOG_PATH)
+    if DELETION_DB_PATH.exists():
+        return pandas.read_csv(DELETION_DB_PATH)
     else:
         print("WARNING: No deletion CSV found!")
         return None
@@ -105,9 +139,9 @@ def check_for_new_folders(directory: pathlib.Path=ARCHIVE_DIR):
     dataframe = pandas.DataFrame(new_telemetry)
 
     if table is None:
-        dataframe.to_csv(ARCHIVE_LOG_PATH, mode="w", index=False)
+        dataframe.to_csv(ARCHIVE_DB_PATH, mode="w", index=False)
     else:
-        dataframe.to_csv(ARCHIVE_LOG_PATH, mode="a", index=False, header=False)
+        dataframe.to_csv(ARCHIVE_DB_PATH, mode="a", index=False, header=False)
 
     print("New folder(s) detected and added to archive log database")
     print(dataframe["scexao5_path"])
@@ -128,7 +162,7 @@ def get_checksums(filename):
 
 def crosscheck_scexao6_sdata(directory: pathlib.Path):
     # get fits files in that directory
-    fits_files = sorted((directory / "vgen2").glob("[vV]*.fits*"))
+    fits_files = sorted((directory / "vgen2").glob("[vV]*.fits.fz"))
     if len(fits_files) == 0:
         msg = f"Did not find any input FITS files in directory {directory}"
         raise ValueError(msg)
@@ -137,7 +171,7 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
     ## now go find the same folder on scexao6 in sdata
     # Run the command and capture output
     sc6_folder = pathlib.Path(f"/mnt/sdata/{directory.name}/ARCHIVED/vgen2")
-    sc6_files = [str(sc6_folder / fname) for fname in mapping.keys()]
+    # sc6_files = [str(sc6_folder / fname) for fname in mapping.keys()]
 
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -145,9 +179,7 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
         hostname="scexao6",
         username="scexao",
     )
-    # cmd = f"/home/scexao/miniforge3/bin/python /home/scexao/src/scxkw/scripts/fitschecksums {' '.join(sc6_files)}"
     cmd = f"/home/scexao/miniforge3/bin/python /home/scexao/src/scxkw/scripts/fitschecksums {sc6_folder}/V*.fits.fz"
-    print(cmd)
     print("Checking remote checksums (might take a while...)")
     stdin, stdout, stderr = client.exec_command(cmd)
     pbar = tqdm.tqdm(total=len(mapping), desc="Parsing remote checksums", leave=False)
@@ -185,6 +217,6 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
     timestamp = datetime.now(timezone.utc).now().strftime("%Y-%m-%dT%H:%M:%S")
     row = table["scexao5_path"] == str(directory.absolute())
     table.loc[row, ["safe_on_scexao6", "safe_timestamp"]] = True, timestamp
-    table.to_csv(ARCHIVE_LOG_PATH, index=False)
+    table.to_csv(ARCHIVE_DB_PATH, index=False)
     print("Archive log updated!")
 

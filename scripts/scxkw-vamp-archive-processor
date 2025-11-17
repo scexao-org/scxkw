@@ -2,6 +2,7 @@
 import os
 from scxkw.tools.vampires_archiving import WrongComputerException, load_table
 import libtmux
+import time
 
 def get_or_create_tmux_window(session_name: str):
     server = libtmux.Server()
@@ -10,15 +11,15 @@ def get_or_create_tmux_window(session_name: str):
     session = server.find_where({"session_name": session_name})
     if session is None:
         session = server.new_session(session_name=session_name, attach=False, kill_session=True)
-    
+
     # If no window name is given, return the attached (first) window
     return session.attached_window
-    
+
 def main():
     if os.environ.get("WHICHCOMP", "") != "5":
         msg = "This script must be run on scexao5"
         raise WrongComputerException(msg)
-    table = load_table()
+    table = load_table().sort_values("utc_date")
     sub_table = table.query("not processed")
 
     for _, row in sub_table.iterrows():
@@ -28,6 +29,9 @@ def main():
         window = get_or_create_tmux_window(session_name)
         pane = window.attached_pane
         pane.send_keys(f"scxkw-vamp-archive-folder {path}")
+        print("Waiting for process to finish before launching further processes.")
+        while pane.pane_current_command not in (None, "bash", "zsh", "sh"):
+            time.sleep(10)
 
 if __name__ == "__main__":
     main()
