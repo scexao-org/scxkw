@@ -3,11 +3,11 @@ import argparse
 import os
 import pathlib
 from scxkw.tools.vampires_processing import WrongComputerException
-from scxkw.tools.vampires_processing.archiving import load_table, crosscheck_scexao6_sdata, setup_logger
+from scxkw.tools.vampires_processing.processing import load_table, crosscheck_scexao6_sdata, setup_logger
 
 logger = setup_logger(__file__)
 
-parser = argparse.ArgumentParser("scxkw-vamp-archive-check-sc6-data")
+parser = argparse.ArgumentParser("scxkw-vamp-process-check-sc6-data")
 parser.add_argument("folder", type=pathlib.Path, nargs="*")
 
 def main():

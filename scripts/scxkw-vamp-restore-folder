@@ -2,9 +2,9 @@
 set -e # script exits if a command fails
 set -u # script exits if unset variable is used
 
-echo -e "================================"
-echo -e "VAMPIRES DATA ARCHIVING RECOVERY"
-echo -e "================================"
+echo -e "================================="
+echo -e "VAMPIRES DATA PROCESSING RECOVERY"
+echo -e "================================="
 
 
 # Check if a folder was provided

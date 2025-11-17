@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 import os
 from scxkw.tools.vampires_processing import WrongComputerException, get_or_create_tmux_window
-from scxkw.tools.vampires_processing.archiving import load_table, setup_logger
+from scxkw.tools.vampires_processing.processing import load_table, setup_logger
 import time
 
 logger = setup_logger(__file__)
@@ -16,11 +16,11 @@ def main():
 
     for _, row in sub_table.iterrows():
         path = row["scexao5_path"]
-        session_name = f"vamp-archive-{row['utc_date']}"
-        logger.info(f"Launching archive process for folder: {path} in tmux: {session_name}")
+        session_name = f"vamp-process-{row['utc_date']}"
+        logger.info(f"Launching processing process for folder: {path} in tmux: {session_name}")
         window = get_or_create_tmux_window(session_name)
         pane = window.attached_pane
-        pane.send_keys(f"scxkw-vamp-archive-folder {path}")
+        pane.send_keys(f"scxkw-vamp-process-folder {path}")
         logger.info("Waiting for process to finish before launching further processes.")
         while pane.pane_current_command not in (None, "bash", "zsh", "sh"):
             time.sleep(10)

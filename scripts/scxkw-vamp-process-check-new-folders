@@ -2,11 +2,11 @@
 import argparse
 import os
 from scxkw.tools.vampires_processing import WrongComputerException
-from scxkw.tools.vampires_processing.archiving import check_for_new_folders, setup_logger
+from scxkw.tools.vampires_processing.processing import check_for_new_folders, setup_logger
 
 logger = setup_logger(__file__)
 
-parser = argparse.ArgumentParser("scxkw-vamp-archive-check-new-folders")
+parser = argparse.ArgumentParser("scxkw-vamp-process-check-new-folders")
 
 def main():
     if os.environ.get("WHICHCOMP", "") != "5":

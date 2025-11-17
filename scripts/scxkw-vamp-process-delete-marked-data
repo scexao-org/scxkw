@@ -2,7 +2,7 @@
 import os
 import shutil
 from scxkw.tools.vampires_processing import WrongComputerException
-from scxkw.tools.vampires_processing.archiving import load_deletion_table, DELETION_DB_PATH, setup_logger
+from scxkw.tools.vampires_processing.processing import load_deletion_table, PROCESS_DELETION_DB_PATH, setup_logger
 from datetime import datetime
 import time
 
@@ -33,7 +33,7 @@ def main():
 
     if len(indices_to_drop) > 0:
         output_df = deletion_table.drop(indices_to_drop, axis=0)
-        output_df.to_csv(DELETION_DB_PATH, index=False)
+        output_df.to_csv(PROCESS_DELETION_DB_PATH, index=False)
         logger.info(f"{len(indices_to_drop)} entries removed from deletion database")
 
 if __name__ == "__main__":
