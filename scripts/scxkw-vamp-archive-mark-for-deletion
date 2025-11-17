@@ -8,12 +8,6 @@ import pandas as pd
 
 logger = setup_logger(__file__)
 
-def month_has_passed(ymd_timestamp: str) -> bool:
-    """Return True if at least one full month has passed since the given ISO timestamp."""
-    past = datetime.strptime(ymd_timestamp, "%Y-%m-%d").astimezone(timezone.utc)
-    now = datetime.now(past.tzinfo)  # preserve timezone if present
-    one_month_later = past + relativedelta(months=1)
-    return now >= one_month_later
 
 
 def main():

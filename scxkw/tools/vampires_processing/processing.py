@@ -4,10 +4,10 @@ import re
 import tqdm
 import paramiko
 from datetime import datetime, timezone
-from common import _setup_logger, empty_entry, _get_checksums
+from .common import _setup_logger, empty_entry, _get_checksums
 
 PROCESS_DIR = pathlib.Path("/mnt/fuuu/")
-PROCESS_DB_PATH = PROCESS_DIR / "PROCESS_LOG.csv"
+PROCESS_DB_PATH = PROCESS_DIR / "PROCESSING_LOG.csv"
 PROCESS_DELETION_DB_PATH = PROCESS_DIR / "MARKED_FOR_DELETION.csv"
 PROCESS_LOG_DIR = PROCESS_DIR / "LOGS"
 PROCESS_LOG_DIR.mkdir(exist_ok=True)

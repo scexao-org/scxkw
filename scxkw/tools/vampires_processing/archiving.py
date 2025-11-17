@@ -1,5 +1,5 @@
 import pathlib
-from common import _setup_logger, empty_entry, _get_checksums
+from .common import _setup_logger, empty_entry, _get_checksums
 import pandas
 import re
 import tqdm
