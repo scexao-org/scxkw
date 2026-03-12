@@ -80,7 +80,6 @@ def check_for_new_folders(directory: pathlib.Path=ARCHIVE_DIR):
 def get_checksums(*args, **kwargs):
     return _get_checksums(*args, logger=logger, **kwargs)
 
-
 def crosscheck_scexao6_sdata(directory: pathlib.Path):
     # get fits files in that directory
     fits_files = sorted((directory / "vgen2").glob("V*.fits.fz"))
@@ -89,7 +88,7 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
         logger.error(msg)
         raise ValueError(msg)
     pbar = tqdm.tqdm(fits_files, desc="Parsing local checksums")
-    mapping = {filename.name: get_checksums(filename) for filename in pbar}
+    mapping = {pathlib.Path(*filename.parts[-3:]): get_checksums(filename) for filename in pbar}
     ## now go find the same folder on scexao6 in sdata
     # Run the command and capture output
     sc6_folder = pathlib.Path(f"/mnt/sdata/{directory.name}/ARCHIVED/vgen2")
@@ -109,7 +108,7 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
     while line := stdout.readline().strip():
         pbar.update()
         tokens = line.split(",")
-        filename = tokens[0]
+        filename = pathlib.Path(directory.name) / "vgen2" / tokens[0]
         if filename not in mapping:
             msg = f"File found on scexao6 that isn't on scexao5: {filename}"
             pbar.write(msg)
