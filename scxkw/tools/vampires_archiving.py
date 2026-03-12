@@ -94,7 +94,7 @@ def load_table(archive: bool=True) -> pandas.DataFrame | None:
         return None
 
 
-def load_deletion_table() -> pandas.DataFrame | None:
+def load_deletion_table(archive: bool=True) -> pandas.DataFrame | None:
     path = DELETION_DB_PATH if archive else PROCESS_DELETION_DB_PATH
     logger = setup_logger(__file__, archive=archive)
     if path.exists():

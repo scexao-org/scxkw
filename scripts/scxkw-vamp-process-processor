@@ -19,7 +19,7 @@ def main():
         session_name = f"vamp-process-{row['utc_date']}"
         logger.info(f"Launching processing process for folder: {path} in tmux: {session_name}")
         window = get_or_create_tmux_window(session_name)
-        pane = window.attached_pane
+        pane = window.active_pane
         pane.send_keys(f"scxkw-vamp-process-folder {path}")
         logger.info("Waiting for process to finish before launching further processes.")
         while pane.pane_current_command not in (None, "bash", "zsh", "sh"):

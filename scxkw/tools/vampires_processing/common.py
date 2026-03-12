@@ -8,6 +8,7 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
 import libtmux
+from libtmux._internal.query_list import ObjectDoesNotExist
 
 ARCHIVE_DIR = pathlib.Path("/mnt/fuuu/ARCHIVED_DATA")
 ARCHIVE_DB_PATH = ARCHIVE_DIR / "ARCHIVE_LOG.csv"
@@ -115,9 +116,10 @@ def get_or_create_tmux_window(session_name: str):
     server = libtmux.Server()
 
     # Find or create the session
-    session = server.find_where({"session_name": session_name})
-    if session is None:
-        session = server.new_session(session_name=session_name, attach=False, kill_session=True)
+    try:
+        session = server.sessions.get(session_name=session_name)
+    except ObjectDoesNotExist:
+        session = server.new_session(session_name=session_name, attach=False)
 
     # If no window name is given, return the attached (first) window
-    return session.attached_window
+    return session.active_window

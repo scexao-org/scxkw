@@ -31,6 +31,7 @@ def main():
     if len(folders) == 0:
         logger.info("There are no unchecked folders on scexao5")
         return
+    bad_folders = []
     for folder in folders:
         logger.info(f"Cross-checking folder: {folder}")
         bad_files = crosscheck_scexao6_sdata(pathlib.Path(folder))
@@ -41,7 +42,11 @@ def main():
                 fh.write("\n".join(bad_files))
                 fh.write("\n")
             logger.info(f"Wrote a list of bad filenames to {filename.absolute()}")
+            bad_folders.append(folder)
 
+    if len(bad_folders) > 0:
+        logger.info(f"The following folders have missing or bad files:")
+        logger.info(", ".join(str(folder) for folder in bad_folders))
 
 if __name__ == "__main__":
     main()
