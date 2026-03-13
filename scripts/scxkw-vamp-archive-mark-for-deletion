@@ -2,6 +2,7 @@
 import os
 import pathlib
 from scxkw.tools.vampires_archiving import WrongComputerException, load_table, load_deletion_table, create_deletion_entry, DELETION_DB_PATH, setup_logger
+from scxkw.tools.vampires_processing.common import month_has_passed
 from datetime import datetime, timezone
 from dateutil.relativedelta import relativedelta
 import pandas as pd
