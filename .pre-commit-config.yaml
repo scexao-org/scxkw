@@ -1,12 +1,12 @@
 exclude: "^.github/"
 repos:
 -   repo: https://github.com/google/yapf.git
-    rev: v0.40.2
+    rev: v0.43.0
     hooks:
     -   id: yapf
         additional_dependencies: [toml]
 -   repo: https://github.com/pre-commit/pre-commit-hooks.git
-    rev: v4.1.0
+    rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
         exclude: \.fits
