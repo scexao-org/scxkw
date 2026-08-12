@@ -33,14 +33,17 @@ def main():
         return
     for folder in folders:
         logger.info(f"Cross-checking folder: {folder}")
-        bad_files = crosscheck_scexao6_sdata(pathlib.Path(folder))
-        if bad_files:
-            logger.warning("Bad files found!")
-            filename = pathlib.Path(folder) / "bad_sc6_files.txt"
-            with filename.open("w") as fh:
-                fh.write("\n".join(bad_files))
-                fh.write("\n")
-            logger.info(f"Wrote a list of bad filenames to {filename.absolute()}")
+        try:
+            bad_files = crosscheck_scexao6_sdata(pathlib.Path(folder))
+            if bad_files:
+                logger.warning("Bad files found!")
+                filename = pathlib.Path(folder) / "bad_sc6_files.txt"
+                with filename.open("w") as fh:
+                    fh.write("\n".join(bad_files))
+                    fh.write("\n")
+                logger.info(f"Wrote a list of bad filenames to {filename.absolute()}")
+        except Exception as e:
+            logger.error(f"Something went wrong checking {folder}", exc_info=e)
 
 
 if __name__ == "__main__":

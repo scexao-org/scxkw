@@ -63,46 +63,47 @@ def main():
     fobjs_framelists.sort(key=lambda fobj: fobj.get_start_unixtime_secs())
 
     set_needed_fits: set[str] = set()
-    dict_needed_fits2fitsframes: dict[str, set[str]] = {}
-    dict_needed_fitsframes2fits: dict[str, set[str]] = {}
+    # dict_needed_fits2fitsframes: dict[str, set[str]] = {}
+    # dict_needed_fitsframes2fits: dict[str, set[str]] = {}
 
     for fobj_fitsframes in fobjs_framelists:
         fobj_fitsframes._ensure_data_loaded()
-        needed_fits: set[str] = set(fobj_fitsframes.data[:,0])
+        # needed_fits: set[str] = set(fobj_fitsframes.data[:,0])
         # Maintain set of all needed fits files to consolidate.
-        set_needed_fits.update(needed_fits)
-        # Maintain dictionnary of forward and reverse relationship between fits and fitsframes
-        dict_needed_fitsframes2fits[str(fobj_fitsframes.full_filepath)] = needed_fits
-        for fits_fname in needed_fits:
-            if not fits_fname in dict_needed_fitsframes2fits:
-                dict_needed_fits2fitsframes[fits_fname] = set()
-            dict_needed_fits2fitsframes[fits_fname].add(str(fobj_fitsframes.full_filepath))
+        # set_needed_fits.update(needed_fits)
+        # # Maintain dictionnary of forward and reverse relationship between fits and fitsframes
+        # dict_needed_fitsframes2fits[str(fobj_fitsframes.full_filepath)] = needed_fits
+        # for fits_fname in needed_fits:
+        #     if not fits_fname in dict_needed_fits2fitsframes:
+        #         dict_needed_fits2fitsframes[fits_fname] = set()
+        #     dict_needed_fits2fitsframes[fits_fname].add(str(fobj_fitsframes.full_filepath))
+        set_needed_fits.update(set(fobj_fitsframes.data[:,0]))
 
     # Save time if we don't need to load all the set (little amount of .fitsframes remaining)
     fobjs_fits = [FitsFileObj(fullname=fname) for fname in set_needed_fits]
     fobjs_fits_dict = {str(fo.full_filepath): fo for fo in fobjs_fits}
 
-    # Find trivial files where the consolidation is actually just a move. OR we could hardlink?
-    fobjs_framelists_toremove: list[FrameListFitsFileObj] = []
-    for fobj_fitsframes in fobjs_framelists:
-        fpath_fitsframes = str(fobj_fitsframes.full_filepath)
-        set_fits_needed_for_fobj = dict_needed_fitsframes2fits[fpath_fitsframes]
-        if len(set_fits_needed_for_fobj) == 1:
-            fpath_fits = list(set_fits_needed_for_fobj)[0]
-            if len(dict_needed_fits2fitsframes[fpath_fits]) == 1:
-                this_fobj_fits = fobjs_fits_dict[fpath_fits]
-                if (fobj_fitsframes.get_nframes() == this_fobj_fits.get_nframes() and
-                    np.all(fobj_fitsframes.data[:,1] == np.arange(this_fobj_fits.get_nframes()))):
-                    logg.warning(f'Trivial duplicate found! '
-                              f'{fpath_fitsframes} and {fpath_fits}.')
-                    # Move the file - logically they have the same name so the .txt should be named ok
-                    this_fobj_fits.move_file_to_streamname(fobj_fitsframes.stream_from_foldername)
-                    fobj_fitsframes.disown_txt_file()
-                    fobj_fitsframes.delete_from_disk()
+    # # Find trivial files where the consolidation is actually just a move. OR we could hardlink?
+    # fobjs_framelists_toremove: list[FrameListFitsFileObj] = []
+    # for fobj_fitsframes in fobjs_framelists:
+    #     fpath_fitsframes = str(fobj_fitsframes.full_filepath)
+    #     set_fits_needed_for_fobj = dict_needed_fitsframes2fits[fpath_fitsframes]
+    #     if len(set_fits_needed_for_fobj) == 1:
+    #         fpath_fits = list(set_fits_needed_for_fobj)[0]
+    #         if len(dict_needed_fits2fitsframes[fpath_fits]) == 1:
+    #             this_fobj_fits = fobjs_fits_dict[fpath_fits]
+    #             if (fobj_fitsframes.get_nframes() == this_fobj_fits.get_nframes() and
+    #                 np.all(fobj_fitsframes.data[:,1] == np.arange(this_fobj_fits.get_nframes()))):
+    #                 logg.warning(f'Trivial duplicate found! '
+    #                           f'{fpath_fitsframes} and {fpath_fits}.')
+    #                 # Move the file - logically they have the same name so the .txt should be named ok
+    #                 this_fobj_fits.move_file_to_streamname(fobj_fitsframes.stream_from_foldername)
+    #                 fobj_fitsframes.disown_txt_file()
+    #                 fobj_fitsframes.delete_from_disk()
 
-                    fobjs_framelists_toremove.append(fobj_fitsframes)
+    #                 fobjs_framelists_toremove.append(fobj_fitsframes)
 
-    fobjs_framelists = [f for f in fobjs_framelists if (not f in fobjs_framelists_toremove)]
+    # fobjs_framelists = [f for f in fobjs_framelists if (not f in fobjs_framelists_toremove)]
 
     import multiprocessing # Using multiprocessing is a bit faster, and also keeps the RAM in check
     # But careful: files may appear in timely disorder

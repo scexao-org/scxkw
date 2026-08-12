@@ -140,7 +140,7 @@ if [ "$DEBUG" != "1" ]; then
     echo -e "\n--------------------------------------------------" | tee -a "${logfile}"
     echo -e "Syncing to scexao6\n" | tee -a "${logfile}"
 
-    rsync -arxuh --progress -e "ssh -T -c aes128-ctr -o Compression=no -o ConnectTimeout=10 -x" --exclude=lost+found --exclude=vcam* "$folder" sc6l:/mnt/tier1/2_ARCHIVED_DATA/ | tee -a "${logfile}"
+    rsync -arxuh --progress -e "ssh -T -c aes128-ctr -o Compression=no -o ConnectTimeout=10 -x" --exclude=lost+found --exclude=vcam*/ "$folder" sc6l:/mnt/tier1/2_ARCHIVED_DATA/ | tee -a "${logfile}"
 
     ## update archive file, again, that data has been transferred
     timestamp_utc=$(date -u +"%Y-%m-%dT%H:%M:%S")

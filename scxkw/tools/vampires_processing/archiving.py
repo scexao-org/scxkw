@@ -123,7 +123,7 @@ def crosscheck_scexao6_sdata(directory: pathlib.Path):
     if len(mapping) > 0:
         msg = "Files found on scexao5 that weren't found on scexao6"
         logger.warning(msg)
-        logger.info("\n".join(mapping.keys()))
+        logger.info("\n".join(str(k) for k in mapping.keys()))
         bad_files.extend(mapping.keys())
 
     if len(bad_files) > 0:

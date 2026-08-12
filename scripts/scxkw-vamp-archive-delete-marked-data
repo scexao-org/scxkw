@@ -23,12 +23,13 @@ def main():
         now = datetime.now(deletion_time.tzinfo)
         if now > deletion_time:
             path = row["scexao5_path"]
-            logger.info(f"!!! DELETING !!! - {path}")
-            delay_time = 10 # seconds
-            print(f"Waiting {delay_time}s ... CTRL-C now to avoid deletion!")
-            time.sleep(delay_time)
-            shutil.rmtree(path)
-            logger.info(f"{path} deleted")
+            if os.path.exists(path):
+                logger.info(f"!!! DELETING !!! - {path}")
+                delay_time = 10 # seconds
+                print(f"Waiting {delay_time}s ... CTRL-C now to avoid deletion!")
+                time.sleep(delay_time)
+                shutil.rmtree(path)
+                logger.info(f"{path} deleted")
             indices_to_drop.append(idx)
 
     if len(indices_to_drop) > 0:

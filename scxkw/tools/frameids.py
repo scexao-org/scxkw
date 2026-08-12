@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 from astropy.io import fits
 import re
+import tqdm.auto as tqdm
 
 
 def get_fits_info(filenames):
@@ -12,22 +13,25 @@ def get_fits_info(filenames):
     - Uses ext=1 if file ends with .fits.fz
     """
     data = []
-    for f in filenames:
+    pbar = tqdm.tqdm(filenames, desc="Getting FRAMEIDs")
+    for f in pbar:
         if f.suffix == ".fits":
             ext = 0
         elif f.suffix == ".fz":
             ext = 1
         else:
-            print(f"Skipping {f}: unknown file type")
+            pbar.write(f"Skipping {f}: unknown file type")
             continue
 
-        with fits.open(f) as hdul:
-            ut = hdul[ext].header.get("UT")
-            frameid = hdul[ext].header.get("FRAMEID")
-            if ut is None or frameid is None:
-                print(f"Warning: {f} missing UT or FRAMEID header")
-                continue
-            data.append({"filename": f.resolve(), "ut": ut, "frameid": frameid})
+        header = fits.getheader(f, ext=ext)
+        date = header.get("DATE-OBS", None)
+        ut = header.get("UT", None)
+        frameid = header.get("FRAMEID", None)
+        if date is None or ut is None or frameid is None:
+            pbar.write(f"Warning: {f} missing UT or FRAMEID header")
+            continue
+        isot = f"{date}T{ut}"
+        data.append({"filename": f.resolve(), "ut": isot, "frameid": frameid})
 
     df = pd.DataFrame(data)
     return df
@@ -49,19 +53,13 @@ def assign_new_frameids(df):
     Returns a copy of the DataFrame with a new 'new_frameid' column.
     """
     df_copy = df.copy()
-    df_copy["ut"] = pd.to_datetime(df_copy["ut"])
-    df_copy["frame_num"] = df_copy["frameid"].apply(extract_frame_number)
-    min_num = df_copy["frame_num"].min()
+    frameids = df_copy["frameid"].values
 
-    # Sort by numeric part
-    df_copy = df_copy.sort_values("frame_num").reset_index(drop=True)
+    # Sort by date, and for synchronized data let the original frameid be the tiebreaker
+    df_copy = df_copy.sort_values(["ut", "frameid"]).reset_index(drop=True)
 
     # Assign new numbers sequentially starting from min_num
-    new_nums = range(min_num, min_num + len(df_copy))
-    # Preserve prefix and zero-padding
-    prefix = re.match(r"^\D+", df_copy["frameid"].iloc[0]).group(0)
-    width = len(re.search(r"\d+", df_copy["frameid"].iloc[0]).group(0))
-    df_copy["new_frameid"] = [f"{prefix}{num:0{width}d}" for num in new_nums]
+    df_copy["new_frameid"] = [frameids[idx] for idx in range(len(df_copy))]
 
     return df_copy
 
