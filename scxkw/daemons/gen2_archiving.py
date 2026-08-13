@@ -25,20 +25,24 @@ from astropy.io import fits
 import shutil
 
 
-def gen2_getframeids(g2proxy_scx, g2proxy_vmp, code: str, nfrmids: int) -> typ.List[str]:
+def gen2_getframeids(g2proxy_scx, g2proxy_vmp, g2proxy_fpl, code: str, nfrmids: int) -> typ.List[str]:
     '''
         Utility function - get <nfrmids> frameIDs from gen2 for 1 given <camcode> ('SCXB', 'SCXC', 'VMPA', etc)
     '''
 
     # want to allocate some frames.
     assert len(code) == 4
-    inst_code = code[:3]
-    cam_code = code[3]
-    inst = {'SCX': 'SCEXAO', 'VMP': 'VAMPIRES'}[inst_code]
-    g2proxy = {'SCX': g2proxy_scx, 'VMP': g2proxy_vmp}[inst_code]
+    # code == FPLA
+    inst_code = code[:3]  # FPL
+    cam_code = code[3] # A
+    inst = {'SCX': 'SCEXAO', 'VMP': 'VAMPIRES', 'FPL': 'FIRSTPL'}[inst_code]
+    g2proxy = {'SCX': g2proxy_scx, 'VMP': g2proxy_vmp, 'FPL': g2proxy_fpl}[inst_code]
 
     g2proxy.executeCmd(inst, 'foo', 'get_frames', cam_code,
                        {'num': nfrmids})
+
+    # g2proxy.executeCmd(i'FPL', 'foo', 'get_frames', 'A', {'num': 81}),
+    
 
     # frames will be stored one per line in /tmp/frames.txt
     # We need to wait for gen2 to push the file
@@ -403,7 +407,8 @@ def get_ids_count_files(fobj_list: typ.List[FitsFileObj]) -> typ.Dict[str, int]:
     return per_id_count
 
 def archive_monitor_get_ids(scx_proxy: ro.remoteObjectProxy,
-                            vmp_proxy: ro.remoteObjectProxy):
+                            vmp_proxy: ro.remoteObjectProxy,
+                            fpl_proxy: ro.remoteObjectProxy):
     '''
         Macro function: watches for *.fits files in GEN2_NODELETE and get a frameID for them
     '''
@@ -418,11 +423,12 @@ def archive_monitor_get_ids(scx_proxy: ro.remoteObjectProxy,
     assert all([not f.is_archived for f in fobj_list])
     assert all([not f.is_compressed for f in fobj_list])
 
-    batch_assign_ids_and_rename(scx_proxy, vmp_proxy, fobj_list)
+    batch_assign_ids_and_rename(scx_proxy, vmp_proxy, fpl_proxy, fobj_list)
 
 
 def batch_assign_ids_and_rename(scx_proxy: ro.remoteObjectProxy,
                                 vmp_proxy: ro.remoteObjectProxy,
+                                fpl_proxy: ro.remoteObjectProxy,
                                 fobj_list: typ.List[FitsFileObj]) -> None:
     
     assert all([not f.is_archived for f in fobj_list])
@@ -437,7 +443,7 @@ def batch_assign_ids_and_rename(scx_proxy: ro.remoteObjectProxy,
     # Request file_ids
     for id_letter in per_id_count:
         if per_id_count[id_letter] > 0:
-            frame_ids[id_letter] = gen2_getframeids(scx_proxy, vmp_proxy, id_letter,
+            frame_ids[id_letter] = gen2_getframeids(scx_proxy, vmp_proxy, fpl_proxy, id_letter,
                                                     per_id_count[id_letter])
 
     pbar = tqdm(fobj_list)

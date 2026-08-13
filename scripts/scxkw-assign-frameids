@@ -4,8 +4,8 @@ Assign frameIDs to a given DATE or FOLDER
 if DATE is all, patrol all of ARCHIVED_DATA
 
 Usage:
-    scxkw-assign-frameids <DATE> [-a] [-v]
-    scxkw-assign-frameids -f <FOLDER> [-a] [-v]
+    scxkw-assign-frameids <DATE> [-a] [-v] [-p]
+    scxkw-assign-frameids -f <FOLDER> [-a] [-v] [-p]
 
 Options: 
     -v      do vampires (vgen2)
@@ -65,7 +65,9 @@ if __name__ == "__main__":
         unglobs += [str(dateFolderPath / 'vgen2' / 'VMP*.fits')]
     if DO_FIRST:
         globs += [str(dateFolderPath / 'firstpl' / '*.fits')]
+        globs += [str(dateFolderPath / 'orcam' / '*.fits')]
         unglobs += [str(dateFolderPath / 'firstpl' / 'FPL*.fits')]
+        unglobs += [str(dateFolderPath / 'orcam' / 'FPL*.fits')]
 
     print(dateFolderPath)
     print(globs)
@@ -79,4 +81,4 @@ if __name__ == "__main__":
     proxy_obj_vmp = ro.remoteObjectProxy('VAMPIRES')    
     proxy_obj_fpl = ro.remoteObjectProxy('FIRSTPL')    
 
-    batch_assign_ids_and_rename(proxy_obj_scx, proxy_obj_vmp, fobjs)
+    batch_assign_ids_and_rename(proxy_obj_scx, proxy_obj_vmp, proxy_obj_fpl, fobjs)

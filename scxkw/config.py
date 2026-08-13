@@ -54,6 +54,10 @@ elif os.environ.get("WHICHCOMP", "") == "6":
     GEN2PATH_PRELIM = "/mnt/tier1/PRE_ARCHIVE_DATA/"  # <- ARCHIVE in here
     GEN2PATH_NODELETE = "/mnt/tier1/ARCHIVED_DATA/"  # <- after sync and deinterleave
     GEN2PATH_OKDELETE = "/mnt/tier1/2_ARCHIVED_DATA/"  # <- after frameIDs and fpack, etc.
+elif os.environ.get("WHICHCOMP", "") == "K":
+    GEN2PATH_PRELIM = ""  # <- ARCHIVE in here
+    GEN2PATH_NODELETE = ""  # <- after sync and deinterleave
+    GEN2PATH_OKDELETE = ""  # <- after frameIDs and fpack, etc.
 
 # streamname: archive letter mapping
 CAMIDS = {
@@ -67,6 +71,8 @@ CAMIDS = {
     #"vcam1": "V", # Vampires
     "vgen2": "VMPA",
     "vgen2": "VMPA",
+    "orcam": "FPLA",
+    "firstpl": "FPLA",
 }
 
 
