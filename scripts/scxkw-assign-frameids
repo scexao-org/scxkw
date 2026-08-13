@@ -10,6 +10,7 @@ Usage:
 Options: 
     -v      do vampires (vgen2)
     -a      do fastPDI / CRED1 imaging (agen2)
+    -p      do FIRST 
 '''
 
 import typing as typ
@@ -33,6 +34,7 @@ if __name__ == "__main__":
 
     DO_VAMP = args['-v']
     DO_APAPANE = args['-a']
+    DO_FIRST = args['-p']
 
 
     FOLDER = args['<FOLDER>']
@@ -61,6 +63,9 @@ if __name__ == "__main__":
     if DO_VAMP:
         globs += [str(dateFolderPath / 'vgen2' / '*.fits')]
         unglobs += [str(dateFolderPath / 'vgen2' / 'VMP*.fits')]
+    if DO_FIRST:
+        globs += [str(dateFolderPath / 'firstpl' / '*.fits')]
+        unglobs += [str(dateFolderPath / 'firstpl' / 'FPL*.fits')]
 
     print(dateFolderPath)
     print(globs)
@@ -72,5 +77,6 @@ if __name__ == "__main__":
     ro.init([GEN2HOST])
     proxy_obj_scx = ro.remoteObjectProxy('SCEXAO')
     proxy_obj_vmp = ro.remoteObjectProxy('VAMPIRES')    
+    proxy_obj_fpl = ro.remoteObjectProxy('FIRSTPL')    
 
     batch_assign_ids_and_rename(proxy_obj_scx, proxy_obj_vmp, fobjs)

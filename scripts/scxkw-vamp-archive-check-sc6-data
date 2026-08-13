@@ -39,7 +39,7 @@ def main():
             logger.warning("Bad files found!")
             filename = pathlib.Path(folder) / "bad_sc6_files.txt"
             with filename.open("w") as fh:
-                fh.write("\n".join(bad_files))
+                fh.write("\n".join(str(f) for f in bad_files))
                 fh.write("\n")
             logger.info(f"Wrote a list of bad filenames to {filename.absolute()}")
             bad_folders.append(folder)
